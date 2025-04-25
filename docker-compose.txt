@@ -1,0 +1,3 @@
+przejrzeć zasade działania dockera
+
+.env 
