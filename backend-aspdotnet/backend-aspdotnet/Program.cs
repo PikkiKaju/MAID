@@ -13,7 +13,15 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddHttpClient<PythonConectService>();
 builder.Services.AddSingleton<AuthService>();
 
-
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 // JWT Authentication setup
 var jwtKey = builder.Configuration["Jwt:Key"];

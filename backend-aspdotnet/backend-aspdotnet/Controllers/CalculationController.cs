@@ -6,12 +6,12 @@ using Microsoft.AspNetCore.Mvc;
 namespace backend_aspdotnet.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class CalculationController : ControllerBase
     {
 
         [HttpPost("results")]
-        public IActionResult ReceiveResults([FromBody] ResultDto result)
+        public IActionResult ReceiveResults([FromBody] LoginDto result)
         {
             // recuve python results
             return Ok();
