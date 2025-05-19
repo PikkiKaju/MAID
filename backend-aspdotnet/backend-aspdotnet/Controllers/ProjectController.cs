@@ -2,5 +2,12 @@
 {
     public class ProjectController
     {
+        // set baza
+        // set data
+        // set nazwa
+        // set funcja
+
+
+        
     }
 }

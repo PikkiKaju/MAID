@@ -43,7 +43,7 @@ var app = builder.Build();
 app.Use(async (context, next) =>
 {
     var localPort = context.Connection.LocalPort;
-    if (context.Request.Path.StartsWithSegments("/calculation") && localPort != 5050)
+    if (context.Request.Path.StartsWithSegments("/api/calculation") && localPort != 5050)
     {
         context.Response.StatusCode = 403;
         await context.Response.WriteAsync("This API is not available.");

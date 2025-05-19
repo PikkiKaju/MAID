@@ -24,6 +24,8 @@ namespace backend_aspdotnet.Controllers
                 return Unauthorized("Invalid username or password.");
 
             var token = _authService.GenerateJwt(user);
+            MongoDriver e = new MongoDriver();
+            e.InsertSampleDocument();
             return Ok(new { token });
         }
 
