@@ -2,8 +2,9 @@
   "ExpandedNodes": [
     "",
     "\\backend-aspdotnet",
-    "\\backend-aspdotnet\\backend-aspdotnet"
+    "\\backend-aspdotnet\\Controllers",
+    "\\backend-aspdotnet\\Database"
   ],
-  "SelectedNode": "\\backend-aspdotnet\\backend-aspdotnet.sln",
+  "SelectedNode": "\\backend-aspdotnet\\Database\\AppDbContext.cs",
   "PreviewInSolutionExplorer": false
 }

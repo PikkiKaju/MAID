@@ -1,7 +1,11 @@
+using backend_aspdotnet.Database;
 using backend_aspdotnet.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
+using Npgsql.EntityFrameworkCore.PostgreSQL;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,7 +16,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddHttpClient<PythonConectService>();
 builder.Services.AddSingleton<AuthService>();
-
+builder.Services.AddSingleton<ElementDBConterxt>();
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -36,6 +40,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
     });
+var postgresConnectionString = builder.Configuration.GetValue<string>("PostgreSQL:ConnectionString");
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(postgresConnectionString));
+
 
 var app = builder.Build();
 
