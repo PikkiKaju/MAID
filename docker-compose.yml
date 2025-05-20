@@ -5,6 +5,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5000:8080"
+    networks:
+      - maid-net
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - MongoDB__ConnectionString=mongodb://mongo:27017
@@ -14,9 +16,26 @@ services:
       - mongo
       - postgres
 
- ## python-service:
-  ##  build:
-  ##    context: ./python-service
+  django:
+      build:
+        context: ./backend-django
+        dockerfile: Dockerfile
+      container_name: django
+      ports:
+        - "8000:8000"
+      networks:
+        - maid-net
+      volumes:
+        - ./backend-django:/app
+      environment:
+        - DEBUG=1
+        - DJANGO_ALLOWED_HOSTS=*
+        - DJANGO_SETTINGS_MODULE=config.settings
+        - DATABASE_URL=postgres://postgres:postgres@postgres:5432/mydb
+
+
+
+
 
   mongo:
     image: mongo:6
@@ -26,11 +45,16 @@ services:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
+    networks:
+      - maid-net 
+     
 
   postgres:
     image: postgres:16
     container_name: postgres
     restart: always
+    networks:
+      - maid-net 
     environment:
       POSTGRES_DB: mydb
       POSTGRES_USER: postgres
@@ -43,3 +67,7 @@ services:
 volumes:
   mongo-data:
   postgres-data:
+
+networks:
+  maid-net:
+   driver: bridge

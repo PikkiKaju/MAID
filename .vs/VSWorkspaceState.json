@@ -3,7 +3,10 @@
     "",
     "\\backend-aspdotnet",
     "\\backend-aspdotnet\\Controllers",
-    "\\backend-aspdotnet\\Database"
+    "\\backend-aspdotnet\\Database",
+    "\\backend-django\\config",
+    "\\backend-django\\config\\config",
+    "\\backend-django\\regressor"
   ],
   "SelectedNode": "\\backend-aspdotnet\\Database\\AppDbContext.cs",
   "PreviewInSolutionExplorer": false

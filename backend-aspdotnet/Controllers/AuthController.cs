@@ -43,8 +43,7 @@ namespace backend_aspdotnet.Controllers
                 Id = Guid.NewGuid(),
                 Username = dto.Username,
                 Email = dto.Email,
-                Password = _authService.HashPassword(dto.Password),
-                CreatedAt = DateTime.UtcNow
+                Password = _authService.HashPassword(dto.Password)
             };
 
             _context.Users.Add(user);

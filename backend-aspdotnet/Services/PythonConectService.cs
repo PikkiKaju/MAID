@@ -14,26 +14,29 @@ namespace backend_aspdotnet.Services
         {
             _httpClient = new HttpClient
             {
-                BaseAddress = new Uri("http://fastapi-app:8000"),
+                BaseAddress = new Uri("http://django-app:8000"),
                 Timeout = TimeSpan.FromSeconds(30)
             };
         }
 
-        public async Task<string?> SendDataAsync(object data)
+        public async Task<string?> SendDataAsync(object data, string algorithm)
         {
             try
             {
                 var json = JsonSerializer.Serialize(data);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.PostAsync("/calculate", content);
+                // Build endpoint based on algorithm, e.g., /linear/, /ridge/, etc.
+                string endpoint = $"/{algorithm.ToLowerInvariant().Replace(" ", "-")}/";
+
+                var response = await _httpClient.PostAsync(endpoint, content);
                 response.EnsureSuccessStatusCode();
 
                 return await response.Content.ReadAsStringAsync();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error calling FastAPI: {ex.Message}");
+                Console.WriteLine($"Error calling Django at /{algorithm}/: {ex.Message}");
                 return null;
             }
         }

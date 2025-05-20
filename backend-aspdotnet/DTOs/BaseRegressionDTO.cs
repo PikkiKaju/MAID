@@ -2,6 +2,8 @@
 {
     public class BaseRegressionDTO
     {
-        public required string DatasetID { get; set; }
+        public required List<double> X { get; set; }
+        public required List<double> Y { get; set; }
+        public required string Algorithm { get; set; }
     }
 }
