@@ -10,7 +10,7 @@ namespace backend_aspdotnet.Database
         public ElementDBConterxt(IConfiguration configuration)
         {
             _configuration = configuration;
-            string conectionString = _configuration.GetConnectionString("DeafultConnection")!;
+            string conectionString = _configuration.GetConnectionString("DefaultConnection")!;
             string databaseName = _configuration.GetSection("MongoDB:DatabaseName").Value!;
             var client = new MongoClient(conectionString);
             _database = client.GetDatabase(databaseName);

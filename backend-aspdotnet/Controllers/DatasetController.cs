@@ -34,9 +34,12 @@ namespace backend_aspdotnet.Controllers
                 return BadRequest("No file uploaded.");
 
             // user exists
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId))
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdString))
                 return Unauthorized("User ID not found in token.");
+
+            if (!Guid.TryParse(userIdString, out Guid userId))
+                return Unauthorized("Invalid user ID format.");
 
             var fileName = Path.GetFileNameWithoutExtension(file.FileName);
 
@@ -108,7 +111,12 @@ namespace backend_aspdotnet.Controllers
         [HttpGet("list")]
         public async Task<IActionResult> GetUserDatasets()
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdString))
+                return Unauthorized("User ID not found in token.");
+
+            if (!Guid.TryParse(userIdString, out Guid userId))
+                return Unauthorized("Invalid user ID format.");
             var datasets = await _postgresDb.Datasets
                 .Where(d => d.UserId == userId)
                 .Select(d => new { d.Id, d.Name, d.CreatedAt })
@@ -122,9 +130,12 @@ namespace backend_aspdotnet.Controllers
         public async Task<IActionResult> DeleteDataset(Guid id)
         {
             // Get user ID from JWT
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId))
-                return Unauthorized("User ID not found.");
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdString))
+                return Unauthorized("User ID not found in token.");
+
+            if (!Guid.TryParse(userIdString, out Guid userId))
+                return Unauthorized("Invalid user ID format.");
 
             // Find dataset by ID and check ownership
             var dataset = await _postgresDb.Datasets

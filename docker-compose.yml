@@ -13,8 +13,10 @@ services:
       - MongoDB__DatabaseName=mydb
       - PostgreSQL__ConnectionString=Host=postgres;Database=mydb;Username=postgres;Password=postgres
     depends_on:
-      - mongo
-      - postgres
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
 
   django:
       build:
@@ -31,7 +33,7 @@ services:
         - DEBUG=1
         - DJANGO_ALLOWED_HOSTS=*
         - DJANGO_SETTINGS_MODULE=config.settings
-        - DATABASE_URL=postgres://postgres:postgres@postgres:5432/mydb
+
 
 
 
@@ -47,12 +49,26 @@ services:
       - mongo-data:/data/db
     networks:
       - maid-net 
+
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 7
+
      
 
   postgres:
     image: postgres:16
     container_name: postgres
     restart: always
+
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 7
+
     networks:
       - maid-net 
     environment:

@@ -9,7 +9,13 @@ using backend_aspdotnet.Models;
 using System.Collections.Generic;
 using MongoDB.Driver;
 using System.Data;
+using MongoDB.Bson;
 
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
+using MongoDB.Bson;
+
+BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +23,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
 
 builder.Services.AddHttpClient<PythonConectService>();
 builder.Services.AddSingleton<AuthService>();
@@ -77,6 +84,7 @@ else
 {
     app.UseHttpsRedirection();
 }
+
 
 using (var scope = app.Services.CreateScope())
 {

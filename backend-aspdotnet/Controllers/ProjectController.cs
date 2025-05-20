@@ -31,8 +31,14 @@ namespace backend_aspdotnet.Controllers
             [HttpGet]
             public async Task<IActionResult> GetAll()
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var projects = await _context.Projects
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdString))
+                return Unauthorized("User ID not found in token.");
+
+            if (!Guid.TryParse(userIdString, out Guid userId))
+                return Unauthorized("Invalid user ID format.");
+
+            var projects = await _context.Projects
                     .Where(p => p.UserId == userId)
                     .ToListAsync();
                 return Ok(projects);
@@ -40,9 +46,14 @@ namespace backend_aspdotnet.Controllers
             [HttpPost]
             public async Task<IActionResult> Create([FromBody] CreateProjectDto dto)
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdString))
+                return Unauthorized("User ID not found in token.");
 
-                if (string.IsNullOrWhiteSpace(dto.Name))
+            if (!Guid.TryParse(userIdString, out Guid userId))
+                return Unauthorized("Invalid user ID format.");
+
+            if (string.IsNullOrWhiteSpace(dto.Name))
                     return BadRequest("Project name is required.");
 
                 var exists = await _context.Projects.AnyAsync(p => p.UserId == userId && p.Name == dto.Name);
@@ -80,9 +91,14 @@ namespace backend_aspdotnet.Controllers
             [HttpPut("{id}/details")]
             public async Task<IActionResult> UpdateDetails(Guid id, [FromBody] UpdateProjectDetailsDto dto)
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdString))
+                return Unauthorized("User ID not found in token.");
 
-                var projectMeta = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+            if (!Guid.TryParse(userIdString, out Guid userId))
+                return Unauthorized("Invalid user ID format.");
+
+            var projectMeta = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
                 if (projectMeta == null) return NotFound("Project not found.");
 
                 var filter = Builders<ProjectDetails>.Filter.Eq(p => p.Id, id);
@@ -104,9 +120,14 @@ namespace backend_aspdotnet.Controllers
             [HttpPut("{id}/dataset")]
             public async Task<IActionResult> UpdateDataset(Guid id, [FromBody] Guid newDatasetId)
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdString))
+                return Unauthorized("User ID not found in token.");
 
-                var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+            if (!Guid.TryParse(userIdString, out Guid userId))
+                return Unauthorized("Invalid user ID format.");
+
+            var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
                 if (project == null) return NotFound("Project not found.");
 
                 project.DatasetId = newDatasetId;
@@ -119,9 +140,14 @@ namespace backend_aspdotnet.Controllers
             [HttpDelete("{id}")]
             public async Task<IActionResult> Delete(Guid id)
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdString))
+                return Unauthorized("User ID not found in token.");
 
-                var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+            if (!Guid.TryParse(userIdString, out Guid userId))
+                return Unauthorized("Invalid user ID format.");
+
+            var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
                 if (project == null) return NotFound();
 
                 _context.Projects.Remove(project);
@@ -134,9 +160,14 @@ namespace backend_aspdotnet.Controllers
             [HttpGet("{id}")]
             public async Task<IActionResult> GetProject(Guid id)
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdString))
+                return Unauthorized("User ID not found in token.");
 
-                var meta = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+            if (!Guid.TryParse(userIdString, out Guid userId))
+                return Unauthorized("Invalid user ID format.");
+
+            var meta = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
                 if (meta == null) return NotFound();
 
                 var detail = await _mongo.ProjectDetails.Find(p => p.Id == id).FirstOrDefaultAsync();
