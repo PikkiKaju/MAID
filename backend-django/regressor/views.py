@@ -13,7 +13,9 @@ from .services import (
 )
 
 class LinearRegressionView(APIView):
-    def post(self, request): return Response(linear_regression(request.data))
+    def post(self, request): 
+        print("Received data:", request.data)
+        return Response(linear_regression(request.data))
 
 class PolynomialRegressionView(APIView):
     def post(self, request): return Response(polynomial_regression(request.data))

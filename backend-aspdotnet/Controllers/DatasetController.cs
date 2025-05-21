@@ -25,6 +25,7 @@ namespace backend_aspdotnet.Controllers
         }
 
         [Authorize]
+        [ApiExplorerSettings(IgnoreApi = true)]
         [HttpPost("upload-csv")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> UploadCsv([FromForm] IFormFile file)
@@ -117,6 +118,7 @@ namespace backend_aspdotnet.Controllers
 
             if (!Guid.TryParse(userIdString, out Guid userId))
                 return Unauthorized("Invalid user ID format.");
+
             var datasets = await _postgresDb.Datasets
                 .Where(d => d.UserId == userId)
                 .Select(d => new { d.Id, d.Name, d.CreatedAt })

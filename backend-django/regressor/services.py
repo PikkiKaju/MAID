@@ -39,7 +39,11 @@ def create_plot_and_predict(model, X, y, predict):
 
 
 # Regression Models
-def linear_regression(data): return create_plot_and_predict(LinearRegression(), **data)
+def linear_regression(data):
+    X = np.array([[1], [2], [3]])
+    y = np.array([2, 4, 6])
+    predict = np.array([[10], [15]])
+    return create_plot_and_predict(LinearRegression(), X=X, y=y, predict=predict)
 def polynomial_regression(data): return create_plot_and_predict(make_pipeline(PolynomialFeatures(data.get("degree", 2)), LinearRegression()), **data)
 def ridge_regression(data): return create_plot_and_predict(Ridge(), **data)
 def lasso_regression(data): return create_plot_and_predict(Lasso(), **data)

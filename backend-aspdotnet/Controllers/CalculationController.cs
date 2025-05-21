@@ -5,26 +5,38 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 using System.Globalization;
+using System.Security.Claims;
 using System.Text.Json;
 
 namespace backend_aspdotnet.Controllers
 {
+    public class RegressionInput
+    {
+        public List<List<double>> X { get; set; }  // changed
+        public List<double> y { get; set; }
+        public List<double> predict { get; set; }
+    }
+
+
+
     [ApiController]
     [Route("api/[controller]")]
     public class CalculationController : ControllerBase
     {
 
         [Authorize]
-        [HttpPost("linear")]
+        [HttpPost("start")]
         public async Task<IActionResult> LinearRegression([FromBody] Guid projectId, [FromServices] AppDbContext db, [FromServices] ElementDBConterxt mongoDb)
         {
-            var userId = User.FindFirst("id")?.Value;
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdString))
+                return Unauthorized("User ID not found in token.");
 
-            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
-                return Unauthorized("Invalid user ID");
+            if (!Guid.TryParse(userIdString, out Guid userId))
+                return Unauthorized("Invalid user ID format.");
 
             // Get project from Postgres
-            var project = db.Projects.FirstOrDefault(p => p.Id == projectId && p.UserId == userGuid);
+            var project = db.Projects.FirstOrDefault(p => p.Id == projectId && p.UserId == userId);
             if (project == null)
                 return NotFound("Project not found or not authorized");
 
@@ -52,13 +64,16 @@ namespace backend_aspdotnet.Controllers
 
 
 
-            var input = new BaseRegressionDTO
+            var reshapedX = xValues.Select(x => new List<double> { x }).ToList();
+
+            var input = new RegressionInput
             {
-                X = xValues,
-                Y = yValues,
-                Algorithm = projectDetails.Algorithm,
- 
+                X = reshapedX, // List<List<double>>
+                y = yValues,
+                predict = new List<double> { 10, 15 }
             };
+
+            Console.WriteLine(input.ToString());    
 
             var pythonService = new PythonConectService();
             var responseJson = await pythonService.SendDataAsync(input, projectDetails.Algorithm);

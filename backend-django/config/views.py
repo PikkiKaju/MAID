@@ -1,5 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+import pprint
 from .services import (
     linear_regression,
     polynomial_regression,
@@ -18,6 +19,7 @@ from .services import (
 
 class LinearRegressionView(APIView):
     def post(self, request):
+        print("Received data:", request.data)
         return Response(linear_regression(request.data))
 
 class PolynomialRegressionView(APIView):

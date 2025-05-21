@@ -14,7 +14,7 @@ namespace backend_aspdotnet.Services
         {
             _httpClient = new HttpClient
             {
-                BaseAddress = new Uri("http://django-app:8000"),
+                BaseAddress = new Uri("http://django:8000"),
                 Timeout = TimeSpan.FromSeconds(30)
             };
         }
@@ -29,7 +29,7 @@ namespace backend_aspdotnet.Services
                 // Build endpoint based on algorithm, e.g., /linear/, /ridge/, etc.
                 string endpoint = $"/{algorithm.ToLowerInvariant().Replace(" ", "-")}/";
 
-                var response = await _httpClient.PostAsync(endpoint, content);
+                var response = await _httpClient.PostAsJsonAsync("api"+endpoint, content);
                 response.EnsureSuccessStatusCode();
 
                 return await response.Content.ReadAsStringAsync();
