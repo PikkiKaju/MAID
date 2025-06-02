@@ -1,0 +1,89 @@
+services:
+  backend:
+    build:
+      context: ./backend-aspdotnet
+      dockerfile: Dockerfile
+    ports:
+      - "5000:8080"
+    networks:
+      - maid-net
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - MongoDB__ConnectionString=mongodb://mongo:27017
+      - MongoDB__DatabaseName=mydb
+      - PostgreSQL__ConnectionString=Host=postgres;Database=mydb;Username=postgres;Password=postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+
+  django:
+      build:
+        context: ./backend-django
+        dockerfile: Dockerfile
+      container_name: django
+      ports:
+        - "8000:8000"
+      networks:
+        - maid-net
+      volumes:
+        - ./backend-django:/app
+      environment:
+        - DEBUG=1
+        - DJANGO_ALLOWED_HOSTS=*
+        - DJANGO_SETTINGS_MODULE=config.settings
+
+
+
+
+
+
+  mongo:
+    image: mongo:6
+    container_name: mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - maid-net 
+
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 7
+
+     
+
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    restart: always
+
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 7
+
+    networks:
+      - maid-net 
+    environment:
+      POSTGRES_DB: mydb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  mongo-data:
+  postgres-data:
+
+networks:
+  maid-net:
+   driver: bridge
