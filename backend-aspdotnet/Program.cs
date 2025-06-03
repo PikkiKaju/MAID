@@ -183,6 +183,12 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+// WA¯NE: app.UseRouting() musi byæ przed app.UseCors() jeœli u¿ywasz routingu atrybutowego
+app.UseRouting();
+
+// WA¯NE: Tutaj wstawiasz app.UseCors()
+app.UseCors(); // To aktywuje domyœln¹ politykê CORS
+
 
 app.UseAuthentication();
 app.UseAuthorization();
