@@ -19,25 +19,50 @@ services:
         condition: service_healthy
 
   django:
-      build:
-        context: ./backend-django
-        dockerfile: Dockerfile
-      container_name: django
-      ports:
-        - "8000:8000"
-      networks:
-        - maid-net
-      volumes:
-        - ./backend-django:/app
-      environment:
-        - DEBUG=1
-        - DJANGO_ALLOWED_HOSTS=*
-        - DJANGO_SETTINGS_MODULE=config.settings
+    build:
+      context: ./backend-django
+      dockerfile: Dockerfile
+    container_name: django
+    ports:
+      - "8000:8000"
+    networks:
+      - maid-net
+    volumes:
+      - ./backend-django:/app
+    environment:
+      - DEBUG=1
+      - DJANGO_ALLOWED_HOSTS=*
+      - DJANGO_SETTINGS_MODULE=config.settings
 
+  frontend-user:
+    build:
+      context: ./frontend-user
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    networks:
+      - maid-net
+    depends_on:
+      - backend
+      - django
+    environment:
+      - REACT_APP_BACKEND_API_URL=http://backend:8080
+      - REACT_APP_DJANGO_API_URL=http://django:8000
 
-
-
-
+  admin-panel:
+    build:
+      context: ./admin-panel
+      dockerfile: Dockerfile
+    ports:
+      - "3001:80"
+    networks:
+      - maid-net
+    depends_on:
+      - backend
+      - django
+    environment:
+      - REACT_APP_BACKEND_API_URL=http://backend:8080
+      - REACT_APP_DJANGO_API_URL=http://django:8000
 
   mongo:
     image: mongo:6
@@ -48,15 +73,13 @@ services:
     volumes:
       - mongo-data:/data/db
     networks:
-      - maid-net 
+      - maid-net
 
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
       interval: 5s
       timeout: 5s
       retries: 7
-
-     
 
   postgres:
     image: postgres:16
@@ -64,19 +87,19 @@ services:
     restart: always
 
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
+      test: [ "CMD", "pg_isready", "-U", "postgres" ]
       interval: 5s
       timeout: 5s
       retries: 7
 
     networks:
-      - maid-net 
+      - maid-net
     environment:
       POSTGRES_DB: mydb
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - "5001:5432" # Tutaj zmieniłem na 5001, u was to działa na 5432
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
@@ -84,6 +107,7 @@ volumes:
   mongo-data:
   postgres-data:
 
+
 networks:
   maid-net:
-   driver: bridge
+    driver: bridge
