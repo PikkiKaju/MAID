@@ -1,22 +1,14 @@
 import {
     type DataProvider,
-    fetchUtils,
     type RaRecord,
     type CreateParams,
     type CreateResult,
     type UpdateParams,
     type UpdateResult,
 } from 'react-admin';
+import { API_SERVER, httpClient } from './httpClient';
 
-const apiUrl = 'http://localhost:5000/api/Admin';
-const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IkFkbWluIiwibmFtZWlkIjoiNjA1ZWVkNzAtNGE2MS00ZmJlLWFmZjctNzE3Yzk4M2IwNjFkIiwicm9sZSI6IkFkbWluIiwibmJmIjoxNzQ5NDYxNzgwLCJleHAiOjE3NDk0Njg5ODAsImlhdCI6MTc0OTQ2MTc4MH0.wVYxenbDiU88_dbFWGlypyd0kJl0XMN24lbvpI9Lo0I'
-
-const httpClient = (url: string, options: fetchUtils.Options = {}) => {
-    const headers = new Headers(options.headers || { Accept: 'application/json' });
-    headers.set('Authorization', `Bearer ${token}`);
-    options.headers = headers;
-    return fetchUtils.fetchJson(url, options);
-};
+const apiUrl = `${API_SERVER}/Admin`;
 
 export const dataProvider: DataProvider = {
     getList: async (resource, params) => {

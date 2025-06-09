@@ -1,12 +1,15 @@
 import { Admin, Resource } from "react-admin";
-import { dataProvider } from "./dataProvider";
-import { UserList } from "./users/UserList";
-import { ProjectList } from "./projects/ProjectList";
-import { DatasetList } from "./datasets/DatasetList";
+
+import { dataProvider } from "./api/dataProvider";
+import authProvider from "./authProvider";
+
+import { UserList } from "./components/users/UserList";
+import { ProjectList } from "./components/projects/ProjectList";
+import { DatasetList } from "./components/datasets/DatasetList";
 
 function App() {
   return (
-    <Admin dataProvider={dataProvider}>
+    <Admin authProvider={authProvider} dataProvider={dataProvider}>
       <Resource name="users" list={UserList} />
       <Resource name="projects" list={ProjectList} />
       <Resource name="datasets" list={DatasetList} />
