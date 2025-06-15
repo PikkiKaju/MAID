@@ -1,17 +1,20 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { HomeIcon } from "lucide-react";
+import { Folder, HomeIcon } from "lucide-react";
+import { useSelector } from "react-redux";
 
 function Sidebar() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showText, setShowText] = useState(true);
+  const isLoggedIn = useSelector((state: any) => state.auth.isLoggedIn);
 
+  // Effect for sidebar smooth animation
   useEffect(() => {
     if (sidebarOpen) {
-      const timeout = setTimeout(() => setShowText(true), 260); // Po animacji
+      const timeout = setTimeout(() => setShowText(true), 260);
       return () => clearTimeout(timeout);
     } else {
-      setShowText(false); // Od razu chowamy tekst przy zamykaniu
+      setShowText(false);
     }
   }, [sidebarOpen]);
 
@@ -47,6 +50,21 @@ function Sidebar() {
             </span>
           )}
         </Link>
+
+        {/* My Projects Link */}
+        {isLoggedIn && (
+          <Link
+            to="/projects"
+            className="block py-1 px-2 hover:bg-blue-800 rounded flex gap-2 items-center"
+          >
+            <Folder className="w-4" />
+            {showText && (
+              <span className="transition-opacity duration-300 opacity-100">
+                My Projects
+              </span>
+            )}
+          </Link>
+        )}
       </nav>
     </div>
   );

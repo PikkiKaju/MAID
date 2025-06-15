@@ -1,25 +1,7 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import HomePage from "./pages/HomePage";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-
+import { RouterProvider } from "react-router-dom";
 import { Provider } from "react-redux";
 import { store } from "./store/store";
-
-const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <HomePage />,
-  },
-  {
-    path: "/login",
-    element: <LoginPage />,
-  },
-  {
-    path: "/register",
-    element: <RegisterPage />,
-  },
-]);
+import router from "./router/router";
 
 function App() {
   return (

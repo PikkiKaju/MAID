@@ -6,7 +6,7 @@ import axiosInstance from '../../api/axiosConfig';
 const initialState: AuthState = {
   token: null,
   displayName: null,
-  isLoggedIn: false,
+  isLoggedIn: true, // for testing // normally should be false
   status: 'inactive',
   error: null,
 };
