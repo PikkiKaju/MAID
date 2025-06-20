@@ -1,8 +1,8 @@
-// src/users/UserList.tsx
 import { List, Datagrid, TextField } from "react-admin";
+import UserFilter from "./UserFilter";
 
 export const UserList = () => (
-  <List>
+  <List filters={<UserFilter />}>
     <Datagrid rowClick="edit">
       <TextField source="id" />
       <TextField source="username" />

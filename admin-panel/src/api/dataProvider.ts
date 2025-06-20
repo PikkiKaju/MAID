@@ -14,10 +14,60 @@ const apiUrl = `${API_SERVER}/Admin`;
 
 export const dataProvider: DataProvider = {
     getList: async (resource, params) => {
+        const {
+            pagination = { page: 1, perPage: 10 },
+            sort = { field: 'id', order: 'ASC' },
+            filter = {},
+        } = params;
+
+        const { page, perPage } = pagination;
+        const { field, order } = sort;
+
         const { json } = await httpClient(`${apiUrl}/admin-data`);
-        const data = json[resource];
-        console.log(params)
-        return { data, total: data.length };
+        let allData = json[resource];
+
+        // 1. Data filter
+        if (Object.keys(filter).length > 0) {
+            allData = allData.filter((item: any) => {
+                let matches = true;
+                for (const key in filter) {
+                    if (filter.hasOwnProperty(key)) {
+                        const filterValue = String(filter[key]).toLowerCase();
+                        const itemValue = item[key] ? String(item[key]).toLowerCase() : '';
+
+                        if (!itemValue.includes(filterValue)) {
+                            matches = false;
+                            break;
+                        }
+                    }
+                }
+                return matches;
+            });
+        }
+
+        // 2. Data Sorting
+        if (field && order) {
+            allData.sort((a: any, b: any) => {
+                const aValue = a[field];
+                const bValue = b[field];
+
+                if (aValue === undefined || bValue === undefined) {
+                    return 0;
+                }
+
+                if (aValue > bValue) return order === 'ASC' ? 1 : -1;
+                if (aValue < bValue) return order === 'ASC' ? -1 : 1;
+                return 0;
+            });
+        }
+
+        // 3. Data Pagnitation
+        const total = allData.length; 
+        const start = (page - 1) * perPage;
+        const end = page * perPage;
+        const data = allData.slice(start, end);
+
+        return { data, total };
     },
 
     getOne: async (resource, { id }) => {
@@ -62,7 +112,7 @@ export const dataProvider: DataProvider = {
     },
 
     //
-    // Others dont work but I should simulate them
+    // Others dont work but I have to simulate them
     // 
 
     create: async <RecordType extends Omit<RaRecord, 'id'>, ResultRecordType extends RaRecord>(
