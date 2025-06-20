@@ -19,7 +19,7 @@ function ProjectsPage() {
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       <h2 className="text-2xl font-semibold mb-6">Moje Projekty</h2>
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
         {someData2.map((proj) => (
           <div
             key={proj.id}

@@ -27,7 +27,7 @@ function Sidebar() {
       <div className="flex items-center mb-6">
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="text-white text-l rounded-full border w-8 h-8 hover:bg-blue-800 "
+          className="text-white text-l rounded-full cursor-pointer border w-8 h-8 hover:bg-blue-800 "
         >
           ☰
         </button>
