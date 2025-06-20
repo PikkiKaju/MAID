@@ -1,22 +1,6 @@
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-
-const someData = [
-  {
-    id: 101,
-    title: "Mój pierwszy projekt",
-    image: "https://placehold.co/300x150",
-    description: "To jest przykładowy projekt użytkownika.",
-    date: "2025-06-12",
-  },
-  {
-    id: 102,
-    title: "Mój drugi projekt",
-    image: "https://placehold.co/300x150",
-    description: "To jest przykładowy projekt użytkownika.",
-    date: "2025-06-12",
-  },
-];
+import { someData2 } from "../data"; // test data
 
 function ProjectsPage() {
   const isLoggedIn = useSelector((state: any) => state.auth.isLoggedIn);
@@ -36,7 +20,7 @@ function ProjectsPage() {
     <div className="p-6 bg-gray-100 min-h-screen">
       <h2 className="text-2xl font-semibold mb-6">Moje Projekty</h2>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {someData.map((proj) => (
+        {someData2.map((proj) => (
           <div
             key={proj.id}
             className="bg-white rounded shadow overflow-hidden border border-gray-200"
