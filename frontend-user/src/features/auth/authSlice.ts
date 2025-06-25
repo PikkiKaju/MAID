@@ -1,81 +1,15 @@
-import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
-import axios, { AxiosError } from 'axios';
-import { AuthResponse, AuthState, LoginPayload, RegisterPayload } from '../../models/auth';
-import axiosInstance from '../../api/axiosConfig';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { AuthResponse, AuthState} from '../../models/auth';
+import { registerUser } from './registerThunks';
+import { loginUser } from './loginThunks';
 
 const initialState: AuthState = {
   token: null,
   displayName: null,
-  isLoggedIn: false, // for testing // normally should be false
+  isLoggedIn: false,
   status: 'inactive',
   error: null,
 };
-
-// ====================================================================
-//                      Async Thunk For Register
-// ====================================================================
-export const registerUser = createAsyncThunk<
-  AuthResponse, // Output Type if it was success
-  RegisterPayload, // Input type argument
-  { rejectValue: string } // Output Type if it was fail
->(
-  'auth/registerUser',
-  async (userData: RegisterPayload, { rejectWithValue }) => {
-    try {
-      const response = await axiosInstance.post<AuthResponse>(
-        '/Auth/register',
-        userData
-      );
-      return response.data;
-    } catch (err) {
-      let errorMessage = 'Wystąpił nieznany błąd.';
-      if (axios.isAxiosError(err)) {
-        const axiosError = err as AxiosError;
-        if (axiosError.response) {
-          errorMessage = (axiosError.response.data as { message: string }).message || 'Błąd serwera.';
-        } else if (axiosError.request) {
-          errorMessage = 'Brak odpowiedzi serwera.';
-        } else {
-          errorMessage = axiosError.message;
-        }
-      }
-      return rejectWithValue(errorMessage);
-    }
-  }
-);
-
-// ====================================================================
-//                        Async Thunk For Login
-// ====================================================================
-export const loginUser = createAsyncThunk<
-  AuthResponse,
-  LoginPayload,
-  { rejectValue: string }
->(
-  'auth/loginUser',
-  async (credentials: LoginPayload, { rejectWithValue }) => {
-    try {
-      const response = await axiosInstance.post<AuthResponse>(
-        '/Auth/login',
-        credentials
-      );
-      return { token: response.data.token, displayName: credentials.username };
-    } catch (err) {
-      let errorMessage = 'Wystąpił nieznany błąd.';
-      if (axios.isAxiosError(err)) {
-        const axiosError = err as AxiosError;
-        if (axiosError.response) {
-          errorMessage = (axiosError.response.data as { message: string | undefined })?.message || 'Błąd serwera.';
-        } else if (axiosError.request) {
-          errorMessage = 'Brak odpowiedzi serwera.';
-        } else {
-          errorMessage = axiosError.message;
-        }
-      }
-      return rejectWithValue(errorMessage);
-    }
-  }
-);
 
 const authSlice = createSlice({
   name: 'auth',
@@ -92,10 +26,24 @@ const authSlice = createSlice({
       state.isLoggedIn = false;
       state.status = 'inactive';
       state.error = null;
+
+      localStorage.removeItem('token');
+      localStorage.removeItem('displayName');
     },
     clearAuthStatus: (state) => {
         state.status = 'inactive';
         state.error = null;
+    },
+    // when we refresh our app we dont lose a session
+    loginFromStorage: (state) => {
+      const token = localStorage.getItem('token');
+      
+      if (token) {
+        state.token = token;
+        state.isLoggedIn = true;
+        state.status = 'succeeded';
+        state.error = null;
+      }
     }
   },
   extraReducers: (builder) => {
@@ -109,6 +57,8 @@ const authSlice = createSlice({
         state.token = action.payload.token;
         state.isLoggedIn = true;
         state.error = null;
+
+        localStorage.setItem('token', action.payload.token);
       })
       .addCase(registerUser.rejected, (state, action: PayloadAction<string | undefined>) => {
         state.status = 'failed';
@@ -125,6 +75,8 @@ const authSlice = createSlice({
         state.token = action.payload.token;
         state.isLoggedIn = true;
         state.error = null;
+
+        localStorage.setItem('token', action.payload.token);
       })
       .addCase(loginUser.rejected, (state, action: PayloadAction<string | undefined>) => {
         state.status = 'failed';  
@@ -135,5 +87,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { login, logout, clearAuthStatus } = authSlice.actions;
+export const { login, logout, clearAuthStatus, loginFromStorage } = authSlice.actions;
 export default authSlice.reducer;

@@ -1,14 +1,25 @@
-import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { someData2 } from "../data"; // test data
-import { useState } from "react";
+// import { someData2 } from "../data"; // test data
+import { useEffect, useState } from "react";
 import CreateProjectWindow from "../components/CreateProjectWindow";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "../store/store";
+import {
+  createProject,
+  fetchProjects,
+} from "../features/project/projectThunks";
 
 function ProjectsPage() {
   const isLoggedIn = useSelector((state: any) => state.auth.isLoggedIn);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [projectName, setProjectName] = useState("");
   const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
+  const { projects } = useSelector((state: RootState) => state.project);
+
+  useEffect(() => {
+    dispatch(fetchProjects());
+  }, [dispatch]);
 
   if (!isLoggedIn) {
     return (
@@ -20,9 +31,16 @@ function ProjectsPage() {
     );
   }
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (projectName.length >= 4) {
-      navigate("/project");
+      try {
+        const result = await dispatch(
+          createProject({ name: projectName })
+        ).unwrap();
+        navigate(`/projects/${result.id}`);
+      } catch (err) {
+        console.error("Błąd tworzenia projektu:", err);
+      }
     }
   };
 
@@ -30,22 +48,27 @@ function ProjectsPage() {
     <div className="p-6 bg-gray-100 min-h-screen">
       <h2 className="text-2xl font-semibold mb-6">Moje Projekty</h2>
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-        {someData2.map((proj) => (
+        {projects.map((proj) => (
           <div
             key={proj.id}
             className="bg-white rounded shadow overflow-hidden border border-gray-200"
           >
-            <img
+            {/* Ładniejszy Format */}
+            {/* <img
               src={proj.image}
               alt="Projekt"
               className="w-full h-40 object-cover"
-            />
-            <div className="p-4">
+            /> */}
+            {/* <div className="p-4">
               <h3 className="font-semibold text-lg">{proj.title}</h3>
               <p className="text-sm text-gray-600">{proj.description}</p>
               <div className="text-xs text-gray-500 mt-2">
                 Dodano: {proj.date}
               </div>
+            </div> */}
+            {proj.name}
+            <div className="text-xs text-gray-500 mt-2">
+              Dodano: {proj.createdAt}
             </div>
           </div>
         ))}

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../store/store";
-import { loginUser, clearAuthStatus } from "../features/auth/authSlice";
+import { clearAuthStatus } from "../features/auth/authSlice";
+import { loginUser } from "../features/auth/loginThunks";
 import { useNavigate } from "react-router-dom";
 import LoginForm from "../components/LoginForm";
 
@@ -18,7 +19,6 @@ function LoginPage() {
   // Effect to direct after login
   useEffect(() => {
     if (isLoggedIn && status === "succeeded") {
-      alert(`Zalogowano pomyślnie.`);
       navigate("/");
       dispatch(clearAuthStatus());
     }

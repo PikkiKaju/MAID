@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../store/store";
-import { registerUser, clearAuthStatus } from "../features/auth/authSlice";
+import { clearAuthStatus } from "../features/auth/authSlice";
 import { useNavigate } from "react-router-dom";
 import RegisterForm from "../components/RegisterForm";
 import { RegisterUserForm } from "../models/auth";
+import { registerUser } from "../features/auth/registerThunks";
 
 function RegisterPage() {
   const [userToRegister, setUserToRegister] = useState<RegisterUserForm>({

@@ -47,12 +47,12 @@ function LoginForm({
               <input
                 type="text"
                 id="username"
-                name="username" // Dodaj atrybut name dla lepszej dostępności
+                name="username"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                autoComplete="username" // Dodaj autocomplete
+                autoComplete="username"
               />
             </div>
 
@@ -66,12 +66,12 @@ function LoginForm({
               <input
                 type="password"
                 id="password"
-                name="password" // Dodaj atrybut name
+                name="password"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                autoComplete="current-password" // Dodaj autocomplete
+                autoComplete="current-password"
               />
             </div>
 

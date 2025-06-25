@@ -6,11 +6,19 @@ import ProjectsPage from "../pages/ProjectsPage";
 import LoginPage from "../pages/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
 import NotFoundPage from "../pages/NotFoundPage";
+import { loginFromStorage } from "../features/auth/authSlice";
+import { store } from "../store/store";
+
+const rootLoader = async () => {
+  store.dispatch(loginFromStorage());
+  return null;
+};
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <AppLayout />,
+    loader: rootLoader,
     children: [
       {
         index: true,
