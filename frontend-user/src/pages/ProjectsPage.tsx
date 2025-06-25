@@ -1,9 +1,13 @@
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { someData2 } from "../data"; // test data
+import { useState } from "react";
+import CreateProjectWindow from "../components/CreateProjectWindow";
 
 function ProjectsPage() {
   const isLoggedIn = useSelector((state: any) => state.auth.isLoggedIn);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [projectName, setProjectName] = useState("");
   const navigate = useNavigate();
 
   if (!isLoggedIn) {
@@ -15,6 +19,12 @@ function ProjectsPage() {
       </div>
     );
   }
+
+  const handleConfirm = () => {
+    if (projectName.length >= 4) {
+      navigate("/project");
+    }
+  };
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
@@ -40,12 +50,20 @@ function ProjectsPage() {
           </div>
         ))}
         <div
-          onClick={() => navigate("/create-project")}
+          onClick={() => setIsModalOpen(true)}
           className="flex items-center justify-center bg-gray-200 rounded border-2 border-dashed border-gray-400 h-64 cursor-pointer hover:bg-gray-300"
         >
           <span className="text-5xl text-gray-500">+</span>
         </div>
       </div>
+
+      <CreateProjectWindow
+        isOpen={isModalOpen}
+        projectName={projectName}
+        onChange={setProjectName}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={handleConfirm}
+      />
     </div>
   );
 }
