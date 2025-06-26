@@ -49,9 +49,10 @@ function ProjectsPage() {
       <h2 className="text-2xl font-semibold mb-6">Moje Projekty</h2>
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
         {projects.map((proj) => (
-          <div
+          <button
             key={proj.id}
-            className="bg-white rounded shadow overflow-hidden border border-gray-200"
+            onClick={() => navigate(`/projects/${proj.id}`)}
+            className="cursor-pointer h-64 bg-white rounded shadow overflow-hidden border border-gray-200 hover:shadow-xl "
           >
             {/* Ładniejszy Format */}
             {/* <img
@@ -70,7 +71,7 @@ function ProjectsPage() {
             <div className="text-xs text-gray-500 mt-2">
               Dodano: {proj.createdAt}
             </div>
-          </div>
+          </button>
         ))}
         <div
           onClick={() => setIsModalOpen(true)}

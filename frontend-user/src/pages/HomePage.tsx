@@ -1,9 +1,11 @@
 import { Star } from "lucide-react";
 import { someData } from "../data"; // test data
 import { useAppSelector } from "../store/hooks";
+import { useNavigate } from "react-router-dom";
 
 function HomePage() {
   const searchTerm = useAppSelector((state) => state.search.term.toLowerCase());
+  const navigate = useNavigate();
 
   const filteredProjects = someData.filter((project) =>
     project.title.toLowerCase().includes(searchTerm)
@@ -22,9 +24,10 @@ function HomePage() {
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
                 {filteredProjects.map((project) => (
-                  <div
+                  <button
                     key={project.id}
-                    className="bg-white rounded shadow overflow-hidden border border-gray-200"
+                    onClick={() => navigate(`/projects/${project.id}`)}
+                    className="cursor-pointer bg-white rounded shadow overflow-hidden border border-gray-200 hover:shadow-xl"
                   >
                     <img
                       src={project.image}
@@ -41,7 +44,7 @@ function HomePage() {
                         <Star size={14} className="inline" /> {project.likes}
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -55,9 +58,10 @@ function HomePage() {
             </h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
               {someData.map((project) => (
-                <div
+                <button
                   key={project.id}
-                  className="bg-white rounded shadow overflow-hidden border border-gray-200"
+                  onClick={() => navigate(`/projects/${project.id}`)}
+                  className="cursor-pointer bg-white rounded shadow overflow-hidden border border-gray-200 hover:shadow-xl"
                 >
                   <img
                     src={project.image}
@@ -74,7 +78,7 @@ function HomePage() {
                       <Star size={14} className="inline" /> {project.likes}
                     </div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </section>
@@ -85,9 +89,10 @@ function HomePage() {
               {someData
                 .sort((a, b) => b.likes - a.likes)
                 .map((project) => (
-                  <div
+                  <button
                     key={project.id}
-                    className="bg-white rounded shadow overflow-hidden border border-gray-200"
+                    onClick={() => navigate(`/projects/${project.id}`)}
+                    className="cursor-pointer bg-white rounded shadow overflow-hidden border border-gray-200 hover:shadow-xl"
                   >
                     <img
                       src={project.image}
@@ -104,7 +109,7 @@ function HomePage() {
                         <Star size={14} className="inline" /> {project.likes}
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))}
             </div>
           </section>

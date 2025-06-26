@@ -8,6 +8,7 @@ import RegisterPage from "../pages/RegisterPage";
 import NotFoundPage from "../pages/NotFoundPage";
 import { loginFromStorage } from "../features/auth/authSlice";
 import { store } from "../store/store";
+import ProjectEditPage from "../pages/ProjectEditPage";
 
 const rootLoader = async () => {
   store.dispatch(loginFromStorage());
@@ -42,6 +43,15 @@ const router = createBrowserRouter([
   {
     path: "/register",
     element: <RegisterPage />,
+  },
+  {
+    element: <PrivateRoute />,
+    children: [
+      {
+        path: "/projects/:id",
+        element: <ProjectEditPage />,
+      },
+    ],
   },
   {
     path: "*",
