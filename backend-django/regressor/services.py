@@ -40,6 +40,7 @@ def create_plot_and_predict(model, X, y, predict):
 
 # Regression Models
 def linear_regression(data):
+    print("Received data:", data)
     X = np.array([[1], [2], [3]])
     y = np.array([2, 4, 6])
     predict = np.array([[10], [15]])
