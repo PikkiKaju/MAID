@@ -28,9 +28,16 @@ namespace backend_aspdotnet.Controllers
                 return Unauthorized("Invalid username or password.");
 
             var token = _authService.GenerateJwt(user);
-            return Ok(new { token });
+            return Ok(new { token, user.Username });
         }
 
+
+        /// <summary>
+        /// Registers a new user.
+        /// </summary>
+        /// <returns>
+        /// User JWT token and username if registration is successful, else an error message.
+        ///</returns>
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
@@ -49,7 +56,8 @@ namespace backend_aspdotnet.Controllers
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return Ok("User registered.");
+            var token = _authService.GenerateJwt(user);
+            return Ok(new { token, user.Username });
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Net.Http;
+﻿using Org.BouncyCastle.Asn1;
+using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -25,7 +26,7 @@ namespace backend_aspdotnet.Services
             {
                 var json = JsonSerializer.Serialize(data);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
-
+                Console.WriteLine(content.ReadAsStringAsync().Result); // Log the content for debugging
                 // Build endpoint based on algorithm, e.g., /linear/, /ridge/, etc.
                 string endpoint = $"/{algorithm.ToLowerInvariant().Replace(" ", "-")}/";
 

@@ -8,6 +8,7 @@
     <RootNamespace>backend_aspdotnet</RootNamespace>
     <UserSecretsId>478ca4bc-b27c-4d76-823d-8d14cf5207ec</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
