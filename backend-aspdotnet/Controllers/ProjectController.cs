@@ -28,8 +28,8 @@ namespace backend_aspdotnet.Controllers
                 _mongo = mongo;
             }
 
-            [HttpGet]
-            public async Task<IActionResult> GetAll()
+            [HttpGet("My")]
+            public async Task<IActionResult> GetAllMy()
             {
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdString))
@@ -39,11 +39,63 @@ namespace backend_aspdotnet.Controllers
                 return Unauthorized("Invalid user ID format.");
 
             var projects = await _context.Projects
-                    .Where(p => p.UserId == userId)
+                    .Where(p => p. == userId)
                     .ToListAsync();
                 return Ok(projects);
             }
-            [HttpPost]
+
+
+            [HttpGet("All")]
+            public async Task<IActionResult> GetAllPublic()
+            {
+                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdString))
+                    return Unauthorized("User ID not found in token.");
+
+                if (!Guid.TryParse(userIdString, out Guid userId))
+                    return Unauthorized("Invalid user ID format.");
+
+                var projects = await _context.Projects
+                        .Where(p => p.IsPublic == true)
+                        .ToListAsync();
+                return Ok(projects);
+            }
+
+            [HttpGet("New")]
+            public async Task<IActionResult> GetNew()
+            {
+                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdString))
+                    return Unauthorized("User ID not found in token.");
+
+                if (!Guid.TryParse(userIdString, out Guid userId))
+                    return Unauthorized("Invalid user ID format.");
+
+                var projects = await _context.Projects
+                        .Where(p => p.IsPublic == true)
+                        .OrderByDescending(p => p.LastModifiedAt)
+                        .ToListAsync();
+            return Ok(projects);
+            }
+
+            [HttpGet("Popular")]
+            public async Task<IActionResult> GetPopular()
+            {
+                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdString))
+                    return Unauthorized("User ID not found in token.");
+
+                if (!Guid.TryParse(userIdString, out Guid userId))
+                    return Unauthorized("Invalid user ID format.");
+
+                var projects = await _context.Projects
+                        .Where(p => p.IsPublic == true)
+                        .OrderByDescending(p => p.Likes)
+                        .ToListAsync();
+                return Ok(projects);
+            }
+
+        [HttpPost]
             public async Task<IActionResult> Create([FromBody] CreateProjectDto dto)
             {
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -174,6 +226,40 @@ namespace backend_aspdotnet.Controllers
                 if (detail == null) return NotFound("Details not found.");
 
                 return Ok(new { meta, detail });
+            }
+
+            [HttpPut("{id}/like")]
+            public async Task<IActionResult> UpdateDataset(Guid id, [FromBody] Guid newDatasetId)
+            {
+                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdString))
+                    return Unauthorized("User ID not found in token.");
+
+                if (!Guid.TryParse(userIdString, out Guid userId))
+                    return Unauthorized("Invalid user ID format.");
+
+                var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id);
+                if (project == null) return NotFound("Project not found.");
+
+                var like = await _context.Likes.FirstOrDefaultAsync(p => p.ProjectId == id && p.UserId == userId);
+                if (like == null)
+                {
+                _context.Likes.Add(new Like
+                {
+                    Id = Guid.NewGuid(),
+                    ProjectId = id,
+                    UserId = userId,
+                });
+                project.Likes++;
+                }
+                else
+                {
+                    _context.Likes.Remove(like);
+                    project.Likes--;
+                }
+                await _context.SaveChangesAsync();
+
+                return Ok();
             }
         }
 

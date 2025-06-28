@@ -122,6 +122,9 @@ using (var scope = app.Services.CreateScope())
             new User { Id = Guid.NewGuid(), Username = "Adam", Email = "adam@example.com", Password = authService.HashPassword("Adam") },
             new User { Id = Guid.NewGuid(), Username = "Dominik", Email = "dominik@example.com", Password = authService.HashPassword("Dominik") },
             new User { Id = Guid.NewGuid(), Username = "Martyna", Email = "martyna@example.com", Password = authService.HashPassword("Martyna") },
+            new User { Id = Guid.NewGuid(), Username = "Kuba", Email = "kuba@example.com", Password = authService.HashPassword("Kuba") },
+            new User { Id = Guid.NewGuid(), Username = "Rafa³", Email = "rafa³@example.com", Password = authService.HashPassword("Rafa³") },
+            new User { Id = Guid.NewGuid(), Username = "Micha³", Email = "micha³@example.com", Password = authService.HashPassword("Micha³") },
             new User { Id = Guid.NewGuid(), Username = "Admin", Email = "admin@example.com", Password = authService.HashPassword("Admin"), Role = "Admin" }
         };
 
@@ -142,15 +145,56 @@ using (var scope = app.Services.CreateScope())
 
         var projects = new List<ProjectMeta>
         {
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow },
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow },
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow }
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Przewidywanie pogody", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true, Likes = 1 },
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Regresja interesuj¹cych danych", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = true, Likes = 4},
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt startowy", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true },
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt pocz¹tkowy", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true , Likes = 2},
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt nr 4", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = true, Likes = 5},
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "My project", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false },
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Przewidywanie cen pr¹du", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false },
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Przewidywanie wartoœci z³ota", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = true},
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true, Likes = 3 },
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false },
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = false},
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false }
         };
 
         db.Projects.AddRange(projects);
         db.SaveChanges();
 
-    
+        var blocked = new List<Blocked>
+        {
+        };
+
+        db.Blocked.AddRange(blocked);
+        db.SaveChanges();
+
+        var like = new List<Like>
+        {
+            new Like { Id = Guid.NewGuid(), UserId = users[3].Id, ProjectId = projects[0].Id },
+            //
+            new Like { Id = Guid.NewGuid(), UserId = users[3].Id, ProjectId = projects[1].Id },
+            new Like { Id = Guid.NewGuid(), UserId = users[2].Id, ProjectId = projects[1].Id },
+            new Like { Id = Guid.NewGuid(), UserId = users[1].Id, ProjectId = projects[1].Id },
+            new Like { Id = Guid.NewGuid(), UserId = users[0].Id, ProjectId = projects[1].Id },
+            //
+            new Like { Id = Guid.NewGuid(), UserId = users[3].Id, ProjectId = projects[3].Id },
+            new Like { Id = Guid.NewGuid(), UserId = users[3].Id, ProjectId = projects[3].Id },
+            //
+            new Like { Id = Guid.NewGuid(), UserId = users[0].Id, ProjectId = projects[4].Id },
+            new Like { Id = Guid.NewGuid(), UserId = users[1].Id, ProjectId = projects[4].Id },
+            new Like { Id = Guid.NewGuid(), UserId = users[2].Id, ProjectId = projects[4].Id },
+            new Like { Id = Guid.NewGuid(), UserId = users[3].Id, ProjectId = projects[4].Id },
+            new Like { Id = Guid.NewGuid(), UserId = users[4].Id, ProjectId = projects[4].Id },
+            //
+            new Like { Id = Guid.NewGuid(), UserId = users[0].Id, ProjectId = projects[8].Id },
+            new Like { Id = Guid.NewGuid(), UserId = users[1].Id, ProjectId = projects[8].Id },
+            new Like { Id = Guid.NewGuid(), UserId = users[2].Id, ProjectId = projects[8].Id },
+        };
+
+        db.Like.AddRange(like);
+        db.SaveChanges();
+
         if (!mongoContext.ProjectDetails.AsQueryable().Any())
         {
             var mongoProjectDetails = projects.Select(p => new ProjectDetails

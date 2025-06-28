@@ -27,6 +27,20 @@ namespace backend_aspdotnet.Controllers
             if (user == null || !_authService.ValidatePassword(dto.Password, user.Password))
                 return Unauthorized("Invalid username or password.");
 
+            var blockedEntry = await _context.Blocked.FirstOrDefaultAsync(b => b.UserId == user.Id);
+            if (blockedEntry != null)
+            {
+                if (blockedEntry.BlockedUntil > DateTime.UtcNow)
+                {
+                    return Unauthorized($"User is blocked until {blockedEntry.BlockedUntil:u}");
+                }
+                else
+                {
+                    _context.Blocked.Remove(blockedEntry);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
             var token = _authService.GenerateJwt(user);
             return Ok(new { token, user.Username });
         }
