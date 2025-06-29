@@ -1,7 +1,50 @@
 import { Link } from "react-router-dom";
-import { datasetRegresjaList } from "../data/datasetRegresja";
+import { useEffect, useState } from "react";
+import { datasetService, DatasetMetadata } from "../api/datasetService";
 
 export default function DatasetsListPage() {
+  const [publicDatasets, setPublicDatasets] = useState<DatasetMetadata[]>([]);
+  const [userDatasets, setUserDatasets] = useState<DatasetMetadata[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const fetchDatasets = async () => {
+    try {
+      setLoading(true);
+      const data = await datasetService.getAllDatasets();
+      setPublicDatasets(data.public);
+      setUserDatasets(data.user);
+    } catch (err: any) {
+      setError("Błąd podczas pobierania zbiorów danych: " + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDatasets();
+  }, []);
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!window.confirm(`Czy na pewno chcesz usunąć dataset "${name}"?`)) {
+      return;
+    }
+
+    try {
+      setDeletingId(id);
+      await datasetService.deleteDataset(id);
+      
+      // Refresh the list after successful deletion
+      await fetchDatasets();
+      
+      alert("Dataset został usunięty pomyślnie.");
+    } catch (err: any) {
+      alert("Błąd podczas usuwania datasetu: " + (err.response?.data?.message || err.message));
+    } finally {
+      setDeletingId(null);
+    }
+  };
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -14,32 +57,87 @@ export default function DatasetsListPage() {
         </Link>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {datasetRegresjaList.map((dataset) => (
-          <div key={dataset.id} className="border rounded-lg p-4 hover:shadow-md">
-            <h3 className="font-semibold text-lg mb-2">{dataset.name}</h3>
-            <div className="text-sm text-gray-600 mb-2">
-              <p>Liczba punktów: {dataset.xValues.length}</p>
-              <p>Status: {dataset.isPublic ? "Publiczny" : "Prywatny"}</p>
-              <p>Utworzono: {new Date(dataset.createdAt).toLocaleDateString()}</p>
-            </div>
-            <div className="text-xs text-gray-500">
-              X: [{dataset.xValues.slice(0, 3).join(", ")}
-              {dataset.xValues.length > 3 ? "..." : ""}]
-            </div>
-            <div className="text-xs text-gray-500">
-              Y: [{dataset.yValues.slice(0, 3).join(", ")}
-              {dataset.yValues.length > 3 ? "..." : ""}]
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
+      
+      {loading ? (
+        <div className="text-center py-8">
+          <div className="text-gray-500">Ładowanie zbiorów danych...</div>
+        </div>
+      ) : (
+        <div>
+          {/* Public Datasets Section */}
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold mb-4 text-gray-700">Publiczne zbiory danych</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {publicDatasets.map((dataset) => (
+                <div key={dataset.id} className="border rounded-lg p-4 hover:shadow-md bg-green-50">
+                  <h4 className="font-semibold text-lg mb-2">{dataset.name}</h4>
+                  <div className="text-sm text-gray-600 mb-2">
+                    <p>ID: {dataset.id}</p>
+                    <p>Autor: {dataset.username}</p>
+                    <p>Utworzono: {new Date(dataset.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <div className="text-xs text-green-600 font-medium">Publiczny</div>
+                </div>
+              ))}
+              
+              {publicDatasets.length === 0 && (
+                <div className="col-span-full text-center py-4 text-gray-500">
+                  Brak publicznych zbiorów danych.
+                </div>
+              )}
             </div>
           </div>
-        ))}
-        
-        {datasetRegresjaList.length === 0 && (
-          <div className="col-span-full text-center py-8 text-gray-500">
-            Brak zbiorów danych. Dodaj pierwszy zbiór danych.
+
+          {/* User Datasets Section */}
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold mb-4 text-gray-700">Moje zbiory danych</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {userDatasets.map((dataset) => (
+                <div key={dataset.id} className="border rounded-lg p-4 hover:shadow-md bg-blue-50 relative">
+                  <h4 className="font-semibold text-lg mb-2">{dataset.name}</h4>
+                  <div className="text-sm text-gray-600 mb-2">
+                    <p>ID: {dataset.id}</p>
+                    <p>Autor: {dataset.username}</p>
+                    <p>Utworzono: {new Date(dataset.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div className="text-xs text-blue-600 font-medium">Prywatny</div>
+                    <button
+                      onClick={() => handleDelete(dataset.id, dataset.name)}
+                      disabled={deletingId === dataset.id}
+                      className={`text-xs px-3 py-1 rounded ${
+                        deletingId === dataset.id
+                          ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                          : "bg-red-500 text-white hover:bg-red-600"
+                      }`}
+                    >
+                      {deletingId === dataset.id ? "Usuwanie..." : "Usuń"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+              
+              {userDatasets.length === 0 && (
+                <div className="col-span-full text-center py-4 text-gray-500">
+                  Brak prywatnych zbiorów danych. Dodaj pierwszy zbiór danych.
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* No datasets at all */}
+          {publicDatasets.length === 0 && userDatasets.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              Brak zbiorów danych. Dodaj pierwszy zbiór danych.
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
