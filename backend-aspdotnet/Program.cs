@@ -192,7 +192,7 @@ using (var scope = app.Services.CreateScope())
             new Like { Id = Guid.NewGuid(), UserId = users[2].Id, ProjectId = projects[8].Id },
         };
 
-        db.Like.AddRange(like);
+        db.Likes.AddRange(like);
         db.SaveChanges();
 
         if (!mongoContext.ProjectDetails.AsQueryable().Any())
