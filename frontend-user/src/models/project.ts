@@ -40,3 +40,23 @@ export interface ProjectMeta {
   createdAt: string;
   lastModifiedAt: string;
 }
+
+export interface ApiProject {
+    id: string;
+    userId: string;
+    name: string;
+    datasetId: string;
+    createdAt: string;
+    lastModifiedAt: string;
+    isPublic: boolean;
+    likes: number;
+}
+
+export interface DisplayProject {
+    id: string;
+    name: string;   
+    createdAt: string; 
+    lastModifiedAt: string;
+    isPublic: boolean;
+    likes: number;
+}
