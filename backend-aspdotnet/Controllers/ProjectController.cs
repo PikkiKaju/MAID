@@ -147,32 +147,49 @@ namespace backend_aspdotnet.Controllers
 
             [HttpPut("{id}/details")]
             [Authorize]
-            public async Task<IActionResult> UpdateDetails(Guid id, [FromBody] UpdateProjectDetailsDto dto)
-        {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdString))
-                return Unauthorized("User ID not found in token.");
+        public async Task<IActionResult> UpdateDetails(Guid id, [FromBody] UpdateProjectDetailsDto dto)
+{
+    var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    if (string.IsNullOrEmpty(userIdString))
+        return Unauthorized("User ID not found in token.");
 
-            if (!Guid.TryParse(userIdString, out Guid userId))
-                return Unauthorized("Invalid user ID format.");
+    if (!Guid.TryParse(userIdString, out Guid userId))
+        return Unauthorized("Invalid user ID format.");
 
-            var projectMeta = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
-            if (projectMeta == null) return NotFound("Project not found.");
+    var projectMeta = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+    if (projectMeta == null) return NotFound("Project not found.");
 
-            var filter = Builders<ProjectDetails>.Filter.Eq(p => p.Id, id);
-            var update = Builders<ProjectDetails>.Update
-                .Set(p => p.Algorithm, dto.Algorithm ?? "linear")
-                .Set(p => p.XColumn, dto.XColumn ?? string.Empty)
-                .Set(p => p.YColumn, dto.YColumn ?? string.Empty)
-                .Set(p => p.Parameters, dto.Parameters ?? new Dictionary<string, string>());
+    var filter = Builders<ProjectDetails>.Filter.Eq(p => p.Id, id);
+    var updateDefs = new List<UpdateDefinition<ProjectDetails>>();
 
-            await _mongo.ProjectDetails.UpdateOneAsync(filter, update);
+    if (dto.Algorithm != null)
+        updateDefs.Add(Builders<ProjectDetails>.Update.Set(p => p.Algorithm, dto.Algorithm));
 
-            projectMeta.LastModifiedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+    if (dto.XColumn != null)
+        updateDefs.Add(Builders<ProjectDetails>.Update.Set(p => p.XColumn, dto.XColumn));
 
-            return Ok();
-        }
+    if (dto.YColumn != null)
+        updateDefs.Add(Builders<ProjectDetails>.Update.Set(p => p.YColumn, dto.YColumn));
+
+    if (dto.Parameters != null)
+        updateDefs.Add(Builders<ProjectDetails>.Update.Set(p => p.Parameters, dto.Parameters));
+
+    if (updateDefs.Count > 0)
+    {
+        var combinedUpdate = Builders<ProjectDetails>.Update.Combine(updateDefs);
+        await _mongo.ProjectDetails.UpdateOneAsync(filter, combinedUpdate);
+    }
+
+    if (dto.isPublic != null)
+    {
+        projectMeta.IsPublic = dto.isPublic.Value;
+    }
+
+    projectMeta.LastModifiedAt = DateTime.UtcNow;
+    await _context.SaveChangesAsync();
+
+    return Ok();
+}
 
 
             [HttpPut("{id}/dataset")]
