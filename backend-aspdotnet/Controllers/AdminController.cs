@@ -108,6 +108,34 @@ namespace backend_aspdotnet.Controllers
             return Ok("New admin created");
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpPost("block/{id}")]
+        public async Task<IActionResult> BlockUser(Guid id)
+        {
+            var user = await _postgers.Users.FindAsync(id);
+            if (user == null)
+                return NotFound();
+
+            var blocked = await _postgers.Blocked.FirstOrDefaultAsync(b => b.UserId == id);
+            if (blocked == null)
+            {
+                blocked = new Blocked
+                {
+                    UserId = id,
+                    BlockedUntil = DateTime.UtcNow.AddDays(1)
+                };
+                await _postgers.Blocked.AddAsync(blocked);
+            }
+            else
+            {
+                blocked.BlockedUntil = DateTime.UtcNow.AddDays(1);
+                _postgers.Blocked.Update(blocked);
+            }
+
+            await _postgers.SaveChangesAsync();
+            return Ok($"User blocked until {blocked.BlockedUntil:u}");
+        }
+
 
 
     }
