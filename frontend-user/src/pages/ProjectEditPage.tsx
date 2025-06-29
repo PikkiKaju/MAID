@@ -5,12 +5,15 @@ import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 import { ProjectDetail, ProjectMeta } from "../models/project";
 import { Play } from "lucide-react";
+import { datasetService, DatasetMetadata } from "../api/datasetService";
 
 export default function ProjectEditPage() {
   const { id } = useParams();
   const [meta, setMeta] = useState<ProjectMeta | null>(null);
   const [detail, setDetail] = useState<ProjectDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [datasets, setDatasets] = useState<DatasetMetadata[]>([]);
+  const [datasetSearch] = useState("");
 
   const navigate = useNavigate();
   const token = useSelector((state: RootState) => state.auth.token);
@@ -32,10 +35,24 @@ export default function ProjectEditPage() {
         }));
       })
       .finally(() => setLoading(false));
+
+    // Pobierz dostępne datasety (publiczne i użytkownika)
+    datasetService
+      .getAllDatasets(token)
+      .then(({ public: publicDatasets, user: userDatasets }) => {
+        // Ujednolicenie typów (userDatasets nie ma username, ale nie jest potrzebny do wyboru)
+        const all = [
+          ...publicDatasets,
+          ...userDatasets.map((ds) => ({ ...ds, username: "" })),
+        ];
+        setDatasets(all);
+      })
+      .catch(() => setDatasets([]));
   }, [id, token]);
 
   const handleStartCalculation = () => {
     if (!id || !detail) return;
+    console.log("Starting calculation for project:", id, detail);
     axiosInstance
       .post(`/Project/calculate`, detail)
       .then(() => alert("Obliczenia zostały uruchomione"))
@@ -43,14 +60,18 @@ export default function ProjectEditPage() {
   };
 
   const handleSaveDetails = () => {
-    if (!id || !detail) return;
+    if (!id || !detail || !meta) return;
 
     axiosInstance
-      .put(`/Project/${id}/details`, detail, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      .put(
+        `/Project/${id}/details`,
+        { ...detail, datasetId: meta.datasetId },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
       .then(() => alert("Zapisano zmiany w projekcie."))
       .catch(() => alert("Błąd podczas zapisywania zmian."));
   };
@@ -72,6 +93,28 @@ export default function ProjectEditPage() {
         navigate("/projects");
       })
       .catch(() => alert("Wystąpił błąd podczas usuwania projektu."));
+  };
+
+  const handleDatasetChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    if (!meta || !id || !token) return;
+    const newDatasetId = e.target.value;
+    setMeta((meta) => meta && { ...meta, datasetId: newDatasetId });
+    try {
+      await axiosInstance.put(
+        `/Project/${id}/dataset`,
+        JSON.stringify(newDatasetId),
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    } catch {
+      alert("Błąd podczas zmiany datasetu.");
+    }
   };
 
   if (!meta || !detail)
@@ -120,6 +163,28 @@ export default function ProjectEditPage() {
             className="mr-2"
           />
           <span>Publiczny</span>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Dataset
+          </label>
+          <select
+            value={meta?.datasetId || ""}
+            onChange={handleDatasetChange}
+            className="border px-2 py-1 w-full rounded"
+          >
+            <option value="">Wybierz dataset</option>
+            {datasets
+              .filter((ds) =>
+                ds.name.toLowerCase().includes(datasetSearch.toLowerCase())
+              )
+              .map((ds) => (
+                <option key={ds.id} value={ds.id}>
+                  {ds.name}
+                </option>
+              ))}
+          </select>
         </div>
 
         <div className="mb-6">
