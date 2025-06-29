@@ -245,7 +245,7 @@ namespace backend_aspdotnet.Controllers
             if (!Guid.TryParse(userIdString, out Guid userId))
                 return Unauthorized("Invalid user ID format.");
 
-            var meta = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+            var meta = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id && (p.UserId == userId || p.IsPublic == true));
             if (meta == null) return NotFound();
 
             var detail = await _mongo.ProjectDetails.Find(p => p.Id == id).FirstOrDefaultAsync();
@@ -256,7 +256,7 @@ namespace backend_aspdotnet.Controllers
 
             [HttpPut("{id}/like")]
             [Authorize]
-            public async Task<IActionResult> LikeProject(Guid id, [FromBody] Guid newDatasetId)
+            public async Task<IActionResult> LikeProject(Guid id)
         {
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdString))
