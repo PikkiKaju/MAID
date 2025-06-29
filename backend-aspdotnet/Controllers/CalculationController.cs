@@ -62,7 +62,8 @@ namespace backend_aspdotnet.Controllers
   .Select(d => d.Value)
   .ToList();
 
-
+            xValues = new List<double> {2,4,5,7,8,9};
+            yValues = new List<double> { 1, 2, 3, 4, 5, 6 };
 
             var reshapedX = xValues.Select(x => new List<double> { x }).ToList();
 
