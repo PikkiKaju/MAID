@@ -40,6 +40,7 @@ export interface ProjectMeta {
   datasetId: string;
   createdAt: string;
   lastModifiedAt: string;
+  isPublic: boolean;
 }
 
 export interface ApiProject {

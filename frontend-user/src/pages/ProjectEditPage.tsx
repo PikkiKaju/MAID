@@ -26,7 +26,10 @@ export default function ProjectEditPage() {
       })
       .then((res) => {
         setMeta(res.data.meta);
-        setDetail(res.data.detail);
+        setDetail(() => ({
+          ...res.data.detail,
+          isPublic: res.data.meta.isPublic,
+        }));
       })
       .finally(() => setLoading(false));
   }, [id, token]);
@@ -41,7 +44,6 @@ export default function ProjectEditPage() {
 
   const handleSaveDetails = () => {
     if (!id || !detail) return;
-    console.log(detail);
 
     axiosInstance
       .put(`/Project/${id}/details`, detail, {
