@@ -10,6 +10,8 @@ export const UserList = () => (
       <Datagrid rowClick="edit">
         <TextField source="id" />
         <TextField source="username" />
+        <TextField source="role" />
+        <TextField source="isBlocked" />
         <FunctionField
           label="Akcje"
           render={(record) => <BlockUserButton userId={record.id} />}

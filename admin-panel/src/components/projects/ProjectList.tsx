@@ -6,6 +6,9 @@ export const ProjectList = () => (
     <Datagrid rowClick="edit">
       <TextField source="id" />
       <TextField source="name" />
+      <TextField source="username" />
+      <TextField source="createdAt" />
+      <TextField source="isPublic" />
     </Datagrid>
   </List>
 );
