@@ -17,7 +17,6 @@ namespace backend_aspdotnet.Controllers
         // set funcja
         [ApiController]
         [Route("api/[controller]")]
-        [Authorize]
         public class ProjectController : ControllerBase
         {
             private readonly AppDbContext _context;
@@ -47,7 +46,6 @@ namespace backend_aspdotnet.Controllers
         }
 
 
-            [Authorize]
             [HttpGet("All")]
             
             public async Task<IActionResult> GetAllPublic()
@@ -65,7 +63,6 @@ namespace backend_aspdotnet.Controllers
             return Ok(projects);
         }
 
-            [Authorize]
             [HttpGet("New")]
             public async Task<IActionResult> GetNew()
         {
@@ -84,7 +81,6 @@ namespace backend_aspdotnet.Controllers
         }
 
             [HttpGet("Popular")]
-            [Authorize]
             public async Task<IActionResult> GetPopular()
         {
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
