@@ -6,5 +6,7 @@
         public string Name { get; set; }
         public Guid UserId { get; set; }
         public DateTime CreatedAt { get; set; }
+
+        public bool IsPublic { get; set; } = true;
     }
 }

@@ -21,6 +21,7 @@ namespace backend_aspdotnet.Database
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<Blocked>().ToTable("Blocked");
             // e.g., modelBuilder.Entity<Element>().ToTable("elements");
         }
     }

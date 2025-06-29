@@ -7,8 +7,12 @@
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend-aspdotnet\\Controllers\\ProjectController.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Controllers\\AdminController.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend-aspdotnet\\Controllers\\AdminController.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Database\\Postgres.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend-aspdotnet\\Database\\Postgres.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Database\\DatasetMeta.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend-aspdotnet\\Database\\DatasetMeta.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -19,8 +23,12 @@
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend-aspdotnet\\Models\\Blocked.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Models\\Like.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend-aspdotnet\\Models\\Like.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Models\\User.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend-aspdotnet\\Models\\User.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Controllers\\AdminController.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend-aspdotnet\\Controllers\\AdminController.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Database\\ProjectMeta.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -31,16 +39,8 @@
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend-aspdotnet\\Controllers\\AuthController.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Database\\Postgres.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend-aspdotnet\\Database\\Postgres.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Database\\PostgresDriver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend-aspdotnet\\Database\\PostgresDriver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Database\\DatasetMeta.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend-aspdotnet\\Database\\DatasetMeta.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Controllers\\DatasetController.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -57,10 +57,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Database\\ProjectDetails.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend-aspdotnet\\Database\\ProjectDetails.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Models\\User.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend-aspdotnet\\Models\\User.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\backend-aspdotnet.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
@@ -106,7 +102,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 634,
-          "SelectedChildIndex": 14,
+          "SelectedChildIndex": 13,
           "Children": [
             {
               "$type": "Bookmark",
@@ -126,31 +122,20 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 4,
               "Title": "Blocked.cs",
               "DocumentMoniker": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Models\\Blocked.cs",
               "RelativeDocumentMoniker": "backend-aspdotnet\\Models\\Blocked.cs",
               "ToolTip": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Models\\Blocked.cs",
               "RelativeToolTip": "backend-aspdotnet\\Models\\Blocked.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAABAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAQAAAATAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-28T11:39:23.351Z"
+              "WhenOpened": "2025-06-28T11:39:23.351Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "Like.cs",
-              "DocumentMoniker": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Models\\Like.cs",
-              "RelativeDocumentMoniker": "backend-aspdotnet\\Models\\Like.cs",
-              "ToolTip": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Models\\Like.cs",
-              "RelativeToolTip": "backend-aspdotnet\\Models\\Like.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAUAAAAaAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-28T11:39:21.511Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 2,
               "Title": "DatasetMeta.cs",
               "DocumentMoniker": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Database\\DatasetMeta.cs",
               "RelativeDocumentMoniker": "backend-aspdotnet\\Database\\DatasetMeta.cs",
@@ -158,11 +143,12 @@
               "RelativeToolTip": "backend-aspdotnet\\Database\\DatasetMeta.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-21T14:55:34.395Z"
+              "WhenOpened": "2025-06-21T14:55:34.395Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 15,
+              "DocumentIndex": 14,
               "Title": "backend-aspdotnet.csproj",
               "DocumentMoniker": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\backend-aspdotnet.csproj",
               "RelativeDocumentMoniker": "backend-aspdotnet\\backend-aspdotnet.csproj",
@@ -186,7 +172,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 7,
               "Title": "ProjectMeta.cs",
               "DocumentMoniker": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Database\\ProjectMeta.cs",
               "RelativeDocumentMoniker": "backend-aspdotnet\\Database\\ProjectMeta.cs",
@@ -222,7 +208,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 6,
               "Title": "AdminController.cs",
               "DocumentMoniker": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Controllers\\AdminController.cs",
               "RelativeDocumentMoniker": "backend-aspdotnet\\Controllers\\AdminController.cs",
@@ -252,14 +238,14 @@
               "RelativeDocumentMoniker": "backend-aspdotnet\\Controllers\\ProjectController.cs",
               "ToolTip": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Controllers\\ProjectController.cs",
               "RelativeToolTip": "backend-aspdotnet\\Controllers\\ProjectController.cs",
-              "ViewState": "AgIAAOIAAAAAAAAAAAAcwAIBAAARAAAAAAAAAA==",
+              "ViewState": "AgIAAA8AAAAAAAAAAAAAAAMAAAAeAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-05-28T19:36:34.79Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 16,
+              "DocumentIndex": 15,
               "Title": "UpdateProjectDetailsDto.cs",
               "DocumentMoniker": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\DTOs\\UpdateProjectDetailsDto.cs",
               "RelativeDocumentMoniker": "backend-aspdotnet\\DTOs\\UpdateProjectDetailsDto.cs",
@@ -271,7 +257,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 18,
+              "DocumentIndex": 17,
               "Title": "PythonConectService.cs",
               "DocumentMoniker": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Services\\PythonConectService.cs",
               "RelativeDocumentMoniker": "backend-aspdotnet\\Services\\PythonConectService.cs",
@@ -283,7 +269,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 14,
+              "DocumentIndex": 5,
               "Title": "User.cs",
               "DocumentMoniker": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Models\\User.cs",
               "RelativeDocumentMoniker": "backend-aspdotnet\\Models\\User.cs",
@@ -291,11 +277,12 @@
               "RelativeToolTip": "backend-aspdotnet\\Models\\User.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAaAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-28T19:10:13.392Z"
+              "WhenOpened": "2025-05-28T19:10:13.392Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 9,
               "Title": "PostgresDriver.cs",
               "DocumentMoniker": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Database\\PostgresDriver.cs",
               "RelativeDocumentMoniker": "backend-aspdotnet\\Database\\PostgresDriver.cs",
@@ -307,7 +294,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 19,
+              "DocumentIndex": 18,
               "Title": "MongoDriver.cs",
               "DocumentMoniker": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Database\\MongoDriver.cs",
               "RelativeDocumentMoniker": "backend-aspdotnet\\Database\\MongoDriver.cs",
@@ -319,7 +306,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 20,
+              "DocumentIndex": 19,
               "Title": "JwtHelper.cs",
               "DocumentMoniker": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Helpers\\JwtHelper.cs",
               "RelativeDocumentMoniker": "backend-aspdotnet\\Helpers\\JwtHelper.cs",
@@ -331,7 +318,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 8,
               "Title": "AuthController.cs",
               "DocumentMoniker": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Controllers\\AuthController.cs",
               "RelativeDocumentMoniker": "backend-aspdotnet\\Controllers\\AuthController.cs",
@@ -343,7 +330,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 21,
+              "DocumentIndex": 20,
               "Title": "views.py",
               "DocumentMoniker": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-django\\config\\views.py",
               "RelativeDocumentMoniker": "backend-django\\config\\views.py",
@@ -355,31 +342,33 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 1,
               "Title": "Postgres.cs",
               "DocumentMoniker": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Database\\Postgres.cs",
               "RelativeDocumentMoniker": "backend-aspdotnet\\Database\\Postgres.cs",
               "ToolTip": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Database\\Postgres.cs",
               "RelativeToolTip": "backend-aspdotnet\\Database\\Postgres.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAUAAAAeAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAWAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-20T13:15:31.181Z"
+              "WhenOpened": "2025-05-20T13:15:31.181Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Program.cs",
               "RelativeDocumentMoniker": "backend-aspdotnet\\Program.cs",
               "ToolTip": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\Program.cs",
               "RelativeToolTip": "backend-aspdotnet\\Program.cs",
-              "ViewState": "AgIAADAAAAAAAAAAAAD4v78AAABfAAAAAAAAAA==",
+              "ViewState": "AgIAAFQAAAAAAAAAAAAAAKgAAAAQAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-20T13:04:25.52Z"
+              "WhenOpened": "2025-05-20T13:04:25.52Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 17,
+              "DocumentIndex": 16,
               "Title": "docker-compose.yml",
               "DocumentMoniker": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\docker-compose.yml",
               "RelativeDocumentMoniker": "docker-compose.yml",
@@ -391,7 +380,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 22,
+              "DocumentIndex": 21,
               "Title": "appsettings.json",
               "DocumentMoniker": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\appsettings.json",
               "RelativeDocumentMoniker": "backend-aspdotnet\\appsettings.json",
@@ -403,7 +392,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 23,
+              "DocumentIndex": 22,
               "Title": ".dockerignore",
               "DocumentMoniker": "C:\\Users\\domin\\source\\repos\\AdamGrel99\\Maid-App\\backend-aspdotnet\\.dockerignore",
               "RelativeDocumentMoniker": "backend-aspdotnet\\.dockerignore",
