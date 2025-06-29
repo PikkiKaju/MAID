@@ -24,6 +24,30 @@ namespace backend_aspdotnet.Controllers
         }
 
         [Authorize(Roles = "Admin")]
+        [HttpGet("admin-data")]
+        public async Task<ActionResult> AdminGet()
+        {
+            var users = await _postgers.Users
+                .Select(u => new { u.Id, u.Username })
+                .ToListAsync();
+
+            var projects = await _postgers.Projects
+                .Select(p => new { p.Id, p.Name })
+                .ToListAsync();
+
+            var datasets = await _postgers.Datasets
+                .Select(d => new { d.Id, d.Name })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                Users = users,
+                Projects = projects,
+                Datasets = datasets
+            });
+        }
+
+        [Authorize(Roles = "Admin")]
         [HttpGet("users")]
         public async Task<ActionResult> AdminGetUsers()
         {
