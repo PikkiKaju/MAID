@@ -15,7 +15,7 @@ export const loginUser = createAsyncThunk<
         '/Auth/login',
         credentials
       );
-      return { token: response.data.token, displayName: credentials.username };
+      return response.data; 
     } catch (err) {
       let errorMessage = 'Wystąpił nieznany błąd.';
       if (axios.isAxiosError(err)) {

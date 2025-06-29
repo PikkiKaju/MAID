@@ -23,6 +23,7 @@ export interface LoginPayload {
 // Auth response from server with token
 export interface AuthResponse {
   token: string;
+  username: string;
 }
 
 // Fields needed to create user account

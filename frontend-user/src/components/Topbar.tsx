@@ -6,7 +6,7 @@ import { clearSearchTerm, setSearchTerm } from "../features/search/searchSlice";
 
 function Topbar() {
   const dispatch = useAppDispatch();
-  const { isLoggedIn } = useAppSelector((state) => state.auth);
+  const { isLoggedIn, displayName } = useAppSelector((state) => state.auth);
   const searchTerm = useAppSelector((state) => state.search.term.toLowerCase());
 
   const handleLogout = () => {
@@ -62,7 +62,7 @@ function Topbar() {
             <>
               <div className="flex items-center gap-1 bg-transparent border border-gray-400 text-black px-4 py-2 rounded-full">
                 <User2Icon className="w-4" />
-                <span>Adam</span>
+                <span>{displayName || "Użytkownik"}</span>
               </div>
               <button
                 className="flex items-center gap-1 bg-black text-white px-4 py-2 rounded-full hover:cursor-pointer hover:bg-gray-600"
