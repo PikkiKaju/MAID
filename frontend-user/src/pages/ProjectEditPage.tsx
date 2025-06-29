@@ -34,13 +34,14 @@ export default function ProjectEditPage() {
   const handleStartCalculation = () => {
     if (!id || !detail) return;
     axiosInstance
-      .post(`/Project/${id}/calculate`, detail)
+      .post(`/Project/calculate`, detail)
       .then(() => alert("Obliczenia zostały uruchomione"))
       .catch(() => alert("Wystąpił błąd podczas obliczeń."));
   };
 
   const handleSaveDetails = () => {
     if (!id || !detail) return;
+    console.log(detail);
 
     axiosInstance
       .put(`/Project/${id}/details`, detail, {
@@ -102,6 +103,21 @@ export default function ProjectEditPage() {
             onChange={(e) => setDetail({ ...detail, yColumn: e.target.value })}
             className="border px-2 py-1 w-full rounded"
           />
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Projekt
+          </label>
+          <input
+            type="checkbox"
+            checked={!!detail.isPublic}
+            onChange={(e) => {
+              setDetail({ ...detail, isPublic: e.target.checked });
+            }}
+            className="mr-2"
+          />
+          <span>Publiczny</span>
         </div>
 
         <div className="mb-6">
