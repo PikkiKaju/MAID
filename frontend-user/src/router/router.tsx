@@ -9,6 +9,7 @@ import NotFoundPage from "../pages/NotFoundPage";
 import { loginFromStorage } from "../features/auth/authSlice";
 import { store } from "../store/store";
 import ProjectEditPage from "../pages/ProjectEditPage";
+import DatasetPageUpload from "../pages/DatasetPageUpload";
 
 const rootLoader = async () => {
   store.dispatch(loginFromStorage());
@@ -31,6 +32,10 @@ const router = createBrowserRouter([
           {
             path: "projects",
             element: <ProjectsPage />,
+          },
+          {
+            path: "upload-regression",
+            element: <DatasetPageUpload />, 
           },
         ],
       },
