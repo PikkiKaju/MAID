@@ -108,7 +108,9 @@ namespace backend_aspdotnet.Controllers
             return Ok(new { message = "Dataset uploaded successfully", datasetId = metadata.Id });
         }
 
-        [Authorize]
+
+
+         [Authorize]
         [HttpGet("list")]
         public async Task<IActionResult> GetUserDatasets()
         {
@@ -121,7 +123,7 @@ namespace backend_aspdotnet.Controllers
 
             var datasets = await _postgresDb.Datasets
                 .Where(d => d.UserId == userId)
-                .Select(d => new { d.Id, d.Name, d.CreatedAt })
+                .Select(d => new { d.Id, d.Name, d.CreatedAt, d.IsPublic })
                 .ToListAsync();
 
             return Ok(datasets);
