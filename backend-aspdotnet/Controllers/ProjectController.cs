@@ -39,7 +39,7 @@ namespace backend_aspdotnet.Controllers
                 return Unauthorized("Invalid user ID format.");
 
             var projects = await _context.Projects
-                    .Where(p => p. == userId)
+                    .Where(p => p.UserId == userId)
                     .ToListAsync();
                 return Ok(projects);
             }
