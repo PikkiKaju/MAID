@@ -1,6 +1,7 @@
 ﻿
 using backend_aspdotnet.Database;
 using backend_aspdotnet.DTOs;
+using backend_aspdotnet.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -229,7 +230,7 @@ namespace backend_aspdotnet.Controllers
             }
 
             [HttpPut("{id}/like")]
-            public async Task<IActionResult> UpdateDataset(Guid id, [FromBody] Guid newDatasetId)
+            public async Task<IActionResult> LikeProject(Guid id, [FromBody] Guid newDatasetId)
             {
                 var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdString))
