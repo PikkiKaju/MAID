@@ -71,6 +71,8 @@ builder.Services.AddCors(options =>
     });
 });
 
+
+
 // JWT Authentication setup
 var jwtKey = builder.Configuration["Jwt:Key"];
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -123,8 +125,8 @@ using (var scope = app.Services.CreateScope())
             new User { Id = Guid.NewGuid(), Username = "Dominik", Email = "dominik@example.com", Password = authService.HashPassword("Dominik") },
             new User { Id = Guid.NewGuid(), Username = "Martyna", Email = "martyna@example.com", Password = authService.HashPassword("Martyna") },
             new User { Id = Guid.NewGuid(), Username = "Kuba", Email = "kuba@example.com", Password = authService.HashPassword("Kuba") },
-            new User { Id = Guid.NewGuid(), Username = "Rafa³", Email = "rafa³@example.com", Password = authService.HashPassword("Rafa³") },
-            new User { Id = Guid.NewGuid(), Username = "Micha³", Email = "micha³@example.com", Password = authService.HashPassword("Micha³") },
+            new User { Id = Guid.NewGuid(), Username = "Rafaï¿½", Email = "rafaï¿½@example.com", Password = authService.HashPassword("Rafaï¿½") },
+            new User { Id = Guid.NewGuid(), Username = "Michaï¿½", Email = "michaï¿½@example.com", Password = authService.HashPassword("Michaï¿½") },
             new User { Id = Guid.NewGuid(), Username = "Admin", Email = "admin@example.com", Password = authService.HashPassword("Admin"), Role = "Admin" }
         };
 
@@ -146,13 +148,13 @@ using (var scope = app.Services.CreateScope())
         var projects = new List<ProjectMeta>
         {
             new ProjectMeta { Id = Guid.NewGuid(), Name = "Przewidywanie pogody", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true, Likes = 1 },
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Regresja interesuj¹cych danych", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = true, Likes = 4},
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Regresja interesujï¿½cych danych", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = true, Likes = 4},
             new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt startowy", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true },
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt pocz¹tkowy", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true , Likes = 2},
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt poczï¿½tkowy", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true , Likes = 2},
             new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt nr 4", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = true, Likes = 5},
             new ProjectMeta { Id = Guid.NewGuid(), Name = "My project", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false },
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Przewidywanie cen pr¹du", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false },
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Przewidywanie wartoœci z³ota", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = true},
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Przewidywanie cen prï¿½du", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false },
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Przewidywanie wartoï¿½ci zï¿½ota", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = true},
             new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true, Likes = 3 },
             new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false },
             new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = false},
@@ -227,11 +229,11 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// WA¯NE: app.UseRouting() musi byæ przed app.UseCors() jeœli u¿ywasz routingu atrybutowego
+// WAï¿½NE: app.UseRouting() musi byï¿½ przed app.UseCors() jeï¿½li uï¿½ywasz routingu atrybutowego
 app.UseRouting();
 
-// WA¯NE: Tutaj wstawiasz app.UseCors()
-app.UseCors(); // To aktywuje domyœln¹ politykê CORS
+// WAï¿½NE: Tutaj wstawiasz app.UseCors()
+app.UseCors(); // To aktywuje domyï¿½lnï¿½ politykï¿½ CORS
 
 
 app.UseAuthentication();

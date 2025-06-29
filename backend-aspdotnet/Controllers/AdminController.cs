@@ -24,28 +24,84 @@ namespace backend_aspdotnet.Controllers
         }
 
         [Authorize(Roles = "Admin")]
-        [HttpGet("admin-data")]
-        public async Task<ActionResult> AdminGet()
+        [HttpGet("users")]
+        public async Task<ActionResult> AdminGetUsers()
         {
+            var now = DateTime.UtcNow;
+
             var users = await _postgers.Users
-                .Select(u => new { u.Id, u.Username })
-                .ToListAsync();
+            .GroupJoin(
+                _postgers.Blocked,
+                user => user.Id,
+                blocked => blocked.UserId,
+                (user, blockedEntries) => new { user, blockedEntries }
+            )
+            .Select(x => new
+            {
+                x.user.Id,
+                x.user.Username,
+                x.user.Role,
+                IsBlocked = x.blockedEntries.Any(b => b.BlockedUntil > now)
+            })
+            .ToListAsync();
+            
+            return Ok(new
+            {
+                Users = users
+            });
+        }
 
+        [Authorize(Roles = "Admin")]
+        [HttpGet("projects")]
+        public async Task<ActionResult> AdminGetProjects()
+        {
+          
             var projects = await _postgers.Projects
-                .Select(p => new { p.Id, p.Name })
-                .ToListAsync();
-
-            var datasets = await _postgers.Datasets
-                .Select(d => new { d.Id, d.Name })
+            .Join(_postgers.Users,
+                dataset => dataset.UserId,
+                user => user.Id,
+                (dataset, user) => new
+                {
+                    dataset.Id,
+                    dataset.Name,
+                    user.Username,
+                    dataset.CreatedAt,
+                    dataset.IsPublic
+                })
                 .ToListAsync();
 
             return Ok(new
             {
-                Users = users,
-                Projects = projects,
+                Projects = projects
+            });
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("datasets")]
+        public async Task<ActionResult> AdminGetDatasets()
+        {
+
+
+            var datasets = await _postgers.Datasets
+            .Join(_postgers.Users,
+                dataset => dataset.UserId,
+                user => user.Id,
+                (dataset, user) => new
+                {
+                    dataset.Id,
+                    dataset.Name,
+                    user.Username,
+                    dataset.CreatedAt,
+                    dataset.IsPublic
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
                 Datasets = datasets
             });
         }
+
         [Authorize(Roles = "Admin")]
         [HttpDelete("user/{id}")]
         public async Task<IActionResult> DeleteUser(Guid id)
