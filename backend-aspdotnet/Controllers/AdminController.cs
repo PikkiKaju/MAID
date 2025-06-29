@@ -27,17 +27,52 @@ namespace backend_aspdotnet.Controllers
         [HttpGet("admin-data")]
         public async Task<ActionResult> AdminGet()
         {
+             var now = DateTime.UtcNow;
+
             var users = await _postgers.Users
-                .Select(u => new { u.Id, u.Username })
+            .GroupJoin(
+                _postgers.Blocked,
+                user => user.Id,
+                blocked => blocked.UserId,
+                (user, blockedEntries) => new { user, blockedEntries }
+            )
+            .Select(x => new
+            {
+                x.user.Id,
+                x.user.Username,
+                x.user.Role,
+                IsBlocked = x.blockedEntries.Any(b => b.BlockedUntil > now)
+            })
+            .ToListAsync();
+
+             var projects = await _postgers.Projects
+            .Join(_postgers.Users,
+                dataset => dataset.UserId,
+                user => user.Id,
+                (dataset, user) => new
+                {
+                    dataset.Id,
+                    dataset.Name,
+                    user.Username,
+                    dataset.CreatedAt,
+                    dataset.IsPublic
+                })
                 .ToListAsync();
 
-            var projects = await _postgers.Projects
-                .Select(p => new { p.Id, p.Name })
+              var datasets = await _postgers.Datasets
+            .Join(_postgers.Users,
+                dataset => dataset.UserId,
+                user => user.Id,
+                (dataset, user) => new
+                {
+                    dataset.Id,
+                    dataset.Name,
+                    user.Username,
+                    dataset.CreatedAt,
+                    dataset.IsPublic
+                })
                 .ToListAsync();
 
-            var datasets = await _postgers.Datasets
-                .Select(d => new { d.Id, d.Name })
-                .ToListAsync();
 
             return Ok(new
             {
