@@ -7,6 +7,13 @@ export interface DatasetMetadata {
   createdAt: string;
 }
 
+export interface DatasetMyMetadata {
+  id: string;
+  name: string;
+  IsPublic: string;
+  createdAt: string;
+}
+
 export interface DatasetUploadResponse {
   message: string;
   datasetId: string;
@@ -20,48 +27,69 @@ export interface DatasetDetail extends DatasetMetadata {
 class DatasetService {
   private baseUrl = "/dataset";
 
-  async uploadCsv(csvText: string, name: string, isPublic: boolean): Promise<DatasetUploadResponse> {
-    const response = await axiosInstance.post<DatasetUploadResponse>(
-      `${this.baseUrl}/upload-csv`,
-      {
-        csvText,
-        name,
-        isPublic
+async uploadCsv(
+  file: File,
+  name: string,
+  isPublic: boolean,
+  token: string
+): Promise<DatasetUploadResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("name", name);
+  formData.append("isPublic", isPublic.toString());
+
+  const response = await axiosInstance.post<DatasetUploadResponse>(
+    `${this.baseUrl}/upload-csv`,
+    formData,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        // No Content-Type header here, so Axios can set multipart/form-data boundary
       },
+      transformRequest: (data, headers) => {
+        delete headers["Content-Type"];
+        return data;
+      },
+    }
+  );
+
+  return response.data;
+}
+
+  async getDatasets(token: string): Promise<DatasetMyMetadata[]> {
+    const response = await axiosInstance.get<DatasetMyMetadata[]>(
+      `${this.baseUrl}/list`,
       {
         headers: {
-          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
       }
     );
-
     return response.data;
   }
 
-  async getDatasets(): Promise<DatasetMetadata[]> {
+  async getPublicDatasets(token: string): Promise<DatasetMetadata[]> {
     const response = await axiosInstance.get<DatasetMetadata[]>(
-      `${this.baseUrl}/list`
+      `${this.baseUrl}/dataset-public`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
     return response.data;
   }
 
-  async getPublicDatasets(): Promise<DatasetMetadata[]> {
-    const response = await axiosInstance.get<DatasetMetadata[]>(
-      `${this.baseUrl}/dataset-public`
-    );
-    return response.data;
-  }
-
-  async getAllDatasets(): Promise<{public: DatasetMetadata[], user: DatasetMetadata[]}> {
+  async getAllDatasets(token: string): Promise<{ public: DatasetMetadata[]; user: DatasetMyMetadata[] }> {
     try {
       const [publicDatasets, userDatasets] = await Promise.all([
-        this.getPublicDatasets(),
-        this.getDatasets()
+        this.getPublicDatasets(token),
+        this.getDatasets(token),
       ]);
-      
+
       return {
         public: publicDatasets,
-        user: userDatasets
+        user: userDatasets,
       };
     } catch (error) {
       console.error("Error fetching datasets:", error);
@@ -69,22 +97,21 @@ class DatasetService {
     }
   }
 
-  async deleteDataset(id: string): Promise<void> {
-    await axiosInstance.delete(`${this.baseUrl}/${id}`);
+  async deleteDataset(id: string, token: string): Promise<void> {
+    await axiosInstance.delete(`${this.baseUrl}/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
   }
 
-  // Placeholder for dataset details endpoint (if available)
-  async getDatasetDetails(id: string): Promise<DatasetDetail> {
-    try {
-      const response = await axiosInstance.get<DatasetDetail>(
-        `${this.baseUrl}/${id}`
-      );
-      return response.data;
-    } catch (error) {
-      // If details endpoint doesn't exist, return minimal data
-      console.warn("Dataset details endpoint not available:", error);
-      throw new Error("Dataset details not available");
-    }
+  async getDatasetDetails(id: string, token: string): Promise<DatasetDetail> {
+    const response = await axiosInstance.get<DatasetDetail>(`${this.baseUrl}/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
   }
 }
 

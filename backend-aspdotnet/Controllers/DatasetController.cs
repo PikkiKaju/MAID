@@ -1,4 +1,4 @@
-﻿using backend_aspdotnet.Database;
+﻿﻿using backend_aspdotnet.Database;
 using backend_aspdotnet.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -28,7 +28,7 @@ namespace backend_aspdotnet.Controllers
         [ApiExplorerSettings(IgnoreApi = true)]
         [HttpPost("upload-csv")]
         [Consumes("multipart/form-data")]
-        public async Task<IActionResult> UploadCsv([FromForm] IFormFile file)
+        public async Task<IActionResult> UploadCsv([FromForm] IFormFile file, [FromForm] string name, [FromForm] bool isPublic)
         {
             // if file exists
             if (file == null || file.Length == 0)
@@ -46,7 +46,7 @@ namespace backend_aspdotnet.Controllers
 
             // if name in database
             var existingDataset = await _postgresDb.Datasets
-                .Where(d => d.UserId == userId && d.Name == fileName)
+                .Where(d => d.UserId == userId && d.Name == name)
                 .FirstOrDefaultAsync();
 
             if (existingDataset != null)
@@ -88,9 +88,10 @@ namespace backend_aspdotnet.Controllers
             var metadata = new DatasetMeta
             {
                 Id = Guid.NewGuid(),
-                Name = fileName,
+                Name = name,
                 UserId = userId,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                IsPublic = isPublic
             };
 
             // Store in Mongo
@@ -121,10 +122,20 @@ namespace backend_aspdotnet.Controllers
             if (!Guid.TryParse(userIdString, out Guid userId))
                 return Unauthorized("Invalid user ID format.");
 
-            var datasets = await _postgresDb.Datasets
-                .Where(d => d.UserId == userId)
-                .Select(d => new { d.Id, d.Name, d.CreatedAt, d.IsPublic })
-                .ToListAsync();
+
+             var datasets = await _postgresDb.Datasets
+              .Where(d => d.UserId == userId)
+                .Join(_postgresDb.Users,
+                    dataset => dataset.UserId,
+                    user => user.Id,
+                    (dataset, user) => new
+                    {
+                        dataset.Id,
+                        dataset.Name,
+                        dataset.CreatedAt,
+                        dataset.IsPublic
+                    })
+                    .ToListAsync();
 
             return Ok(datasets);
         }
@@ -141,8 +152,16 @@ namespace backend_aspdotnet.Controllers
                 return Unauthorized("Invalid user ID format.");
             */
             var datasets = await _postgresDb.Datasets
-                .Where(d => d.IsPublic == true)
-                .Select(d => new { d.Id, d.Name, d.CreatedAt })
+            .Join(_postgresDb.Users,
+                dataset => dataset.UserId,
+                user => user.Id,
+                (dataset, user) => new
+                {
+                    dataset.Id,
+                    dataset.Name,
+                    user.Username,
+                    dataset.CreatedAt
+                })
                 .ToListAsync();
 
             return Ok(datasets);

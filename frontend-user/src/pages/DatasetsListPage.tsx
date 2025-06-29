@@ -1,18 +1,23 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { datasetService, DatasetMetadata } from "../api/datasetService";
+import { useSelector } from "react-redux";
+import { RootState } from "../store/store"; // Adjust this path to your actual store
+import { datasetService, DatasetMetadata, DatasetMyMetadata } from "../api/datasetService";
 
 export default function DatasetsListPage() {
-  const [publicDatasets, setPublicDatasets] = useState<DatasetMetadata[]>([]);
-  const [userDatasets, setUserDatasets] = useState<DatasetMetadata[]>([]);
+  const token = useSelector((state: RootState) => state.auth.token);
+
+  const [publicDatasets,setPublicDatasets] = useState<DatasetMetadata[]>([]);
+  const [userDatasets, setUserDatasets] = useState<DatasetMyMetadata[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchDatasets = async () => {
+    if (!token) return;
     try {
       setLoading(true);
-      const data = await datasetService.getAllDatasets();
+      const data = await datasetService.getAllDatasets(token);
       setPublicDatasets(data.public);
       setUserDatasets(data.user);
     } catch (err: any) {
@@ -24,20 +29,18 @@ export default function DatasetsListPage() {
 
   useEffect(() => {
     fetchDatasets();
-  }, []);
+  }, [token]);
 
   const handleDelete = async (id: string, name: string) => {
+    if (!token) return;
     if (!window.confirm(`Czy na pewno chcesz usunąć dataset "${name}"?`)) {
       return;
     }
 
     try {
       setDeletingId(id);
-      await datasetService.deleteDataset(id);
-      
-      // Refresh the list after successful deletion
+      await datasetService.deleteDataset(id, token);
       await fetchDatasets();
-      
       alert("Dataset został usunięty pomyślnie.");
     } catch (err: any) {
       alert("Błąd podczas usuwania datasetu: " + (err.response?.data?.message || err.message));
@@ -102,8 +105,9 @@ export default function DatasetsListPage() {
                   <h4 className="font-semibold text-lg mb-2">{dataset.name}</h4>
                   <div className="text-sm text-gray-600 mb-2">
                     <p>ID: {dataset.id}</p>
-                    <p>Autor: {dataset.username}</p>
+                    <p>Nazwa: {dataset.name}</p>
                     <p>Utworzono: {new Date(dataset.createdAt).toLocaleDateString()}</p>
+                    <p>Publiczny: {dataset.IsPublic}</p>
                   </div>
                   <div className="flex justify-between items-center">
                     <div className="text-xs text-blue-600 font-medium">Prywatny</div>

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { RootState } from "../store/store"; // Adjust this path to your actual store
 import { datasetService } from "../api/datasetService";
 
 export default function DatasetPageUpload() {
@@ -9,9 +11,10 @@ export default function DatasetPageUpload() {
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const navigate = useNavigate();
-
+    const token = useSelector((state: RootState) => state.auth.token);
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
+    
     if (e.target.files?.length) {
       const selectedFile = e.target.files[0];
       setFile(selectedFile);
@@ -30,12 +33,12 @@ export default function DatasetPageUpload() {
 
     setIsUploading(true);
     setError(null);
-
+    if (!token) return;
     try {
       // Read file as text
-      const csvText = await file.text();
+      //const csvText = await file.text();
       
-      const response = await datasetService.uploadCsv(csvText, title, isPublic);
+      const response = await datasetService.uploadCsv(file, title, isPublic,token);
       alert(`${response.message}. ID: ${response.datasetId}`);
       navigate("/datasets-regresja");
     } catch (err: any) {
