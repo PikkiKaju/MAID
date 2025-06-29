@@ -56,16 +56,16 @@ export default function DatasetPageUpload() {
           return alert("Plik CSV nie zawiera poprawnych danych liczbowych.");
         }
 
-        const newId = datasetRegresjaList.length
-          ? Math.max(...datasetRegresjaList.map((d: { id: any; }) => d.id)) + 1
-          : 1;
+        // Generate UUID for new dataset
+        const newId = crypto.randomUUID();
 
         datasetRegresjaList.push({
           id: newId,
-          title,
+          name: title,
           xValues,
           yValues,
           isPublic,
+          createdAt: new Date().toISOString(),
         });
 
         alert("Zbiór danych został dodany.");

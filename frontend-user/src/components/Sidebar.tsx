@@ -7,11 +7,6 @@ function Sidebar() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showText, setShowText] = useState(true);
   const isLoggedIn = useSelector((state: any) => state.auth.isLoggedIn);
-  
-  // Debug: Log the auth state to console
-  console.log('Sidebar - isLoggedIn:', isLoggedIn);
-  console.log('Sidebar - Full auth state:', useSelector((state: any) => state.auth));
-  console.log('Sidebar - Token in localStorage:', localStorage.getItem('token'));
 
   // Effect for sidebar smooth animation
   useEffect(() => {
@@ -57,22 +52,21 @@ function Sidebar() {
         </Link>
 
         {/* My Projects Link */}
-        {isLoggedIn && (
-          <Link
-            to="/projects"
-            className="block py-1 px-2 hover:bg-blue-800 rounded flex gap-2 items-center"
-          >
-            <Folder className="w-4" />
-            {showText && (
-              <span className="transition-opacity duration-300 opacity-100">
-                My Projects
-              </span>
-            )}
-          </Link>
-        )}
-        {/* Temporarily show for testing - remove this later */}
         <Link
-          to="/upload-regression"
+          to="/projects"
+          className="block py-1 px-2 hover:bg-blue-800 rounded flex gap-2 items-center"
+        >
+          <Folder className="w-4" />
+          {showText && (
+            <span className="transition-opacity duration-300 opacity-100">
+              My Projects
+            </span>
+          )}
+        </Link>
+        
+        {/* Datasets Link */}
+        <Link
+          to="/datasets-regresja"
           className="block py-1 px-2 hover:bg-blue-800 rounded flex gap-2 items-center"
         >
           <Upload className="w-4" />
@@ -82,20 +76,6 @@ function Sidebar() {
             </span>
           )}
         </Link>
-        
-        {isLoggedIn && (
-          <Link
-            to="/upload-regression"
-            className="block py-1 px-2 hover:bg-blue-800 rounded flex gap-2 items-center"
-          >
-            <Upload className="w-4" /> {/* zmieniono z UploadIcon na Upload */}
-            {showText && (
-              <span className="transition-opacity duration-300 opacity-100">
-                Dodaj dane
-              </span>
-            )}
-          </Link>
-        )}
       </nav>
     </div>
   );

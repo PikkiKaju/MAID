@@ -10,6 +10,7 @@ import { loginFromStorage } from "../features/auth/authSlice";
 import { store } from "../store/store";
 import ProjectEditPage from "../pages/ProjectEditPage";
 import DatasetPageUpload from "../pages/DatasetPageUpload";
+import DatasetsListPage from "../pages/DatasetsListPage";
 
 const rootLoader = async () => {
   store.dispatch(loginFromStorage());
@@ -27,17 +28,16 @@ const router = createBrowserRouter([
         element: <HomePage />,
       },
       {
-        element: <PrivateRoute />,
-        children: [
-          {
-            path: "projects",
-            element: <ProjectsPage />,
-          },
-          {
-            path: "upload-regression",
-            element: <DatasetPageUpload />, 
-          },
-        ],
+        path: "projects",
+        element: <ProjectsPage />,
+      },
+      {
+        path: "upload-regression",
+        element: <DatasetPageUpload />, 
+      },
+      {
+        path: "datasets-regresja",
+        element: <DatasetsListPage />, 
       },
     ],
   },
