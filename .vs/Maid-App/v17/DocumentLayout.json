@@ -114,11 +114,11 @@
             },
             {
               "$type": "Bookmark",
-              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
             },
             {
               "$type": "Bookmark",
-              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
             },
             {
               "$type": "Document",
@@ -130,8 +130,7 @@
               "RelativeToolTip": "backend-aspdotnet\\Models\\Blocked.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAQAAAATAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-28T11:39:23.351Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-06-28T11:39:23.351Z"
             },
             {
               "$type": "Document",
@@ -143,8 +142,7 @@
               "RelativeToolTip": "backend-aspdotnet\\Database\\DatasetMeta.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-21T14:55:34.395Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-06-21T14:55:34.395Z"
             },
             {
               "$type": "Document",
@@ -277,8 +275,7 @@
               "RelativeToolTip": "backend-aspdotnet\\Models\\User.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAaAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-28T19:10:13.392Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-05-28T19:10:13.392Z"
             },
             {
               "$type": "Document",
@@ -350,8 +347,7 @@
               "RelativeToolTip": "backend-aspdotnet\\Database\\Postgres.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAWAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-20T13:15:31.181Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-05-20T13:15:31.181Z"
             },
             {
               "$type": "Document",
@@ -363,8 +359,7 @@
               "RelativeToolTip": "backend-aspdotnet\\Program.cs",
               "ViewState": "AgIAAFQAAAAAAAAAAAAAAKgAAAAQAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-20T13:04:25.52Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-05-20T13:04:25.52Z"
             },
             {
               "$type": "Document",
