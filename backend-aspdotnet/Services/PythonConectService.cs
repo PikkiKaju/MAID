@@ -30,7 +30,7 @@ namespace backend_aspdotnet.Services
                 // Build endpoint based on algorithm, e.g., /linear/, /ridge/, etc.
                 string endpoint = $"/{algorithm.ToLowerInvariant().Replace(" ", "-")}/";
 
-                var response = await _httpClient.PostAsJsonAsync("api"+endpoint, content);
+                var response = await _httpClient.PostAsync("api"+endpoint, content);
                 response.EnsureSuccessStatusCode();
 
                 return await response.Content.ReadAsStringAsync();
