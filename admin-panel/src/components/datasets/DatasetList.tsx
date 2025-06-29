@@ -6,6 +6,9 @@ export const DatasetList = () => (
     <Datagrid rowClick="edit">
       <TextField source="id" />
       <TextField source="name" />
+      <TextField source="createdAt" />
+      <TextField source="username" />
+      <TextField source="isPublic" />
     </Datagrid>
   </List>
 );
