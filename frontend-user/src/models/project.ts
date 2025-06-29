@@ -30,6 +30,7 @@ export interface ProjectDetail {
   yColumn: string;
   algorithm: string;
   parameters: Record<string, any>;
+  isPublic: boolean;
 }
 
 export interface ProjectMeta {
@@ -39,6 +40,7 @@ export interface ProjectMeta {
   datasetId: string;
   createdAt: string;
   lastModifiedAt: string;
+  isPublic: boolean;
 }
 
 export interface ApiProject {
