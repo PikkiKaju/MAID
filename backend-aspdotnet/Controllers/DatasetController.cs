@@ -127,6 +127,26 @@ namespace backend_aspdotnet.Controllers
             return Ok(datasets);
         }
 
+        [HttpGet("dataset-public")]
+        public async Task<IActionResult> GetPublicDatasets()
+        {
+            /*
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdString))
+                return Unauthorized("User ID not found in token.");
+
+            if (!Guid.TryParse(userIdString, out Guid userId))
+                return Unauthorized("Invalid user ID format.");
+            */
+            var datasets = await _postgresDb.Datasets
+                .Where(d => d.IsPublic == true)
+                .Select(d => new { d.Id, d.Name, d.CreatedAt })
+                .ToListAsync();
+
+            return Ok(datasets);
+        }
+
+
         [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDataset(Guid id)
