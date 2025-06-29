@@ -47,16 +47,16 @@ namespace backend_aspdotnet.Controllers
 
 
             [HttpGet("All")]
-            
             public async Task<IActionResult> GetAllPublic()
         {
+            /*
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdString))
                 return Unauthorized("User ID not found in token.");
 
             if (!Guid.TryParse(userIdString, out Guid userId))
                 return Unauthorized("Invalid user ID format.");
-
+            */
             var projects = await _context.Projects
                     .Where(p => p.IsPublic == true)
                     .ToListAsync();
@@ -66,13 +66,14 @@ namespace backend_aspdotnet.Controllers
             [HttpGet("New")]
             public async Task<IActionResult> GetNew()
         {
+            /*
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdString))
                 return Unauthorized("User ID not found in token.");
 
             if (!Guid.TryParse(userIdString, out Guid userId))
                 return Unauthorized("Invalid user ID format.");
-
+            */
             var projects = await _context.Projects
                     .Where(p => p.IsPublic == true)
                     .OrderByDescending(p => p.LastModifiedAt)
@@ -83,13 +84,14 @@ namespace backend_aspdotnet.Controllers
             [HttpGet("Popular")]
             public async Task<IActionResult> GetPopular()
         {
+            /*
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdString))
                 return Unauthorized("User ID not found in token.");
 
             if (!Guid.TryParse(userIdString, out Guid userId))
                 return Unauthorized("Invalid user ID format.");
-
+            */
             var projects = await _context.Projects
                     .Where(p => p.IsPublic == true)
                     .OrderByDescending(p => p.Likes)
