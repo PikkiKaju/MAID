@@ -33,7 +33,7 @@ export const fetchProjects = createAsyncThunk<
   try {
     const { token } = getState().auth;
 
-    const response = await axiosInstance.get("/Project", {
+    const response = await axiosInstance.get("/Project/My", {
       headers: {
         Authorization: `Bearer ${token}`,
       },

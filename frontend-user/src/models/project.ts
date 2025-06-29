@@ -2,11 +2,13 @@ import { RootState } from "../store/store";
 
 export interface Project {
   id: string;
-  userId: string;
+  userId: string; 
   name: string;
-  datasetId: string;
-  createdAt: string;
-  lastModifiedAt: string;
+  datasetId: string; 
+  createdAt: string; 
+  lastModifiedAt: string; 
+  isPublic: boolean;
+  likes: number;
 }
 
 export interface CreateProjectInput {

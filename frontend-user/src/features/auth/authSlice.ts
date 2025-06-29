@@ -2,6 +2,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { AuthResponse, AuthState} from '../../models/auth';
 import { registerUser } from './registerThunks';
 import { loginUser } from './loginThunks';
+import { capitalizeFirstLetter } from '../../utilis/functions';
 
 const initialState: AuthState = {
   token: null,
@@ -15,14 +16,16 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    login: (state, action: PayloadAction<{ token: string }>) => {
+    login: (state, action: PayloadAction<{ token: string, displayName: string }>) => {
       state.token = action.payload.token;
+      state.displayName = capitalizeFirstLetter(action.payload.displayName);
       state.isLoggedIn = true;
       state.status = 'succeeded';
       state.error = null;
     },
     logout: (state) => {
       state.token = null;
+      state.displayName = null;
       state.isLoggedIn = false;
       state.status = 'inactive';
       state.error = null;
@@ -37,9 +40,11 @@ const authSlice = createSlice({
     // when we refresh our app we dont lose a session
     loginFromStorage: (state) => {
       const token = localStorage.getItem('token');
+      const displayName = localStorage.getItem('displayName');
       
       if (token) {
         state.token = token;
+        state.displayName = capitalizeFirstLetter(displayName);
         state.isLoggedIn = true;
         state.status = 'succeeded';
         state.error = null;
@@ -55,14 +60,17 @@ const authSlice = createSlice({
       .addCase(registerUser.fulfilled, (state, action: PayloadAction<AuthResponse>) => {
         state.status = 'succeeded';
         state.token = action.payload.token;
+        state.displayName = capitalizeFirstLetter(action.payload.username);
         state.isLoggedIn = true;
         state.error = null;
 
         localStorage.setItem('token', action.payload.token);
+        localStorage.setItem('displayName', action.payload.username); 
       })
       .addCase(registerUser.rejected, (state, action: PayloadAction<string | undefined>) => {
         state.status = 'failed';
         state.token = null;
+        state.displayName = null;
         state.isLoggedIn = false;
         state.error = action.payload || 'Rejestracja nie powiodła się.';
       })
@@ -73,14 +81,17 @@ const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action: PayloadAction<AuthResponse>) => {
         state.status = 'succeeded';
         state.token = action.payload.token;
+        state.displayName = capitalizeFirstLetter(action.payload.username);
         state.isLoggedIn = true;
         state.error = null;
 
         localStorage.setItem('token', action.payload.token);
+        localStorage.setItem('displayName', action.payload.username);
       })
       .addCase(loginUser.rejected, (state, action: PayloadAction<string | undefined>) => {
         state.status = 'failed';  
         state.token = null;
+        state.displayName = null;
         state.isLoggedIn = false;
         state.error = action.payload || 'Logowanie nie powiodło się.';
       });

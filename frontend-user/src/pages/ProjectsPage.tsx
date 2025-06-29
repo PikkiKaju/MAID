@@ -8,6 +8,7 @@ import {
   createProject,
   fetchProjects,
 } from "../features/project/projectThunks";
+import { formatDate } from "../utilis/functions";
 
 function ProjectsPage() {
   const isLoggedIn = useSelector((state: any) => state.auth.isLoggedIn);
@@ -54,22 +55,31 @@ function ProjectsPage() {
             onClick={() => navigate(`/projects/${proj.id}`)}
             className="cursor-pointer h-64 bg-white rounded shadow overflow-hidden border border-gray-200 hover:shadow-xl "
           >
-            {/* Ładniejszy Format */}
-            {/* <img
-              src={proj.image}
-              alt="Projekt"
-              className="w-full h-40 object-cover"
-            /> */}
-            {/* <div className="p-4">
-              <h3 className="font-semibold text-lg">{proj.title}</h3>
-              <p className="text-sm text-gray-600">{proj.description}</p>
-              <div className="text-xs text-gray-500 mt-2">
-                Dodano: {proj.date}
+            <div>
+              <h3 className="text-xl font-semibold text-gray-800 mb-6">
+                Tytuł: {proj.name}
+              </h3>
+
+              <div className="text-sm text-gray-600 space-y-1">
+                <p>
+                  <strong>Status:</strong>{" "}
+                  {proj.isPublic ? (
+                    <span className="text-green-600 font-medium">
+                      Publiczny
+                    </span>
+                  ) : (
+                    <span className="text-red-600 font-medium">Prywatny</span>
+                  )}
+                </p>
+                <p>
+                  <strong>Polubienia:</strong> {proj.likes}
+                </p>
               </div>
-            </div> */}
-            {proj.name}
-            <div className="text-xs text-gray-500 mt-2">
-              Dodano: {proj.createdAt}
+            </div>
+
+            <div className="mt-8 text-xs text-gray-500 border-t pt-2">
+              <p>Dodano: {formatDate(proj.createdAt)}</p>
+              <p>Ostatnia modyfikacja: {formatDate(proj.lastModifiedAt)}</p>
             </div>
           </button>
         ))}
