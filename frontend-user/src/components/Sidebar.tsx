@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Folder, HomeIcon, Upload } from "lucide-react";
-import { useSelector } from "react-redux";
 
 function Sidebar() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showText, setShowText] = useState(true);
-  const isLoggedIn = useSelector((state: any) => state.auth.isLoggedIn);
 
   // Effect for sidebar smooth animation
   useEffect(() => {
@@ -63,7 +61,7 @@ function Sidebar() {
             </span>
           )}
         </Link>
-        
+
         {/* Datasets Link */}
         <Link
           to="/datasets-regresja"
