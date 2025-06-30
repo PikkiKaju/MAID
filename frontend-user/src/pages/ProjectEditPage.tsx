@@ -14,6 +14,10 @@ export default function ProjectEditPage() {
   const [loading, setLoading] = useState(true);
   const [datasets, setDatasets] = useState<DatasetMetadata[]>([]);
   const [datasetSearch] = useState("");
+  const [calculationResult, setCalculationResult] = useState<{
+    prediction: number[];
+    svg_plot: string;
+  } | null>(null);
 
   const navigate = useNavigate();
   const token = useSelector((state: RootState) => state.auth.token);
@@ -52,10 +56,14 @@ export default function ProjectEditPage() {
 
   const handleStartCalculation = () => {
     if (!id || !detail) return;
-    console.log("Starting calculation for project:", id, detail);
     axiosInstance
-      .post(`/Project/calculate`, detail)
-      .then(() => alert("Obliczenia zostały uruchomione"))
+      .post(`/Calculation/start`, id, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        setCalculationResult(res.data);
+        alert("Obliczenia zostały uruchomione");
+      })
       .catch(() => alert("Wystąpił błąd podczas obliczeń."));
   };
 
@@ -235,7 +243,26 @@ export default function ProjectEditPage() {
         Podgląd wyników i wizualizacja
         */}
         <div className="text-gray-600">
-          <p>Podgląd wyników obliczeń, Wizualizacje danych.</p>
+          {calculationResult && (
+            <div className="mt-4">
+              <h3 className="font-bold mb-2">Predykcje:</h3>
+              <ul className="mb-4">
+                {calculationResult.prediction.map((val, idx) => (
+                  <li key={idx}>
+                    Wynik {idx + 1}: {val}
+                  </li>
+                ))}
+              </ul>
+              <h3 className="font-bold mb-2">Wizualizacja:</h3>
+              <div className="border p-2 bg-white rounded">
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: atob(calculationResult.svg_plot),
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Loader */}
