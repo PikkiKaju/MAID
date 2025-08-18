@@ -1,0 +1,15 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\backend-aspdotnet",
+    "\\backend-aspdotnet\\Controllers",
+    "\\backend-aspdotnet\\Database",
+    "\\backend-aspdotnet\\DTOs",
+    "\\backend-aspdotnet\\Helpers",
+    "\\backend-aspdotnet\\Models",
+    "\\backend-aspdotnet\\Properties",
+    "\\backend-aspdotnet\\Services"
+  ],
+  "SelectedNode": "\\backend-aspdotnet\\Controllers\\ProjectController.cs",
+  "PreviewInSolutionExplorer": false
+}
