@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Folder, HomeIcon, Upload } from "lucide-react";
+import { Folder, HomeIcon, Upload, PanelsTopLeft } from "lucide-react";
 
 function Sidebar() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -71,6 +71,19 @@ function Sidebar() {
           {showText && (
             <span className="transition-opacity duration-300 opacity-100">
               Datasets
+            </span>
+          )}
+        </Link>
+
+        {/* Canvas Link */}
+        <Link
+          to="/canvas"
+          className="block py-1 px-2 hover:bg-blue-800 rounded flex gap-2 items-center"
+        >
+          <PanelsTopLeft className="w-4" />
+          {showText && (
+            <span className="transition-opacity duration-300 opacity-100">
+              Canvas
             </span>
           )}
         </Link>
