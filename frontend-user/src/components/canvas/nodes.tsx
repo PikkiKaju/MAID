@@ -45,4 +45,9 @@ export const layerNodeTypes = {
   conv2dLayer: BaseLayerNode,
   flattenLayer: BaseLayerNode,
   outputLayer: BaseLayerNode,
+  actLayer: BaseLayerNode,
+  maxPool2DLayer: BaseLayerNode,
+  gap2DLayer: BaseLayerNode,
+  batchNormLayer: BaseLayerNode,
+  lstmLayer: BaseLayerNode,
 };

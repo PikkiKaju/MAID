@@ -12,6 +12,7 @@ export interface ModelCanvasState {
   setSelected: (id?: string) => void;
   updateNodeData: (id: string, data: Partial<{ label: string; params: Record<string, unknown> }>) => void;
   removeNode: (id: string) => void;
+  removeEdge: (id: string) => void;
 }
 
 export const useModelCanvasStore = create<ModelCanvasState>((set) => ({
@@ -41,5 +42,9 @@ export const useModelCanvasStore = create<ModelCanvasState>((set) => ({
     nodes: state.nodes.filter(n => n.id !== id),
     edges: state.edges.filter(e => e.source !== id && e.target !== id),
     selectedNodeId: state.selectedNodeId === id ? undefined : state.selectedNodeId
+  })),
+  // Removes a single edge by id
+  removeEdge: (id) => set((state) => ({
+    edges: state.edges.filter(e => e.id !== id)
   }))
 }));
