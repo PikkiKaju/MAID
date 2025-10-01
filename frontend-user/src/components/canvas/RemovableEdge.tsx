@@ -1,4 +1,4 @@
-import { memo, useState, MouseEvent } from 'react';
+import { memo, MouseEvent } from 'react';
 import { BaseEdge, EdgeLabelRenderer, EdgeProps, getBezierPath } from 'reactflow';
 import { useModelCanvasStore } from '../../store/modelCanvasStore';
 import { X } from 'lucide-react';
@@ -6,18 +6,12 @@ import { X } from 'lucide-react';
 // A custom edge that, when clicked, reveals a centered remove button.
 function RemovableEdge(props: EdgeProps) {
   const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, markerEnd, style, selected } = props;
-  const [showRemove, setShowRemove] = useState(false);
   const removeEdge = useModelCanvasStore(s => s.removeEdge);
 
   const [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
 
-  const handleEdgeClick = (e: MouseEvent) => {
-    e.stopPropagation();
-    setShowRemove(v => !v);
-  };
-
   const handleRemove = (e: MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation(); // prevent background deselect before removal
     removeEdge(id);
   };
 
@@ -29,17 +23,8 @@ function RemovableEdge(props: EdgeProps) {
         style={{ ...style, strokeWidth: selected ? 2.5 : 2, stroke: selected ? '#2563eb' : style?.stroke || '#555' }}
         interactionWidth={24}
       />
-      {/* Transparent clickable overlay path to capture clicks */}
-      <path
-        d={path}
-        stroke='transparent'
-        strokeWidth={24}
-        fill='none'
-        onClick={handleEdgeClick}
-        style={{ cursor: 'pointer' }}
-      />
       <EdgeLabelRenderer>
-        {(showRemove || selected) && (
+        {selected && (
           <div
             style={{
               position: 'absolute',
@@ -47,7 +32,6 @@ function RemovableEdge(props: EdgeProps) {
               pointerEvents: 'all',
               zIndex: 40,
             }}
-            className='group'
           >
             <button
               onClick={handleRemove}
