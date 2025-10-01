@@ -362,7 +362,7 @@ function Tooltip({ content }: { content: string }) {
       <span className='group inline-flex'>
         <Info size={12} className='text-slate-400 hover:text-slate-600 cursor-help' />
         {/* Tooltip bubble positioned to the right to avoid overlap with canvas; higher z-index to sit above ReactFlow */}
-        <span className='pointer-events-none absolute left-full top-1/2 hidden w-60 -translate-y-1/2 translate-x-2 z-50 group-hover:block'>
+        <span className='pointer-events-none absolute left-full top-1/2 hidden w-50 -translate-y-1/2 translate-x-2 z-50 group-hover:block'>
           <span className='block rounded border border-slate-300 bg-white px-2 py-1 text-[10px] leading-snug shadow-lg text-slate-600'>
             {content}
           </span>
