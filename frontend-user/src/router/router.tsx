@@ -11,6 +11,7 @@ import { store } from "../store/store";
 import ProjectEditPage from "../pages/ProjectEditPage";
 import DatasetPageUpload from "../pages/DatasetPageUpload";
 import DatasetsListPage from "../pages/DatasetsListPage";
+import CanvasPage from "../pages/CanvasPage";
 
 const rootLoader = async () => {
   store.dispatch(loginFromStorage());
@@ -38,6 +39,10 @@ const router = createBrowserRouter([
       {
         path: "datasets-regresja",
         element: <DatasetsListPage />, 
+      },
+      {
+        path: "canvas",
+        element: <CanvasPage />,
       },
     ],
   },
