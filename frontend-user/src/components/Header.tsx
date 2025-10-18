@@ -21,6 +21,8 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { ThemeToggle } from "../pages/ThemeToggle";
+import { LanguageSwitcher } from "../pages/LanguageSwitcher";
 
 export default function Header() {
   const dispatch = useAppDispatch();
@@ -71,8 +73,8 @@ export default function Header() {
 
       {/* Controls */}
       <div className="flex items-center gap-2">
-        {/* <LanguageSwitcher />
-        <ThemeToggle /> */}
+        <LanguageSwitcher />
+        <ThemeToggle />
 
         {/* User Section */}
         {!isLoggedIn ? (
