@@ -46,21 +46,21 @@ function ProjectsPage() {
   };
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
+    <div className="p-6 bg-background min-h-screen">
       <h2 className="text-2xl font-semibold mb-6">Moje Projekty</h2>
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
         {projects.map((proj) => (
           <button
             key={proj.id}
             onClick={() => navigate(`/projects/${proj.id}`)}
-            className="cursor-pointer h-64 bg-white rounded shadow overflow-hidden border border-gray-200 hover:shadow-xl "
+            className="cursor-pointer h-64 bg-card rounded shadow overflow-hidden border border-border hover:shadow-xl "
           >
             <div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-6">
+              <h3 className="text-xl font-semibold text-foreground mb-6">
                 Tytuł: {proj.name}
               </h3>
 
-              <div className="text-sm text-gray-600 space-y-1">
+              <div className="text-sm text-muted-foreground space-y-1">
                 <p>
                   <strong>Status:</strong>{" "}
                   {proj.isPublic ? (
@@ -77,7 +77,7 @@ function ProjectsPage() {
               </div>
             </div>
 
-            <div className="mt-8 text-xs text-gray-500 border-t pt-2">
+            <div className="mt-8 text-xs text-muted-foreground border-t pt-2">
               <p>Dodano: {formatDate(proj.createdAt)}</p>
               <p>Ostatnia modyfikacja: {formatDate(proj.lastModifiedAt)}</p>
             </div>
@@ -85,9 +85,9 @@ function ProjectsPage() {
         ))}
         <div
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center justify-center bg-gray-200 rounded border-2 border-dashed border-gray-400 h-64 cursor-pointer hover:bg-gray-300"
+          className="flex items-center justify-center bg-muted rounded border-2 border-dashed border-border h-64 cursor-pointer hover:bg-muted/80"
         >
-          <span className="text-5xl text-gray-500">+</span>
+          <span className="text-5xl text-muted-foreground">+</span>
         </div>
       </div>
 

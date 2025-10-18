@@ -33,11 +33,11 @@ const router = createBrowserRouter([
       },
       {
         path: "upload-regression",
-        element: <DatasetPageUpload />, 
+        element: <DatasetPageUpload />,
       },
       {
         path: "datasets-regresja",
-        element: <DatasetsListPage />, 
+        element: <DatasetsListPage />,
       },
     ],
   },

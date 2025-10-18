@@ -21,15 +21,15 @@ function RegisterForm({
   passwordError,
 }: RegisterFormProps) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-background">
       {/* If status is loading then create a loading view */}
       <div
         className={`loader ${status !== "loading" ? "loader-hidden" : ""}`}
       />
 
       {/* Register Form Box */}
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
+      <div className="bg-card text-card-foreground p-8 rounded-lg shadow-md w-full max-w-md">
+        <h2 className="text-2xl font-bold text-center text-foreground mb-6">
           Rejestracja
         </h2>
 
@@ -38,7 +38,7 @@ function RegisterForm({
           <div>
             <label
               htmlFor="username"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-muted-foreground"
             >
               Nazwa użytkownika
             </label>
@@ -46,7 +46,7 @@ function RegisterForm({
               type="text"
               id="username"
               name="username"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              className="mt-1 block w-full px-3 py-2 border border-border rounded-md shadow-sm bg-input-background focus:outline-none focus:ring-2 focus:ring-ring sm:text-sm"
               value={userToRegister.username}
               onChange={handleChange}
               required
@@ -57,7 +57,7 @@ function RegisterForm({
           <div>
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-muted-foreground"
             >
               Email
             </label>
@@ -65,7 +65,7 @@ function RegisterForm({
               type="email"
               id="email"
               name="email"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              className="mt-1 block w-full px-3 py-2 border border-border rounded-md shadow-sm bg-input-background focus:outline-none focus:ring-2 focus:ring-ring sm:text-sm"
               value={userToRegister.email}
               onChange={handleChange}
               required
@@ -76,7 +76,7 @@ function RegisterForm({
           <div>
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-muted-foreground"
             >
               Hasło
             </label>
@@ -84,7 +84,7 @@ function RegisterForm({
               type="password"
               id="password"
               name="password"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              className="mt-1 block w-full px-3 py-2 border border-border rounded-md shadow-sm bg-input-background focus:outline-none focus:ring-2 focus:ring-ring sm:text-sm"
               value={userToRegister.password}
               onChange={handleChange}
               required
@@ -95,7 +95,7 @@ function RegisterForm({
           <div>
             <label
               htmlFor="confirmPassword"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-muted-foreground"
             >
               Potwierdź hasło
             </label>
@@ -118,14 +118,14 @@ function RegisterForm({
 
           <button
             type="submit"
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
             disabled={status === "loading"}
           >
             Zarejestruj się
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-600">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
           Masz już konto?{" "}
           <Link
             to="/login"

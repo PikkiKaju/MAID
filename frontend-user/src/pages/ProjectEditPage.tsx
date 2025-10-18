@@ -131,35 +131,37 @@ export default function ProjectEditPage() {
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
-      <div className="w-80 bg-gray-100 p-6 shadow-md overflow-y-auto">
-        <h2 className="text-xl font-bold mb-6">Nazwa Projektu: {meta.name}</h2>
+      <div className="w-80 bg-card text-card-foreground p-6 shadow-md overflow-y-auto">
+        <h2 className="text-xl font-bold mb-6 text-foreground">
+          Nazwa Projektu: {meta.name}
+        </h2>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-muted-foreground mb-1">
             X Column
           </label>
           <input
             type="text"
             value={detail.xColumn}
             onChange={(e) => setDetail({ ...detail, xColumn: e.target.value })}
-            className="border px-2 py-1 w-full rounded"
+            className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
           />
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-muted-foreground mb-1">
             Y Column
           </label>
           <input
             type="text"
             value={detail.yColumn}
             onChange={(e) => setDetail({ ...detail, yColumn: e.target.value })}
-            className="border px-2 py-1 w-full rounded"
+            className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
           />
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-muted-foreground mb-1">
             Projekt
           </label>
           <input
@@ -174,13 +176,13 @@ export default function ProjectEditPage() {
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-muted-foreground mb-1">
             Dataset
           </label>
           <select
             value={meta?.datasetId || ""}
             onChange={handleDatasetChange}
-            className="border px-2 py-1 w-full rounded"
+            className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
           >
             <option value="">Wybierz dataset</option>
             {datasets
@@ -196,7 +198,7 @@ export default function ProjectEditPage() {
         </div>
 
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-muted-foreground mb-1">
             Metoda obliczeń
           </label>
           <select
@@ -204,7 +206,7 @@ export default function ProjectEditPage() {
             onChange={(e) =>
               setDetail({ ...detail, algorithm: e.target.value })
             }
-            className="border px-2 py-1 w-full rounded"
+            className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
           >
             <option value="linear">Regresja liniowa</option>
             <option value="ridge">Regresja grzbietowa</option>
@@ -214,9 +216,9 @@ export default function ProjectEditPage() {
       </div>
 
       {/* Main */}
-      <div className="flex-1 p-6 relative">
+      <div className="flex-1 p-6 relative bg-background text-foreground">
         {/* Topbar */}
-        <div className="flex justify-center gap-6 mb-6 bg-gray-100 p-3">
+        <div className="flex justify-center gap-6 mb-6 bg-muted p-3 rounded">
           <button
             onClick={handleSaveDetails}
             className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
@@ -254,7 +256,7 @@ export default function ProjectEditPage() {
                 ))}
               </ul>
               <h3 className="font-bold mb-2">Wizualizacja:</h3>
-              <div className="border p-2 bg-white rounded">
+              <div className="border p-2 bg-card rounded text-card-foreground">
                 <div
                   dangerouslySetInnerHTML={{
                     __html: atob(calculationResult.svg_plot),
