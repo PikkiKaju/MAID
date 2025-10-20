@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
-INSTALLED_APPS += ['corsheaders','rest_framework']
+INSTALLED_APPS += ['corsheaders', 'rest_framework', 'network']
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
