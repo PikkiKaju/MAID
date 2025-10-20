@@ -3,10 +3,34 @@ from typing import Any, Dict, List
 from rest_framework import serializers
 
 from .models import Edge, GraphPreset, GraphSnapshot, LayerNode, NetworkGraph
+from .layers import list_layers, normalize_params_for_layer
 from .services import GraphValidationError, validate_graph_payload
 
 
 class LayerNodeSerializer(serializers.ModelSerializer):
+    def validate(self, attrs):
+        ntype = attrs.get("type")
+        if not ntype:
+            raise serializers.ValidationError({"type": ["Layer 'type' is required."]})
+
+        allowed = set(list_layers(include_deprecated=False)) | {"Input"}
+        if ntype not in allowed:
+            raise serializers.ValidationError({
+                "type": [
+                    f"Unsupported layer type '{ntype}'. Query /api/network/layers to see available types."
+                ]
+            })
+
+        # Optional early param validation against manifest (services.validate_graph_payload also validates)
+        params = attrs.get("params") or {}
+        try:
+            if ntype != "Input":
+                normalize_params_for_layer(ntype, params)
+        except Exception as exc:
+            raise serializers.ValidationError({"params": [str(exc)]})
+
+        return attrs
+
     class Meta:
         model = LayerNode
         fields = (
@@ -59,8 +83,6 @@ class NetworkGraphSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
-        
-        fields = "__all__"
         read_only_fields = ("id", "created_at", "updated_at")
 
     def validate(self, data):
