@@ -21,6 +21,57 @@ from .services import (
     export_graph_to_python_script,
     import_keras_json_to_graph,
 )
+from .layers import (
+    get_manifest,
+    get_layer_entry,
+    list_layers,
+)
+
+
+class LayerManifestViewSet(viewsets.ViewSet):
+    """Read-only access to Keras layer manifest.
+
+    Routes:
+      - GET /api/network/layers -> list layer summaries
+      - GET /api/network/layers/{name} -> full manifest entry for a layer
+      - GET /api/network/layers/specs -> top-level param_value_specs and versions
+    """
+
+    permission_classes = [AllowAny]
+
+    def list(self, request):
+        mf = get_manifest()
+        items = []
+        for li in mf.get("layers", []):
+            items.append(
+                {
+                    "name": li.get("name"),
+                    "description": li.get("description"),
+                    "deprecated": bool(li.get("deprecated")),
+                }
+            )
+        return Response({
+            "tensorflow_version": mf.get("tensorflow_version"),
+            "keras_version": mf.get("keras_version"),
+            "layer_count": mf.get("layer_count"),
+            "layers": items,
+        })
+
+    def retrieve(self, request, pk=None):
+        try:
+            entry = get_layer_entry(pk)
+        except KeyError:
+            return Response({"detail": f"Layer '{pk}' not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(entry)
+
+    @action(detail=False, methods=["get"], url_path="specs")
+    def specs(self, request):
+        mf = get_manifest()
+        return Response({
+            "tensorflow_version": mf.get("tensorflow_version"),
+            "keras_version": mf.get("keras_version"),
+            "param_value_specs": mf.get("param_value_specs") or {},
+        })
 
 
 class NetworkGraphViewSet(viewsets.ModelViewSet):
