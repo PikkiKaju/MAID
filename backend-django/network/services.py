@@ -6,7 +6,12 @@ from dataclasses import dataclass
 import uuid
 from typing import Any, Dict, Iterable, List, Sequence
 
-from .layers import LAYER_REGISTRY, LayerSpec, normalize_layer_params
+from .layers import (
+    list_layers,
+    get_layer_entry,
+    normalize_params_for_layer,
+    create_layer,
+)
 
 
 @dataclass
@@ -31,8 +36,12 @@ class GraphValidationError(Exception):
 
 
 def _ensure_known_layers(nodes: Sequence[Dict[str, Any]]) -> None:
-    """Ensure all nodes reference known layer types."""
-    unknown = [node["type"] for node in nodes if node["type"] not in LAYER_REGISTRY]
+    """Ensure all nodes reference known layer types (manifest-backed).
+
+    Accepts Keras layer class names and a special 'Input' node type.
+    """
+    known = set(list_layers(include_deprecated=False)) | {"Input"}
+    unknown = [node["type"] for node in nodes if node.get("type") not in known]
     if unknown:
         raise GraphValidationError(
             {"nodes": [f"Unsupported layer types: {sorted(set(unknown))}"]}
@@ -155,26 +164,17 @@ def validate_graph_payload(
 
     structure = _build_graph_structure(nodes, edges)
 
-    validation_errors = {}
-    # Validate each node's connections and parameters
+    # Validate parameters strictly against manifest (required and enums)
+    validation_errors: Dict[str, List[str]] = {}
     for node in structure.ordered_nodes:
-        spec: LayerSpec = LAYER_REGISTRY[node["type"]]
-        inputs_count = len(
-            [edge for edge in edges if edge.get("target") == node["id"]]
-        )
-        if inputs_count < spec.min_inputs:
-            validation_errors.setdefault(node["id"], []).append(
-                f"Requires at least {spec.min_inputs} input connection(s)"
-            )
-        if spec.max_inputs is not None and inputs_count > spec.max_inputs:
-            validation_errors.setdefault(node["id"], []).append(
-                f"Allows at most {spec.max_inputs} input connection(s)"
-            )
-
+        ntype = node.get("type")
+        if ntype == "Input":
+            # No manifest entry; rely on Keras for errors during build
+            continue
         params = node.get("data", {}).get("params") or node.get("params", {})
         try:
-            normalize_layer_params(node["type"], params)
-        except ValueError as exc:
+            normalize_params_for_layer(ntype, params)
+        except Exception as exc:
             validation_errors.setdefault(node["id"], []).append(str(exc))
 
     if validation_errors:
@@ -217,17 +217,24 @@ def _build_keras_model(
 
     # Build the model using the functional API
     for node in structure.ordered_nodes:
+        ntype = node.get("type")
         params = node.get("data", {}).get("params") or node.get("params", {})
-        normalized = normalize_layer_params(node["type"], params)
-
-        # Get the layer specification from the registry
-        spec = LAYER_REGISTRY[node["type"]]
-
-        # Get the inbound tensors for the current node
         inbound_tensors = [tensors[parent_id] for parent_id in inbound_map[node["id"]]]
 
-        # Create the layer and obtain its output tensor
-        tensor = spec.builder(normalized, inbound_tensors)
+        if ntype == "Input":
+            from keras import Input  # lazy import
+            kwargs = {k: v for k, v in (params or {}).items() if v not in (None, "")}
+            tensor = Input(**kwargs)
+        else:
+            normalized = normalize_params_for_layer(ntype, params)
+            layer = create_layer(ntype, normalized)
+            if len(inbound_tensors) == 0:
+                # Most layers expect inputs; defer to Keras error if invalid
+                tensor = layer
+            elif len(inbound_tensors) == 1:
+                tensor = layer(inbound_tensors[0])
+            else:
+                tensor = layer(inbound_tensors)
         tensors[node["id"]] = tensor
 
         # Track input and output tensors
@@ -281,7 +288,7 @@ def export_graph_to_python_script(
 ) -> str:
     """Return a standalone Python script that can rebuild the model in two ways:
     - build_model_json(): via model_from_json using Keras model.to_json()
-    - build_model_py(): via explicit Keras functional API code
+    - build_model_py(): via explicit Keras functional API code (generic, manifest-driven)
     """
 
     structure = validate_graph_payload(nodes, edges)
@@ -337,116 +344,23 @@ def export_graph_to_python_script(
         v = var_for[nid]
         ntype = node["type"]
         params = node.get("data", {}).get("params") or node.get("params", {})
-        norm = normalize_layer_params(ntype, params)
+        # Strict normalization against manifest where applicable
+        norm = params if ntype == "Input" else normalize_params_for_layer(ntype, params)
         in_vars = [var_for[p] for p in inbound_map[nid]]
 
-        if ntype == "inputLayer":
-            kwargs = {
-                "shape": norm.get("shape"),
-                "dtype": norm.get("dtype") or None,
-                "name": norm.get("name") or None,
-            }
-            args_str = ", ".join(f"{k}={_py_lit(v)}" for k, v in kwargs.items() if v is not None)
+        if ntype == "Input":
+            kwargs = {k: v for k, v in (norm or {}).items() if v is not None}
+            args_str = ", ".join(f"{k}={_py_lit(v)}" for k, v in kwargs.items())
             code_lines.append(f"    {v} = Input({args_str})")
-
-        elif ntype == "denseLayer":
-            kwargs = {
-                "units": norm.get("units"),
-                "activation": norm.get("activation"),
-                "use_bias": norm.get("use_bias"),
-                "kernel_initializer": norm.get("kernel_initializer"),
-                "bias_initializer": norm.get("bias_initializer"),
-                "name": norm.get("name") or None,
-            }
-            args_str = ", ".join(f"{k}={_py_lit(v)}" for k, v in kwargs.items() if v is not None)
-            code_lines.append(f"    {v} = layers.Dense({args_str})({in_vars[0]})")
-
-        elif ntype == "dropoutLayer":
-            kwargs = {"rate": norm.get("rate"), "seed": norm.get("seed")}
-            args_str = ", ".join(f"{k}={_py_lit(v)}" for k, v in kwargs.items() if v is not None)
-            code_lines.append(f"    {v} = layers.Dropout({args_str})({in_vars[0]})")
-
-        elif ntype == "conv2dLayer":
-            kwargs = {
-                "filters": norm.get("filters"),
-                "kernel_size": norm.get("kernel") or norm.get("kernel_size"),
-                "strides": norm.get("strides") or (1, 1),
-                "padding": norm.get("padding") or "valid",
-                "activation": norm.get("activation"),
-                "use_bias": norm.get("use_bias"),
-                "name": norm.get("name") or None,
-            }
-            args_str = ", ".join(f"{k}={_py_lit(v)}" for k, v in kwargs.items() if v is not None)
-            code_lines.append(f"    {v} = layers.Conv2D({args_str})({in_vars[0]})")
-
-        elif ntype == "maxPool2DLayer":
-            kwargs = {
-                "pool_size": norm.get("pool") or norm.get("pool_size"),
-                "strides": norm.get("strides"),
-                "padding": norm.get("padding") or "valid",
-            }
-            args_str = ", ".join(f"{k}={_py_lit(v)}" for k, v in kwargs.items() if v is not None)
-            code_lines.append(f"    {v} = layers.MaxPooling2D({args_str})({in_vars[0]})")
-
-        elif ntype == "gap2DLayer":
-            code_lines.append(f"    {v} = layers.GlobalAveragePooling2D()({in_vars[0]})")
-
-        elif ntype == "flattenLayer":
-            kwargs = {"data_format": norm.get("data_format")}
-            args_str = ", ".join(f"{k}={_py_lit(v)}" for k, v in kwargs.items() if v is not None)
-            code_lines.append(f"    {v} = layers.Flatten({args_str})({in_vars[0]})")
-
-        elif ntype == "batchNormLayer":
-            kwargs = {
-                "momentum": norm.get("momentum"),
-                "epsilon": norm.get("epsilon"),
-                "center": norm.get("center"),
-                "scale": norm.get("scale"),
-                "name": norm.get("name") or None,
-            }
-            args_str = ", ".join(f"{k}={_py_lit(v)}" for k, v in kwargs.items() if v is not None)
-            code_lines.append(f"    {v} = layers.BatchNormalization({args_str})({in_vars[0]})")
-
-        elif ntype == "actLayer":
-            code_lines.append(f"    {v} = layers.Activation({_py_lit(norm.get('activation'))})({in_vars[0]})")
-
-        elif ntype == "lstmLayer":
-            lstm_kwargs = {
-                "units": norm.get("units"),
-                "return_sequences": norm.get("return_sequences"),
-                "dropout": norm.get("dropout"),
-                "recurrent_dropout": norm.get("recurrent_dropout"),
-                "activation": norm.get("activation"),
-                "recurrent_activation": norm.get("recurrent_activation"),
-                "name": norm.get("name") or None,
-            }
-            inner = ", ".join(f"{k}={_py_lit(v)}" for k, v in lstm_kwargs.items() if v is not None)
-            if norm.get("bidirectional"):
-                code_lines.append(
-                    f"    {v} = layers.Bidirectional(layers.LSTM({inner}))({in_vars[0]})"
-                )
-            else:
-                code_lines.append(f"    {v} = layers.LSTM({inner})({in_vars[0]})")
-
-        elif ntype == "outputLayer":
-            kwargs = {
-                "units": norm.get("units"),
-                "activation": norm.get("activation"),
-                "use_bias": norm.get("use_bias"),
-                "name": norm.get("name") or None,
-            }
-            args_str = ", ".join(f"{k}={_py_lit(v)}" for k, v in kwargs.items() if v is not None)
-            code_lines.append(f"    {v} = layers.Dense({args_str})({in_vars[0]})")
-
         else:
-            # Fallback: leave a placeholder to avoid breaking the script
-            code_lines.append(
-                f"    # TODO: Unsupported layer type {ntype!r}; using identity of inbound if available"
-            )
-            if in_vars:
-                code_lines.append(f"    {v} = {in_vars[0]}")
+            kwargs = {k: v for k, v in (norm or {}).items() if v is not None}
+            args_str = ", ".join(f"{k}={_py_lit(v)}" for k, v in kwargs.items())
+            if not in_vars:
+                code_lines.append(f"    {v} = layers.{ntype}({args_str})  # no inbound provided")
+            elif len(in_vars) == 1:
+                code_lines.append(f"    {v} = layers.{ntype}({args_str})({in_vars[0]})")
             else:
-                code_lines.append(f"    {v} = None  # No inbound to pass through")
+                code_lines.append(f"    {v} = layers.{ntype}({args_str})([{', '.join(in_vars)}])")
 
     # Inputs and outputs lists
     input_vars = [var_for[i] for i in structure.inputs]
