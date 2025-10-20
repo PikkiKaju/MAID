@@ -61,6 +61,7 @@ class ParamInfo:
     default: Optional[str]
     annotation: Optional[str]
     doc: Optional[str]
+    required: bool
 
 
 # Method information
@@ -104,6 +105,53 @@ def _type_to_str(t: Any) -> Optional[str]:
         return str(t)
     except Exception:
         return None
+
+
+def _infer_param_type(annotation: Optional[str], default_str: Optional[str], name: str) -> Optional[str]:
+    """
+    Infer a coarse param type for normalization and UI rendering.
+    Returns one of: bool,int,float,string,tuple_int,enum,callable,object,None.
+    This is best-effort but prefers annotation and default value forms.
+    """
+    # Prefer explicit annotations
+    if annotation:
+        a = annotation.lower()
+        if any(tok in a for tok in ["bool", "boolean"]):
+            return "bool"
+        if any(tok in a for tok in ["int", "integer"]):
+            return "int"
+        if "float" in a or "double" in a:
+            return "float"
+        if "tuple" in a:
+            return "tuple_int"
+        if "callable" in a or "function" in a:
+            return "callable"
+        if "str" in a or "string" in a:
+            return "string"
+
+    # Next, inspect default literal shape
+    if default_str is not None:
+        ds = default_str.strip()
+        if ds in {"True", "False"}:
+            return "bool"
+        if ds.isdigit() or (ds.startswith("-") and ds[1:].isdigit()):
+            return "int"
+        try:
+            float(ds)
+            return "float"
+        except Exception:
+            pass
+        if (ds.startswith("(") and ds.endswith(")")) or (ds.startswith("[") and ds.endswith("]")):
+            return "tuple_int"
+        if ds.startswith("'") or ds.startswith('"'):
+            return "string"
+
+    # Names that conventionally represent tuples
+    if name in {"kernel_size", "pool_size", "strides", "dilation_rate", "size", "kernel", "pool"}:
+        return "tuple_int"
+
+    # Unknown -> let consumers treat as object
+    return None
 
 
 def _default_to_str(d: Any) -> Optional[str]:
@@ -388,13 +436,16 @@ def _collect_parameters(init_obj: Any, parameters_doc_map: Dict[str, str]) -> Li
     for p in sig.parameters.values():
         if p.name == "self":
             continue
+        default_str = _default_to_str(p.default)
+        annotation_str = _type_to_str(p.annotation)
         params.append(
             ParamInfo(
                 name=p.name,
                 kind=str(p.kind),
-                default=_default_to_str(p.default),
-                annotation=_type_to_str(p.annotation),
+                default=default_str,
+                annotation=annotation_str,
                 doc=parameters_doc_map.get(p.name),
+                required=(p.default is inspect._empty),
             )
         )
     return params
@@ -539,14 +590,14 @@ def build_layer_manifest() -> Dict[str, Any]:
         )
         layer_infos.append(info)
 
-    # Derive per-layer enum specs from parameter docs
-    layer_overrides = _derive_param_enums_for_layer(info.name, info.parameters)
-    overrides.update(layer_overrides)
+        # Derive per-layer enum specs from parameter docs
+        layer_overrides = _derive_param_enums_for_layer(info.name, info.parameters)
+        overrides.update(layer_overrides)
 
-    # Derive per-layer enum specs from source code
-    src_overrides = _extract_param_enums_from_source(info.name, cls)
-    # Merge, giving precedence to source-derived (likely more precise)
-    overrides.update(src_overrides)
+        # Derive per-layer enum specs from source code
+        src_overrides = _extract_param_enums_from_source(info.name, cls)
+        # Merge, giving precedence to source-derived (likely more precise)
+        overrides.update(src_overrides)
 
     # Derive global specs by recognizing common parameters across many layers
     # These are curated but still based on frequent patterns in docs.
@@ -584,32 +635,64 @@ def build_layer_manifest() -> Dict[str, Any]:
             # Curated overrides layered on top of autodetected ones
             "overrides": {**overrides, **HARD_CODED_OVERRIDES},
         },
-        "layers": [
-            {
-                "name": li.name,
-                "qualified_name": li.qualified_name,
-                "module": li.module,
-                "bases": li.bases,
-                "description": li.description,
-                "parameters": [asdict(p) for p in li.parameters],
-                "methods": {k: asdict(v) for k, v in li.methods.items()},
-                "doc_sections": li.doc_sections,
-                "is_abstract": li.is_abstract,
-                "deprecated": li.deprecated,
-            }
-            for li in layer_infos
-        ],
+        "layers": [],
         "notes": (
             "Descriptions and shape details are derived from runtime docstrings and signatures. "
             "Input/output shapes may depend on layer configuration and actual inputs. "
             "This manifest avoids instantiating layers to ensure safe, side-effect-free inspection."
         ),
     }
+
+    # Build layers array with enriched param metadata including param_type and inline enums
+    param_specs = manifest["param_value_specs"]
+    enum_overrides = param_specs.get("overrides", {}) if param_specs else {}
+    enum_globals = param_specs.get("global", {}) if param_specs else {}
+
+    def _enum_for(layer: str, param: str) -> Optional[Dict[str, Any]]:
+        key = f"{layer}.{param}"
+        if key in enum_overrides and isinstance(enum_overrides[key], dict):
+            return enum_overrides[key]
+        if param in enum_globals and isinstance(enum_globals[param], dict):
+            return enum_globals[param]
+        return None
+
+    layers_out: List[Dict[str, Any]] = []
+    for li in layer_infos:
+        params_out: List[Dict[str, Any]] = []
+        for p in li.parameters:
+            # Derive param_type
+            param_type = _infer_param_type(p.annotation, p.default, p.name)
+            p_dict = asdict(p)
+            p_dict["param_type"] = param_type
+            # Attach inline enum spec if available
+            enum_spec = _enum_for(li.name, p.name)
+            if enum_spec:
+                p_dict["enum"] = enum_spec.get("enum")
+                if enum_spec.get("case_insensitive") is not None:
+                    p_dict["case_insensitive"] = bool(enum_spec.get("case_insensitive"))
+                if enum_spec.get("nullable") is not None:
+                    p_dict["nullable"] = bool(enum_spec.get("nullable"))
+            params_out.append(p_dict)
+
+        layers_out.append({
+            "name": li.name,
+            "qualified_name": li.qualified_name,
+            "module": li.module,
+            "bases": li.bases,
+            "description": li.description,
+            "parameters": params_out,
+            "methods": {k: asdict(v) for k, v in li.methods.items()},
+            "doc_sections": li.doc_sections,
+            "is_abstract": li.is_abstract,
+            "deprecated": li.deprecated,
+        })
+
+    manifest["layers"] = layers_out
     return manifest
 
 
 def main(argv: List[str]) -> int:
-    out_path: Optional[str] = "./layer_manifest.json"
+    out_path: Optional[str] = ""
     # Simple arg parsing
     if "--path" in argv:
         try:
@@ -618,6 +701,9 @@ def main(argv: List[str]) -> int:
         except Exception:
             sys.stderr.write("Error: --path requires a file path argument.\n")
             return 2
+    else:
+        out_path = os.path.join(os.path.dirname(__file__), "layer_manifest.json")
+
 
     manifest = build_layer_manifest()
     data = json.dumps(manifest, indent=2, ensure_ascii=False)
