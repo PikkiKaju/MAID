@@ -365,10 +365,9 @@ def export_graph_to_python_script(
     # Inputs and outputs lists
     input_vars = [var_for[i] for i in structure.inputs]
     output_vars = [var_for[o] for o in structure.outputs]
-    code_lines.append(
-        f"    model = Model(inputs={[', '.join(input_vars)][0] if len(input_vars)>1 else '[' + ', '.join(input_vars) + ']'}, "
-        f"outputs={[', '.join(output_vars)][0] if len(output_vars)>1 else '[' + ', '.join(output_vars) + ']'} )"
-    )
+    inputs_repr = ", ".join(input_vars)
+    outputs_repr = ", ".join(output_vars)
+    code_lines.append(f"    model = Model(inputs=[{inputs_repr}], outputs=[{outputs_repr}])")
     code_lines.append("    return model")
 
     # Entire script content
@@ -400,7 +399,8 @@ def export_graph_to_python_script(
 def import_keras_json_to_graph(model_json: str) -> Dict[str, Any]:
     """Convert a Keras model.to_json() payload into the graph payload.
 
-    Currently supports Sequential models and common layers used in CNN/MLP examples.
+    Currently supports Sequential models. Builds nodes/edges generically using
+    Keras layer configs and the manifest (no hardcoded per-layer branches).
     Returns a dict with keys: name, framework, nodes, edges.
     """
     try:
@@ -413,7 +413,7 @@ def import_keras_json_to_graph(model_json: str) -> Dict[str, Any]:
     mconf = model.get_config() if hasattr(model, "get_config") else {}
     model_name = mconf.get("name") or getattr(model, "name", "imported_model")
 
-    # Simple Sequential import path
+    # Simple Sequential import path only for now
     is_sequential = model.__class__.__name__.lower() == "sequential"
     if not is_sequential:
         # Limited functional support can be added later
@@ -436,20 +436,21 @@ def import_keras_json_to_graph(model_json: str) -> Dict[str, Any]:
         edges.append({"id": eid, "source": src, "target": tgt, "meta": {}})
 
     last_node_id: str | None = None
-    # Keras Sequential exposes .layers in execution order (InputLayer often included)
+    # Keras Sequential exposes .layers in execution order (InputLayer may be included)
     layers_list = list(model.layers)
     last_index = len(layers_list) - 1 if layers_list else -1
 
-    # If there is no explicit InputLayer, synthesize one using the model/first-layer config
-    has_explicit_input = any(l.__class__.__name__ == "InputLayer" for l in layers_list)
-    if not has_explicit_input and layers_list:
-        # Try model.input_shape first
+    def _infer_input_from_model_or_first_layer() -> Dict[str, Any] | None:
+        """Infer an Input node params dict from the model or first layer config.
+        Returns a node dict or None if not enough info.
+        """
+        if not layers_list:
+            return None
+        # Try model.input_shape first (can be tuple or list of tuples)
         shape_tuple = None
         try:
             m_in_shape = getattr(model, "input_shape", None)
-            # could be tuple or list of tuples
             if isinstance(m_in_shape, (list, tuple)) and m_in_shape is not None:
-                # If it's a list of shapes, take the first
                 shape_tuple = m_in_shape[0] if (isinstance(m_in_shape, list) and m_in_shape and isinstance(m_in_shape[0], (list, tuple))) else m_in_shape
         except Exception:
             shape_tuple = None
@@ -458,24 +459,28 @@ def import_keras_json_to_graph(model_json: str) -> Dict[str, Any]:
         first_layer = layers_list[0]
         first_cfg = first_layer.get_config() if hasattr(first_layer, "get_config") else {}
         if shape_tuple is None:
-            if "batch_input_shape" in first_cfg and first_cfg["batch_input_shape"]:
+            if first_cfg.get("batch_input_shape"):
                 bs = first_cfg["batch_input_shape"][1:]
                 shape_tuple = tuple(x for x in bs)
-            elif "batch_shape" in first_cfg and first_cfg["batch_shape"]:
+            elif first_cfg.get("batch_shape"):
                 bs = first_cfg["batch_shape"][1:]
                 shape_tuple = tuple(x for x in bs)
-            elif "input_shape" in first_cfg and first_cfg["input_shape"]:
+            elif first_cfg.get("input_shape"):
                 shape_tuple = tuple(first_cfg["input_shape"])
-            elif "input_dim" in first_cfg and first_cfg["input_dim"]:
+            elif first_cfg.get("input_dim"):
                 shape_tuple = (first_cfg["input_dim"],)
 
-        # Normalize: drop batch dim, filter out None
+        # Normalize: drop batch dim if present in full batch shape, filter None
         norm_shape = None
         if isinstance(shape_tuple, (list, tuple)) and shape_tuple:
             try:
+                # If batch already removed above, don't drop again; detect by len match
+                # Here we conservatively drop first dim assuming it's batch
                 norm_shape = tuple(int(x) for x in list(shape_tuple)[1:] if x is not None)
+                if not norm_shape:
+                    # If nothing left, try keep as-is but remove Nones
+                    norm_shape = tuple(int(x) for x in list(shape_tuple) if x is not None)
             except Exception:
-                # If casting fails, keep raw values except the first (batch)
                 norm_shape = tuple(x for x in list(shape_tuple)[1:] if x is not None)
 
         # dtype from model inputs if available
@@ -487,40 +492,59 @@ def import_keras_json_to_graph(model_json: str) -> Dict[str, Any]:
         except Exception:
             pass
 
-        # Create synthesized input node only if we could infer a plausible shape
         if norm_shape:
             in_id = next_id("input")
-            nodes.append(
-                {
-                    "id": in_id,
-                    "type": "inputLayer",
-                    "label": "Input",
-                    "params": {"shape": tuple(norm_shape), "dtype": dtype, "name": None},
-                    "position": {},
-                    "notes": {"synthesized": True},
-                }
-            )
-            last_node_id = in_id
+            return {
+                "id": in_id,
+                "type": "Input",
+                "label": "Input",
+                "params": {"shape": tuple(norm_shape), "dtype": dtype, "name": None},
+                "position": {},
+                "notes": {"synthesized": True},
+            }
+        return None
+
+    # If there is no explicit InputLayer, synthesize one using inferred shape
+    has_explicit_input = any(l.__class__.__name__ == "InputLayer" for l in layers_list)
+    if not has_explicit_input:
+        maybe_input = _infer_input_from_model_or_first_layer()
+        if maybe_input:
+            nodes.append(maybe_input)
+            last_node_id = maybe_input["id"]
+
+    known = set(list_layers(include_deprecated=False))
 
     for idx, layer in enumerate(layers_list):
         lclass = layer.__class__.__name__
         cfg = layer.get_config() if hasattr(layer, "get_config") else {}
 
+        # Explicit InputLayer becomes a dedicated Input node
         if lclass == "InputLayer":
+            # Prefer batch_input_shape / batch_shape in config
             shape = None
-            # batch_input_shape preferred; drop batch dim
-            if "batch_input_shape" in cfg and cfg["batch_input_shape"]:
+            if cfg.get("batch_input_shape"):
                 bs = cfg["batch_input_shape"][1:]
-                shape = tuple(int(x) for x in bs if x is not None)
-            elif "batch_shape" in cfg and cfg["batch_shape"]:
+                try:
+                    shape = tuple(int(x) for x in bs if x is not None)
+                except Exception:
+                    shape = tuple(x for x in bs if x is not None)
+            elif cfg.get("batch_shape"):
                 bs = cfg["batch_shape"][1:]
-                shape = tuple(int(x) for x in bs if x is not None)
+                try:
+                    shape = tuple(int(x) for x in bs if x is not None)
+                except Exception:
+                    shape = tuple(x for x in bs if x is not None)
+            elif cfg.get("input_shape"):
+                try:
+                    shape = tuple(int(x) for x in cfg.get("input_shape") if x is not None)
+                except Exception:
+                    shape = tuple(x for x in cfg.get("input_shape") if x is not None)
             dtype = cfg.get("dtype") or "float32"
             nid = next_id("input")
             nodes.append(
                 {
                     "id": nid,
-                    "type": "inputLayer",
+                    "type": "Input",
                     "label": cfg.get("name") or "Input",
                     "params": {"shape": shape, "dtype": dtype, "name": cfg.get("name")},
                     "position": {},
@@ -530,120 +554,40 @@ def import_keras_json_to_graph(model_json: str) -> Dict[str, Any]:
             last_node_id = nid
             continue
 
-        if lclass == "Conv2D":
-            nid = next_id("conv")
-            nodes.append(
-                {
-                    "id": nid,
-                    "type": "conv2dLayer",
-                    "label": cfg.get("name") or "Conv2D",
-                    "params": {
-                        "filters": cfg.get("filters"),
-                        "kernel": tuple(cfg.get("kernel_size") or (3, 3)),
-                        "strides": tuple(cfg.get("strides") or (1, 1)),
-                        "padding": cfg.get("padding") or "valid",
-                        "activation": cfg.get("activation") or None,
-                        "use_bias": cfg.get("use_bias", True),
-                        "name": cfg.get("name"),
-                    },
-                    "position": {},
-                    "notes": {},
-                }
-            )
-            if last_node_id:
-                add_edge(last_node_id, nid)
-            last_node_id = nid
-            continue
+        # Non-input layers: map config to manifest-declared kwargs
+        nid_prefix = "node"
+        if lclass.lower().startswith("conv"):
+            nid_prefix = "conv"
+        elif "pool" in lclass.lower():
+            nid_prefix = "pool"
+        elif lclass.lower().startswith("dense"):
+            nid_prefix = "dense" if idx != last_index else "out"
+        elif lclass.lower().startswith("flatten"):
+            nid_prefix = "flatten"
 
-        if lclass == "MaxPooling2D":
-            nid = next_id("pool")
-            nodes.append(
-                {
-                    "id": nid,
-                    "type": "maxPool2DLayer",
-                    "label": cfg.get("name") or "MaxPool2D",
-                    "params": {
-                        "pool": tuple(cfg.get("pool_size") or (2, 2)),
-                        "strides": tuple(cfg.get("strides") or (2, 2)),
-                        "padding": cfg.get("padding") or "valid",
-                    },
-                    "position": {},
-                    "notes": {},
-                }
-            )
-            if last_node_id:
-                add_edge(last_node_id, nid)
-            last_node_id = nid
-            continue
+        nid = next_id(nid_prefix)
 
-        if lclass == "Flatten":
-            nid = next_id("flatten")
-            nodes.append(
-                {
-                    "id": nid,
-                    "type": "flattenLayer",
-                    "label": cfg.get("name") or "Flatten",
-                    "params": {"data_format": cfg.get("data_format")},
-                    "position": {},
-                    "notes": {},
-                }
-            )
-            if last_node_id:
-                add_edge(last_node_id, nid)
-            last_node_id = nid
-            continue
+        if lclass in known:
+            entry = get_layer_entry(lclass)
+            declared_params = {p.get("name") for p in entry.get("parameters", [])}
+            raw_params = {k: v for k, v in (cfg or {}).items() if k in declared_params and k != "name"}
+            try:
+                norm_params = normalize_params_for_layer(lclass, raw_params)
+            except Exception:
+                # Fall back to raw params if normalization fails; validate later
+                norm_params = {k: v for k, v in raw_params.items() if v is not None}
+        else:
+            # Unknown class to our manifest; keep empty params, let validation flag it
+            norm_params = {}
 
-        if lclass == "GlobalAveragePooling2D":
-            nid = next_id("gap")
-            nodes.append(
-                {
-                    "id": nid,
-                    "type": "gap2DLayer",
-                    "label": cfg.get("name") or "GlobalAveragePooling2D",
-                    "params": {},
-                    "position": {},
-                    "notes": {},
-                }
-            )
-            if last_node_id:
-                add_edge(last_node_id, nid)
-            last_node_id = nid
-            continue
-
-        if lclass == "Dense":
-            is_last = idx == last_index
-            layer_type = "outputLayer" if is_last else "denseLayer"
-            nid = next_id("out" if is_last else "dense")
-            nodes.append(
-                {
-                    "id": nid,
-                    "type": layer_type,
-                    "label": cfg.get("name") or ("Output" if is_last else "Dense"),
-                    "params": {
-                        "units": cfg.get("units"),
-                        "activation": cfg.get("activation") or ("linear" if is_last else None),
-                        "use_bias": cfg.get("use_bias", True),
-                        "name": cfg.get("name"),
-                    },
-                    "position": {},
-                    "notes": {},
-                }
-            )
-            if last_node_id:
-                add_edge(last_node_id, nid)
-            last_node_id = nid
-            continue
-
-        # Unknown/unsupported layer: attempt to preserve by skipping but note it
-        nid = next_id("node")
         nodes.append(
             {
                 "id": nid,
-                "type": "flattenLayer",  # safe no-op-ish representation downstream
-                "label": f"Unsupported:{lclass}",
-                "params": {},
+                "type": lclass,
+                "label": cfg.get("name") or lclass,
+                "params": norm_params,
                 "position": {},
-                "notes": {"unsupported_class": lclass, "original_config": cfg},
+                "notes": {},
             }
         )
         if last_node_id:
