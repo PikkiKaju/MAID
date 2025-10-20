@@ -46,7 +46,7 @@ import { useProjects } from "../hooks/useProjects";
 //     }
 //   };
 
-export function HomePage() {
+export default function HomePage() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set(["1", "3"]));
   // const [isLoggedIn] = useState(true); // Simulate login state - change to false to test logged out state
 

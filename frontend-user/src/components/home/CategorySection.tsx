@@ -1,7 +1,6 @@
 import { Filter } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../ui/tabs";
-import { ProjectCard } from "../../pages/ProjectCard";
 import CategoryGrid from "./CategoryGrid";
 
 export interface Project {
