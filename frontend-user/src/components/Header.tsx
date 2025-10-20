@@ -21,8 +21,8 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { ThemeToggle } from "../pages/ThemeToggle";
-import { LanguageSwitcher } from "../pages/LanguageSwitcher";
+import { ThemeToggle } from "./theme/ThemeToggle";
+import { LanguageSwitcher } from "./language/LanguageSwitcher";
 
 export default function Header() {
   const dispatch = useAppDispatch();
