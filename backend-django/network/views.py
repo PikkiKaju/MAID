@@ -47,6 +47,7 @@ class LayerManifestViewSet(viewsets.ViewSet):
                 {
                     "name": li.get("name"),
                     "description": li.get("description"),
+                    "categories": li.get("categories"),
                     "deprecated": bool(li.get("deprecated")),
                 }
             )

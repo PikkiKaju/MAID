@@ -79,6 +79,7 @@ class LayerInfo:
     module: str
     bases: List[str]
     description: Optional[str]
+    category: Optional[str]
     parameters: List[ParamInfo]
     methods: Dict[str, MethodInfo]
     doc_sections: Dict[str, Optional[str]]
@@ -421,6 +422,57 @@ def _extract_param_enums_from_source(layer_name: str, cls: type) -> Dict[str, Di
     return out
 
 
+def _categorize_layer(module: str, name: str, doc_sections: Dict[str, Optional[str]], deprecated: bool) -> List[str]:
+    """
+    Data-driven categorizer: each rule is (category, predicate) where predicate
+    is a small lambda that checks module/name/doc/deprecated. Rules are evaluated
+    in order so the first matching categories become primary.
+    """
+    m = (module or "").lower()
+    n = (name or "").lower()
+    doc = (doc_sections.get("summary") or "").lower() if doc_sections else ""
+    cats: List[str] = []
+
+    RULES = [
+        ("Preprocessing / Image",      lambda: "image_preprocessing" in m or ("preprocessing" in m and "image" in m) or "image" in m),
+        ("Preprocessing / Text",       lambda: "text" in m or "text_vectorization" in n or "stringlookup" in n or "textvectorization" in n),
+        ("Preprocessing / Audio",      lambda: "audio" in m or "mel_spectrogram" in m or "stft" in m or "spectrogram" in n),
+        ("Convolutional",              lambda: "convolution" in m or "conv" in n),
+        ("Pooling",                    lambda: "pool" in m or "pool" in n),
+        ("Normalization",              lambda: "normalization" in m or any(x in n for x in ("batchnormalization","layernormalization","groupnormalization","unitnormalization"))),
+        ("Activation",                 lambda: "activations" in m or n.endswith("relu") or n.endswith("softmax") or n in {"activation","softmax","relu","leakyrelu","prelu"}),
+        ("Regularization",             lambda: "dropout" in m or "dropout" in n or "regularization" in m),
+        ("RNN / Sequence",             lambda: "rnn" in m or any(x in n for x in ("lstm","gru","rnn","cell","simple_rnn","bidirectional","timedistributed"))),
+        ("Attention",                  lambda: "attention" in m or "attention" in n or "multihead" in n),
+        ("Merging / Elementwise",      lambda: "merging" in m or n in {"add","subtract","multiply","maximum","minimum","concatenate","dot"}),
+        ("Reshaping",                  lambda: "reshaping" in m or n in {"flatten","reshape","permute","repeatvector","zeropadding","cropping"}),
+        ("Embedding / Lookup",         lambda: "embedding" in m or "lookup" in n or "vectorization" in n),
+        ("Spectral / Audio",           lambda: "stft" in m or "spectrogram" in n or "mel" in n),
+        ("Wrapper / Utils",            lambda: any(x in m for x in ("wrapper","export","utils","torch","jax_layer")) or n.endswith("wrapper")),
+        ("Deprecated",                 lambda: deprecated),
+    ]
+
+    for category, pred in RULES:
+        try:
+            if pred():
+                cats.append(category)
+        except Exception:
+            # be robust to unexpected rule errors
+            continue
+
+    if not cats:
+        cats.append("Misc")
+
+    # Deduplicate preserving order
+    seen = set()
+    out: List[str] = []
+    for c in cats:
+        if c not in seen:
+            seen.add(c)
+            out.append(c)
+    return out
+
+
 def _collect_parameters(init_obj: Any, parameters_doc_map: Dict[str, str]) -> List[ParamInfo]:
     """Collect parameter info from the __init__ method and doc map."""
     sig_str = _safe_signature(init_obj)
@@ -570,6 +622,10 @@ def build_layer_manifest() -> Dict[str, Any]:
             "compute_output_shape": _method_info(cls, "compute_output_shape"),
             "compute_output_signature": _method_info(cls, "compute_output_signature"),
         }
+        
+        is_depr = _is_deprecated(cls_doc)
+        categories_for_cls = _categorize_layer(cls.__module__, cls.__name__, doc_sections, is_depr)
+        primary_category = categories_for_cls[0] if categories_for_cls else None
 
         # Collect layer info
         info = LayerInfo(
@@ -578,6 +634,7 @@ def build_layer_manifest() -> Dict[str, Any]:
             module=cls.__module__,
             bases=bases,
             description=doc_sections.get("summary"),
+            category=primary_category,
             parameters=parameters,
             methods=methods,
             doc_sections={
@@ -586,7 +643,7 @@ def build_layer_manifest() -> Dict[str, Any]:
                 "returns": doc_sections.get("returns"),
             },
             is_abstract=inspect.isabstract(cls),
-            deprecated=_is_deprecated(cls_doc),
+            deprecated=is_depr,
         )
         layer_infos.append(info)
 
@@ -674,12 +731,15 @@ def build_layer_manifest() -> Dict[str, Any]:
                     p_dict["nullable"] = bool(enum_spec.get("nullable"))
             params_out.append(p_dict)
 
+        categories = _categorize_layer(li.module, li.name, li.doc_sections, li.deprecated)
+
         layers_out.append({
             "name": li.name,
             "qualified_name": li.qualified_name,
             "module": li.module,
             "bases": li.bases,
             "description": li.description,
+            "categories": categories,
             "parameters": params_out,
             "methods": {k: asdict(v) for k, v in li.methods.items()},
             "doc_sections": li.doc_sections,
@@ -688,6 +748,17 @@ def build_layer_manifest() -> Dict[str, Any]:
         })
 
     manifest["layers"] = layers_out
+    
+    # build a top-level UI-friendly categories index (category -> list of layer names)
+    ui_categories: Dict[str, List[str]] = {}
+    for l in layers_out:
+        for c in l.get("categories", []):
+            ui_categories.setdefault(c, []).append(l["name"])
+    # sort layers within categories for predictable UI
+    for c in ui_categories:
+        ui_categories[c].sort(key=lambda x: x.lower())
+    manifest["ui_categories"] = ui_categories
+    
     return manifest
 
 
