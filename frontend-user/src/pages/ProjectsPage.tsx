@@ -1,13 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import CreateProjectWindow from "../components/projects/CreateProjectWindow";
-import { useDispatch } from "react-redux";
-import { AppDispatch } from "../store/store";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "../store/store";
 import {
   createProject,
   fetchProjects,
 } from "../features/project/projectThunks";
-import { userProjects } from "../data";
 import HeaderProfile from "../components/projects/HeaderProfile";
 import FiltersAndSearch from "../components/projects/FiltersAndSearch";
 import ProjectsGrid from "../components/projects/ProjectsGrid";
@@ -15,12 +14,50 @@ import EmptyState from "../components/projects/EmptyState";
 import DeleteConfirmationDialog from "../components/projects/DeleteConfirmationDialog";
 
 function ProjectsPage() {
+  const { projects } = useSelector((state: RootState) => state.project);
+
+  {
+    /* ----------- TYMCZASOWY TWÓR PROJEKTOWY ---------------- */
+  }
+
+  type TabTemp = {
+    id: string;
+    userId: string;
+    name: string;
+    datasetId: string;
+    createdAt: string;
+    lastModifiedAt: string;
+    isPublic: boolean;
+    likes: number;
+    title: string;
+    description: string;
+    status: string;
+    lastModified: string;
+    category: string;
+    imageUrl: string;
+  };
+
+  const projectsMixed: TabTemp[] = projects.map((originalProject) => {
+    return {
+      ...originalProject,
+      title: originalProject.name,
+      description: "Opis domyślny",
+      status: "Active",
+      category: "ML",
+      imageUrl:
+        "https://images.unsplash.com/photo-1653564142048-d5af2cf9b50f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkYXRhJTIwc2NpZW5jZSUyMG1hY2hpbmUlMjBsZWFybmluZ3xlbnwxfHx8fDE3NTk3NjYyMDR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+    } as TabTemp;
+  });
+  {
+    /* ------------------------------------------------------ */
+  }
+
   // const isLoggedIn = useSelector((state: any) => state.auth.isLoggedIn);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [projectName, setProjectName] = useState("");
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
-  // const { projects } = useSelector((state: RootState) => state.project);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("modified");
@@ -28,11 +65,40 @@ function ProjectsPage() {
     open: boolean;
     project: any;
   }>({ open: false, project: null });
-  const [projectsData, setProjectsData] = useState(userProjects);
+  const [projectsData, setProjectsData] = useState(projectsMixed);
+
+  const token = useSelector((state: RootState) => state.auth.token);
 
   useEffect(() => {
-    dispatch(fetchProjects());
-  }, [dispatch]);
+    {
+      /* ----------- TYMCZASOWY TWÓR PROJEKTOWY ---------------- */
+    }
+
+    const mapped: TabTemp[] = projects.map(
+      (originalProject) =>
+        ({
+          ...originalProject,
+          title: originalProject.name,
+          description: "Opis domyślny",
+          status: "Active",
+          category: "ML",
+          imageUrl:
+            "https://images.unsplash.com/photo-1653564142048-d5af2cf9b50f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkYXRhJTIwc2NpZW5jZSUyMG1hY2hpbmUlMjBsZWFybmluZ3xlbnwxfHx8fDE3NTk3NjYyMDR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+        } as TabTemp)
+    );
+    setProjectsData(mapped);
+  }, [projects]);
+
+  {
+    /* ------------------------------------------------------ */
+  }
+
+  useEffect(() => {
+    // Only fetch projects when token is available to avoid unauthorized requests
+    if (token) {
+      dispatch(fetchProjects());
+    }
+  }, [dispatch, token]);
 
   // if (!isLoggedIn) {
   //   return (
@@ -80,14 +146,52 @@ function ProjectsPage() {
     );
   };
 
+  {
+    /* ----------- TYMCZASOWY TWÓR PROJEKTOWY ---------------- */
+  }
+
   const handleDeleteProject = () => {
-    if (deleteDialog.project) {
-      setProjectsData((prev) =>
-        prev.filter((p) => p.id !== deleteDialog.project.id)
-      );
+    if (!deleteDialog.project) return;
+    const id = deleteDialog.project.id;
+    if (!id) return;
+
+    // require token for API call
+    if (!token) {
+      alert("Musisz być zalogowany, aby usunąć projekt.");
       setDeleteDialog({ open: false, project: null });
+      return;
     }
+
+    (async () => {
+      try {
+        // call backend delete endpoint
+        const axios = await import("../api/axiosConfig");
+        await axios.default.delete(`/Project/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        // remove locally for immediate feedback
+        setProjectsData((prev) => prev.filter((p) => p.id !== id));
+
+        // also refresh redux list in background
+        try {
+          await dispatch(fetchProjects() as any);
+        } catch {}
+
+        setDeleteDialog({ open: false, project: null });
+      } catch (err: any) {
+        console.error("Error deleting project:", err);
+        alert("Wystąpił błąd podczas usuwania projektu.");
+        setDeleteDialog({ open: false, project: null });
+      }
+    })();
   };
+
+  {
+    /* ------------------------------------------------------ */
+  }
 
   const filteredProjects = projectsData
     .filter((project) => {
