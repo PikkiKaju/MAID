@@ -40,7 +40,17 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
-INSTALLED_APPS += ['corsheaders', 'rest_framework', 'network']
+INSTALLED_APPS += ['corsheaders', 'rest_framework', 'network', 'drf_spectacular']
+
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Django backend API',
+    'DESCRIPTION': 'API for Django backend serving the neural network graph manager',
+    'VERSION': '1.0.0',
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
