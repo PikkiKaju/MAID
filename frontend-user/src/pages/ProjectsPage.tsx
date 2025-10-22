@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import CreateProjectWindow from "../components/profile/CreateProjectWindow";
+import CreateProjectWindow from "../components/projects/CreateProjectWindow";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "../store/store";
 import {
@@ -8,11 +8,11 @@ import {
   fetchProjects,
 } from "../features/project/projectThunks";
 import { userProjects } from "../data";
-import HeaderProfile from "../components/profile/HeaderProfile";
-import FiltersAndSearch from "../components/profile/FiltersAndSearch";
-import ProjectsGrid from "../components/profile/ProjectsGrid";
-import EmptyState from "../components/profile/EmptyState";
-import DeleteConfirmationDialog from "../components/profile/DeleteConfirmationDialog";
+import HeaderProfile from "../components/projects/HeaderProfile";
+import FiltersAndSearch from "../components/projects/FiltersAndSearch";
+import ProjectsGrid from "../components/projects/ProjectsGrid";
+import EmptyState from "../components/projects/EmptyState";
+import DeleteConfirmationDialog from "../components/projects/DeleteConfirmationDialog";
 
 function ProjectsPage() {
   // const isLoggedIn = useSelector((state: any) => state.auth.isLoggedIn);

@@ -1,5 +1,5 @@
 import React from "react";
-import { ProjectCard } from "../../pages/ProjectCard";
+import { ProjectCard } from "../projects/ProjectCard";
 
 export interface Project {
   id: string;

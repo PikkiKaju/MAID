@@ -1,8 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Input } from "../ui/input";
-import { Button } from "../ui/button";
-import "./Loader.css";
+import { Input } from "../../ui/input";
+import { Button } from "../../ui/button";
+import "../../styles/Loader.css";
 
 interface LoginFormProps {
   username: string;

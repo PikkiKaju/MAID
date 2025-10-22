@@ -1,10 +1,10 @@
 import { Calendar, User, Heart } from "lucide-react";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader } from "../ui/card";
-import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
-import { ImageWithFallback } from "../components/image/ImageWithFallback";
+import { Card, CardContent, CardHeader } from "../../ui/card";
+import { Button } from "../../ui/button";
+import { Badge } from "../../ui/badge";
+import { ImageWithFallback } from "../image/ImageWithFallback";
 
 interface ProjectCardProps {
   id: string;
