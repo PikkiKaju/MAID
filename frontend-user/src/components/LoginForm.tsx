@@ -1,5 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { Input } from "../ui/input";
+import { Button } from "../ui/button";
 import "./Loader.css";
 
 interface LoginFormProps {
@@ -23,14 +25,14 @@ function LoginForm({
 }: LoginFormProps) {
   return (
     <>
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20">
         {/* If status is loading then create a loading view */}
         <div
           className={`loader ${status !== "loading" ? "loader-hidden" : ""}`}
         />
 
-        {/* Login Form Box */}
-        <div className="bg-card text-card-foreground p-8 rounded-lg shadow-md w-full max-w-md">
+        {/* Login Form Box - match FavoritesSection background and use theme border */}
+        <div className="bg-background rounded-xl p-6 border border-border w-full max-w-md">
           <h2 className="text-2xl font-bold text-center text-foreground mb-6">
             Logowanie
           </h2>
@@ -44,11 +46,11 @@ function LoginForm({
               >
                 Nazwa użytkownika
               </label>
-              <input
+              <Input
                 type="text"
                 id="username"
                 name="username"
-                className="mt-1 block w-full px-3 py-2 border border-border rounded-md shadow-sm bg-input-background focus:outline-none focus:ring-2 focus:ring-ring sm:text-sm"
+                className="mt-1"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -63,11 +65,11 @@ function LoginForm({
               >
                 Hasło
               </label>
-              <input
+              <Input
                 type="password"
                 id="password"
                 name="password"
-                className="mt-1 block w-full px-3 py-2 border border-border rounded-md shadow-sm bg-input-background focus:outline-none focus:ring-2 focus:ring-ring sm:text-sm"
+                className="mt-1"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -77,20 +79,20 @@ function LoginForm({
 
             {error && <p className="text-center text-red-600">Błąd: {error}</p>}
 
-            <button
+            <Button
               type="submit"
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+              className="w-full"
               disabled={status === "loading"}
             >
               Zaloguj się
-            </button>
+            </Button>
           </form>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Nie masz konta?{" "}
             <Link
               to="/register"
-              className="font-medium text-indigo-600 hover:text-indigo-500"
+              className="font-medium text-primary hover:text-primary/90"
             >
               Zarejestruj się
             </Link>
