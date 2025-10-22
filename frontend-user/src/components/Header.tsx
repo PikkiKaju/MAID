@@ -114,6 +114,9 @@ export default function Header() {
               <DropdownMenuItem asChild>
                 <Link to="/settings">Ustawienia</Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/help-support">Pomoc i Wsparcie</Link>
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={handleLogout}
                 className="text-destructive"

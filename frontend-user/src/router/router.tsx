@@ -11,6 +11,9 @@ import { store } from "../store/store";
 import ProjectEditPage from "../pages/ProjectEditPage";
 import DatasetPageUpload from "../pages/DatasetPageUpload";
 import DatasetsListPage from "../pages/DatasetsListPage";
+import { ProfileSettingsPage } from "../pages/ProfileSettingPage";
+import { ProfileInfoPage } from "../pages/ProfileInfoPage";
+import { ProfileHelpPage } from "../pages/ProfileHelpPage";
 
 const rootLoader = async () => {
   store.dispatch(loginFromStorage());
@@ -38,6 +41,18 @@ const router = createBrowserRouter([
       {
         path: "datasets-regresja",
         element: <DatasetsListPage />,
+      },
+      {
+        path: "/profile",
+        element: <ProfileInfoPage />,
+      },
+      {
+        path: "/settings",
+        element: <ProfileSettingsPage />,
+      },
+      {
+        path: "/help-support",
+        element: <ProfileHelpPage />,
       },
     ],
   },
