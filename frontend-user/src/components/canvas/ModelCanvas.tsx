@@ -36,62 +36,6 @@ const initialNodes: Node[] = [
 
 const initialEdges: Edge[] = [];
 
-// Descriptions for layer parameters.
-const LAYER_PARAM_HELP: Record<string, Record<string, string>> = {
-  inputLayer: {
-    shape: 'Shape of the input tensor excluding batch dimension. E.g. (32,) or (28,28,1).',
-    dtype: 'Data type of the input (float32, int32, etc.).',
-    name: 'Optional symbolic layer name.'
-  },
-  denseLayer: {
-    units: 'Number of neurons / output dimensions of the dense layer.',
-    activation: 'Activation function (relu, sigmoid, softmax, linear, etc.).',
-    use_bias: 'Whether to include a bias term.',
-    kernel_initializer: 'Initializer for the kernel weights matrix.',
-    bias_initializer: 'Initializer for the bias vector.'
-  },
-  dropoutLayer: {
-    rate: 'Fraction (0-1) of input units to drop during training.',
-    seed: 'Random seed for reproducibility.'
-  },
-  conv2dLayer: {
-    filters: 'Number of convolution kernels (output feature maps).',
-    kernel: 'Kernel size (e.g. 3x3).',
-    strides: 'Stride size (e.g. 1x1 or 2x2).',
-    padding: 'Padding mode (valid or same).',
-    activation: 'Activation function applied after convolution + bias.',
-    use_bias: 'Include a bias vector if true.'
-  },
-  flattenLayer: {
-    data_format: 'Channels first or channels last (if relevant to backend).'
-  },
-  outputLayer: {
-    units: 'Dimensionality of the model output (classes or regression targets).',
-    activation: 'Final activation (softmax for multi-class, sigmoid for binary, linear for regression).'
-  },
-  actLayer: {
-    activation: 'Applies an activation without needing parameters besides the function name.'
-  },
-  maxPool2DLayer: {
-    pool: 'Spatial window size for downsampling (e.g. 2x2).',
-    strides: 'Stride for the pooling operation.',
-    padding: 'Padding mode (valid or same).'
-  },
-  gap2DLayer: {},
-  batchNormLayer: {
-    momentum: 'Momentum for the moving average (typical ~0.99).',
-    epsilon: 'Small float added to variance to avoid dividing by zero.',
-    center: 'If true, add offset (beta).',
-    scale: 'If true, multiply by scale (gamma).'
-  },
-  lstmLayer: {
-    units: 'Dimensionality of the output space.',
-    return_sequences: 'If true, returns the full sequence; otherwise only the last output.',
-    dropout: 'Fraction (0-1) of the units to drop for input connections.',
-    recurrent_dropout: 'Fraction (0-1) to drop for recurrent state.',
-    bidirectional: 'If true, indicates a bidirectional wrapper (conceptual).'
-  }
-};
 
 export default function ModelCanvas() {
   const { nodes: storeNodes, edges: storeEdges, setGraph } = useModelCanvasStore();
@@ -119,7 +63,78 @@ export default function ModelCanvas() {
 
   const handlePersist = () => {
     setGraph(nodes, edges); // persist latest working copy
-    // TODO: call backend (Django) endpoint to persist graph / translate to TensorFlow JSON
+    // Attempt to persist to backend: if graph already has an id in metadata use update, otherwise create
+    (async () => {
+      try {
+        // Build payload matching Django serializer: nodes as {id,type,label,params,position,notes}, edges as {id,source,target,meta}
+        const nodesPayload: GraphNode[] = nodes.map(n => {
+          const data = (n.data as unknown) as { label?: string; params?: Record<string, unknown>; position?: unknown; notes?: unknown } | undefined;
+          return {
+            id: n.id,
+            type: (n.type as string) || '',
+            label: data?.label || '',
+            params: data?.params || {},
+            position: n.position || data?.position || {},
+            notes: data?.notes || {},
+          } as GraphNode;
+        });
+        const edgesPayload: GraphEdge[] = edges.map(e => ({
+          id: e.id!,
+          source: e.source,
+          target: e.target,
+          meta: ((e as unknown) as { meta?: Record<string, unknown> }).meta || {},
+        }));
+
+        // Use a simple metadata id if you want to track created graph; for now try to create every time
+        const payload = { name: 'Untitled graph', nodes: nodesPayload, edges: edgesPayload };
+        const created = await networkGraphService.createGraph(payload);
+        // If created, we could store graph id in localStorage or update app state - for now log
+        console.log('Graph created:', created);
+        alert('Graph saved to backend');
+      } catch (err: unknown) {
+        console.error('Failed to save graph', err);
+        const msg = err instanceof Error ? err.message : String(err);
+        alert('Failed to save graph to backend: ' + msg);
+      }
+    })();
+  };
+
+  const handlePreview = async () => {
+    // Call compile endpoint on backend with current nodes/edges (use stored graph if available otherwise pass body)
+    try {
+      const nodesPayload: GraphNode[] = nodes.map(n => {
+        const data = (n.data as unknown) as { label?: string; params?: Record<string, unknown>; position?: unknown; notes?: unknown } | undefined;
+        return {
+          id: n.id,
+          type: (n.type as string) || '',
+          label: data?.label || '',
+          params: data?.params || {},
+          position: n.position || data?.position || {},
+          notes: data?.notes || {},
+        } as GraphNode;
+      });
+      const edgesPayload: GraphEdge[] = edges.map(e => ({
+        id: e.id!,
+        source: e.source,
+        target: e.target,
+        meta: ((e as unknown) as { meta?: Record<string, unknown> }).meta || {},
+      }));
+
+      // The compile endpoint is defined as POST /network/graphs/{id}/compile/
+      // We don't have a persisted graph id yet; some backends accept compile without id if body provided, but this API requires a graph id.
+      // As a pragmatic approach, POST to import-keras-json isn't appropriate. So we'll create a temporary graph then compile it.
+      const temp = await networkGraphService.createGraph({ name: 'temp-preview', nodes: nodesPayload, edges: edgesPayload });
+      const graphId = String(temp.id);
+      const compiled = await networkGraphService.compileGraph(graphId);
+      console.log('Compiled result:', compiled);
+      alert('Compile success — see console for details');
+      // Optionally delete the temporary graph
+      try { await networkGraphService.deleteGraph(graphId); } catch { /* ignore */ }
+    } catch (err: unknown) {
+      console.error('Preview/compile failed', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      alert('Preview/compile failed: ' + msg);
+    }
   };
 
   // Needed so drop is allowed in most browsers
