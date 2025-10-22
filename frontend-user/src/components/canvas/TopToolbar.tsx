@@ -1,9 +1,9 @@
 import { Save, Play, Trash2 } from 'lucide-react';
 import { useModelCanvasStore } from '../../store/modelCanvasStore';
 
-interface Props { onSave: () => void }
+interface Props { onSave: () => void; onPreview?: () => void }
 
-export default function TopToolbar({ onSave }: Props) {
+export default function TopToolbar({ onSave, onPreview }: Props) {
   const setGraph = useModelCanvasStore(s => s.setGraph);
   const currentNodes = useModelCanvasStore(s => s.nodes);
   const currentEdges = useModelCanvasStore(s => s.edges);
@@ -11,7 +11,8 @@ export default function TopToolbar({ onSave }: Props) {
   const clearAll = () => setGraph([], []);
 
   const runPreview = () => {
-    // Placeholder: translate to TF spec and maybe call backend preview endpoint
+    if (onPreview) return onPreview();
+    // fallback behavior
     console.log('Graph:', { nodes: currentNodes, edges: currentEdges });
     alert('Preview placeholder: would send graph to backend');
   };

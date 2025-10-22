@@ -1,10 +1,41 @@
 import { useState } from 'react';
 import { useModelCanvasStore, ModelCanvasState } from '../../store/modelCanvasStore';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import networkGraphService from '../../api/networkGraphService';
+
+
+type Layer = {
+  name: string;
+  description: string;
+  categories: string[];
+  parameters: Record<string, unknown>;
+  deprecated: boolean;
+}
+
+type LayerParameter = {
+  name: string;
+  description: string;
+  default: unknown;
+  required: boolean;
+}
+
+type layerCategory = {
+  name: string;
+  layers: Array<{
+    name: string;
+    description: string;
+    categories: string[];
+    parameters: Record<string, unknown>;
+    deprecated: boolean;
+  }>;
+  defaultOpen?: boolean;
+}
 
 // Left side layer palette (drag source + click fallback)
 export default function LayerPalette() {
   const addNode = useModelCanvasStore((s: ModelCanvasState) => s.addNode); // Keep button click fallback
+    
+  // DEPRECATED: Update to use the layers from API
   // Structured palette groups for better discoverability
   const groups: Array<{
     id: string;
@@ -54,7 +85,29 @@ export default function LayerPalette() {
         { type: 'outputLayer', label: 'Output', defaults: { units: 10, activation: 'softmax' } }
       ]
     }
-  ];
+    ];
+    
+  const layerCategories: layerCategory[] = [];
+  // Get Layers from Django API
+  networkGraphService.getLayersList().then(layersListData => {
+    const layersList = layersListData.layers;
+    for (const layer of layersList) {
+      const currLayerCategories = layer.categories;
+      for (const category of currLayerCategories) {
+        if (!layerCategories[category]) {
+          layerCategories.push({
+            id: category.toLowerCase().replace(/\s+/g, '-'),
+            name: category,
+            layers: [],
+            defaultOpen: false
+          });
+        }
+        layerCategories.find(cat => cat.name === category)?.layers.push(layer);
+      }
+    
+    }
+  });
+
   interface PaletteItem { type: string; label: string; defaults: Record<string, unknown>; }
   const handleDragStart = (e: React.DragEvent, p: PaletteItem) => {
     e.dataTransfer.setData('application/myapp-layer', p.type);
@@ -69,7 +122,7 @@ export default function LayerPalette() {
 
   return (
     <div className='flex flex-col gap-3'>
-      {groups.map(group => {
+      {layerCategories.map(category => {
         const opened = openGroups[group.id];
         return (
           <div key={group.id} className='border rounded bg-white/60 backdrop-blur-sm shadow-sm'>

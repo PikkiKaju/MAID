@@ -14,14 +14,13 @@ import ReactFlow, {
   ReactFlowInstance,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Info } from 'lucide-react';
 import { nanoid } from 'nanoid/non-secure';
 
 import { useModelCanvasStore } from '../../store/modelCanvasStore';
-import type { ModelCanvasState } from '../../store/modelCanvasStore';
 import { layerNodeTypes } from './nodes';
 import TopToolbar from './TopToolbar';
 import LayerPalette from './LayerPalette';
+import LayerInspector from './LayerInspector';
 import networkGraphService, { GraphNode, GraphEdge } from '../../api/networkGraphService';
 import RemovableEdge from './RemovableEdge';
 
@@ -166,7 +165,7 @@ export default function ModelCanvas() {
 
   return (
     <div className='h-[calc(90vh-100px)] flex flex-col border rounded bg-white shadow'>
-      <TopToolbar onSave={handlePersist} />
+      <TopToolbar onSave={handlePersist} onPreview={handlePreview} />
       <div className='flex flex-1 min-h-0'>
         <div className='w-56 border-r p-2 space-y-2 bg-slate-50 overflow-y-auto text-xs'>
           <h3 className='font-semibold text-slate-600 text-sm'>Layers</h3>
@@ -194,7 +193,7 @@ export default function ModelCanvas() {
           </ReactFlow>
         </div>
         <div className='w-72 border-l p-3 bg-slate-50 overflow-y-auto'>
-          <Inspector />
+          <LayerInspector />
         </div>
       </div>
     </div>
@@ -203,67 +202,3 @@ export default function ModelCanvas() {
 
 
 
-// Right side inspector showing editable parameters for the selected node
-function Inspector() {
-  const selectedNodeId = useModelCanvasStore((s: ModelCanvasState) => s.selectedNodeId);
-  const updateNodeData = useModelCanvasStore((s: ModelCanvasState) => s.updateNodeData);
-  const nodes = useModelCanvasStore((s: ModelCanvasState) => s.nodes);
-  const node = nodes.find((n: Node) => n.id === selectedNodeId);
-
-  if (!node) return <p className='text-sm text-slate-500'>Select a layer to edit its parameters.</p>;
-
-  const entries = Object.entries(node.data.params || {});
-  const paramDocs = LAYER_PARAM_HELP[node.type as string] || {};
-
-  const handleChange = (key: string, value: string) => {
-    // Attempt typed coercion: number -> boolean -> string
-  let cast: string | number | boolean = value;
-    if (value === 'true') cast = true;
-    else if (value === 'false') cast = false;
-    else if (!isNaN(Number(value)) && value.trim() !== '') cast = Number(value);
-    updateNodeData(node.id, { params: { ...node.data.params, [key]: cast } });
-  };
-
-  return (
-    <div className='space-y-3'>
-      <h3 className='font-semibold text-slate-700 text-sm'>Layer Parameters</h3>
-      {entries.length === 0 && <p className='text-xs text-slate-500'>No parameters</p>}
-      {entries.map(([k, v]) => {
-        const desc = paramDocs[k];
-        return (
-          <label key={k} className='block text-xs mb-2'>
-            <span className='font-medium inline-flex items-center gap-1'>
-              {k}
-              {desc && (
-                <Tooltip content={desc} />
-              )}
-            </span>
-            <input
-              className='mt-1 w-full border rounded px-2 py-1 text-xs'
-              defaultValue={String(v)}
-              onChange={e => handleChange(k, e.target.value)}
-            />
-          </label>
-        );
-      })}
-      <pre className='text-[10px] bg-slate-200 p-2 rounded overflow-x-auto'>{JSON.stringify(node.data.params, null, 2)}</pre>
-    </div>
-  );
-}
-
-// Simple tooltip component (no external dependency) using group hover.
-function Tooltip({ content }: { content: string }) {
-  return (
-    <span className='relative inline-flex'>
-      <span className='group inline-flex'>
-        <Info size={12} className='text-slate-400 hover:text-slate-600 cursor-help' />
-        {/* Tooltip bubble positioned to the right to avoid overlap with canvas; higher z-index to sit above ReactFlow */}
-        <span className='pointer-events-none absolute left-full top-1/2 hidden w-50 -translate-y-1/2 translate-x-2 z-50 group-hover:block'>
-          <span className='block rounded border border-slate-300 bg-white px-2 py-1 text-[10px] leading-snug shadow-lg text-slate-600'>
-            {content}
-          </span>
-        </span>
-      </span>
-    </span>
-  );
-}
