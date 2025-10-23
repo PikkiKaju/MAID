@@ -1,64 +1,8 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Info } from 'lucide-react';
 import { useModelCanvasStore, ModelCanvasState } from '../../store/modelCanvasStore';
 import { Node } from 'reactflow';
-
-// DEPRECATED: update for layer param descriptions from API
-// Descriptions for layer parameters.
-const LAYER_PARAM_HELP: Record<string, Record<string, string>> = {
-  inputLayer: {
-    shape: 'Shape of the input tensor excluding batch dimension. E.g. (32,) or (28,28,1).',
-    dtype: 'Data type of the input (float32, int32, etc.).',
-    name: 'Optional symbolic layer name.'
-  },
-  denseLayer: {
-    units: 'Number of neurons / output dimensions of the dense layer.',
-    activation: 'Activation function (relu, sigmoid, softmax, linear, etc.).',
-    use_bias: 'Whether to include a bias term.',
-    kernel_initializer: 'Initializer for the kernel weights matrix.',
-    bias_initializer: 'Initializer for the bias vector.'
-  },
-  dropoutLayer: {
-    rate: 'Fraction (0-1) of input units to drop during training.',
-    seed: 'Random seed for reproducibility.'
-  },
-  conv2dLayer: {
-    filters: 'Number of convolution kernels (output feature maps).',
-    kernel: 'Kernel size (e.g. 3x3).',
-    strides: 'Stride size (e.g. 1x1 or 2x2).',
-    padding: 'Padding mode (valid or same).',
-    activation: 'Activation function applied after convolution + bias.',
-    use_bias: 'Include a bias vector if true.'
-  },
-  flattenLayer: {
-    data_format: 'Channels first or channels last (if relevant to backend).'
-  },
-  outputLayer: {
-    units: 'Dimensionality of the model output (classes or regression targets).',
-    activation: 'Final activation (softmax for multi-class, sigmoid for binary, linear for regression).'
-  },
-  actLayer: {
-    activation: 'Applies an activation without needing parameters besides the function name.'
-  },
-  maxPool2DLayer: {
-    pool: 'Spatial window size for downsampling (e.g. 2x2).',
-    strides: 'Stride for the pooling operation.',
-    padding: 'Padding mode (valid or same).'
-  },
-  gap2DLayer: {},
-  batchNormLayer: {
-    momentum: 'Momentum for the moving average (typical ~0.99).',
-    epsilon: 'Small float added to variance to avoid dividing by zero.',
-    center: 'If true, add offset (beta).',
-    scale: 'If true, multiply by scale (gamma).'
-  },
-  lstmLayer: {
-    units: 'Dimensionality of the output space.',
-    return_sequences: 'If true, returns the full sequence; otherwise only the last output.',
-    dropout: 'Fraction (0-1) of the units to drop for input connections.',
-    recurrent_dropout: 'Fraction (0-1) to drop for recurrent state.',
-    bidirectional: 'If true, indicates a bidirectional wrapper (conceptual).'
-  }
-};
+import networkGraphService from '../../api/networkGraphService';
 
 
 // Right side inspector showing editable parameters for the selected node
@@ -68,43 +12,158 @@ export default function LayerInspector() {
   const nodes = useModelCanvasStore((s: ModelCanvasState) => s.nodes);
   const node = nodes.find((n: Node) => n.id === selectedNodeId);
 
-  if (!node) return <p className='text-sm text-slate-500'>Select a layer to edit its parameters.</p>;
+  type NodeData = { label?: string; layer?: string; params?: Record<string, unknown> };
+  const nodeData = useMemo(() => (node?.data ?? {}) as NodeData, [node]);
+  const layerName: string = nodeData.layer || nodeData.label || (node?.type as string) || '';
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [paramsSpec, setParamsSpec] = useState<LayerParameter[] | null>(null);
 
-  const entries = Object.entries(node.data.params || {});
-  const paramDocs = LAYER_PARAM_HELP[node.type as string] || {};
+  type LayerParameter = {
+    name: string;
+    kind: string;
+    default: unknown;
+    annotation: unknown;
+    doc: string;
+    required: boolean;
+    param_type: string;
+    deprecated: boolean | null;
+    enum: string[] | null;
+    case_insensitive: boolean | null;
+  };
 
-  const handleChange = (key: string, value: string) => {
-    // Attempt typed coercion: number -> boolean -> string
-  let cast: string | number | boolean = value;
-    if (value === 'true') cast = true;
-    else if (value === 'false') cast = false;
-    else if (!isNaN(Number(value)) && value.trim() !== '') cast = Number(value);
-    updateNodeData(node.id, { params: { ...node.data.params, [key]: cast } });
+  // Load layer specs from API cache and get the current layer's parameter definitions
+  useEffect(() => {
+    let cancelled = false;
+    if (!node || !layerName) {
+      setParamsSpec(null);
+      return () => { cancelled = true; };
+    }
+    setLoading(true);
+    setError(null);
+    networkGraphService
+      .getLayersList()
+      .then((data: unknown) => {
+        if (cancelled) return;
+        const layers = (data as { layers?: Array<{ name: string; parameters?: LayerParameter[] }> })?.layers || [];
+        const found = layers.find((l) => l && l.name === layerName);
+        const spec: LayerParameter[] | null = found?.parameters || null;
+        setParamsSpec(spec);
+        // Prefill defaults the first time a param is missing
+        if (spec && spec.length) {
+          const current = (nodeData?.params || {}) as Record<string, unknown>;
+          const withDefaults = { ...current } as Record<string, unknown>;
+          let changed = false;
+          for (const p of spec) {
+            if (withDefaults[p.name] === undefined && p.default !== undefined) {
+              withDefaults[p.name] = p.default as unknown;
+              changed = true;
+            }
+          }
+          if (changed) updateNodeData(node.id, { params: withDefaults });
+        }
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        setError(e instanceof Error ? e.message : String(e));
+      })
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [layerName, node, nodeData?.params, updateNodeData]);
+
+  const currentParams: Record<string, unknown> = useMemo(() => (nodeData?.params || {}), [nodeData]);
+
+  const coerce = (raw: string, t?: string): string | number | boolean => {
+    const type = (t || '').toLowerCase();
+    if (type.includes('bool')) return raw === 'true' || raw === 'on';
+    if (type.includes('int')) return Number.isNaN(Number(raw)) ? raw : Number.parseInt(raw, 10);
+    if (type.includes('float') || type.includes('double') || type.includes('number'))
+      return Number.isNaN(Number(raw)) ? raw : Number(raw);
+    if (raw === 'true') return true;
+    if (raw === 'false') return false;
+    if (!Number.isNaN(Number(raw)) && raw.trim() !== '') return Number(raw);
+    return raw;
+  };
+
+  const handleParamChange = (name: string, value: string | boolean, t?: string) => {
+    const cast = typeof value === 'string' ? coerce(value, t) : value;
+    if (!node) return;
+    updateNodeData(node.id, { params: { ...currentParams, [name]: cast } });
   };
 
   return (
     <div className='space-y-3'>
-      <h3 className='font-semibold text-slate-700 text-sm'>Layer Parameters</h3>
-      {entries.length === 0 && <p className='text-xs text-slate-500'>No parameters</p>}
-      {entries.map(([k, v]) => {
-        const desc = paramDocs[k];
-        return (
-          <label key={k} className='block text-xs mb-2'>
-            <span className='font-medium inline-flex items-center gap-1'>
-              {k}
-              {desc && (
-                <Tooltip content={desc} />
+      <h3 className='font-semibold text-slate-700 text-sm'>{layerName} Parameters</h3>
+      {!node && <p className='text-sm text-slate-500'>Select a layer to edit its parameters.</p>}
+      {loading && <p className='text-xs text-slate-500'>Loading parameter definitions…</p>}
+      {error && <p className='text-xs text-rose-600'>Failed to load: {error}</p>}
+
+      {node && paramsSpec && paramsSpec.length > 0 ? (
+        paramsSpec.map((p) => {
+          const v = currentParams[p.name] ?? p.default ?? '';
+          const typeHint = p.param_type || p.kind || '';
+          const isBool = (p.enum === null || p.enum === undefined) && /bool/i.test(typeHint);
+          return (
+            <label key={p.name} className='block text-xs mb-2'>
+              <span className='font-medium inline-flex items-center gap-1'>
+                {p.name}
+                {p.required && <span className='text-rose-500'>*</span>}
+                {p.doc && <Tooltip content={p.doc} />}
+              </span>
+              {p.enum && p.enum.length > 0 ? (
+                <select
+                  className='mt-1 w-full border rounded px-2 py-1 text-xs bg-white'
+                  value={String(v)}
+                  onChange={(e) => handleParamChange(p.name, e.target.value, typeHint)}
+                >
+                  {!p.required && <option value=''>—</option>}
+                  {p.enum.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              ) : isBool ? (
+                <div className='mt-1 flex items-center gap-2'>
+                  <input
+                    id={`chk-${p.name}`}
+                    type='checkbox'
+                    className='h-3 w-3'
+                    checked={Boolean(v)}
+                    onChange={(e) => handleParamChange(p.name, e.target.checked, typeHint)}
+                  />
+                  <label htmlFor={`chk-${p.name}`} className='text-[11px] text-slate-600'>Enable</label>
+                </div>
+              ) : (
+                <input
+                  className='mt-1 w-full border rounded px-2 py-1 text-xs'
+                  value={String(v)}
+                  onChange={e => handleParamChange(p.name, e.target.value, typeHint)}
+                />
               )}
-            </span>
-            <input
-              className='mt-1 w-full border rounded px-2 py-1 text-xs'
-              defaultValue={String(v)}
-              onChange={e => handleChange(k, e.target.value)}
-            />
-          </label>
-        );
-      })}
-      <pre className='text-[10px] bg-slate-200 p-2 rounded overflow-x-auto'>{JSON.stringify(node.data.params, null, 2)}</pre>
+            </label>
+          );
+        })
+      ) : (
+        <>
+          {/* Fallback to whatever params exist on the node if API spec is unavailable */}
+          {Object.keys(currentParams).length === 0 && !loading && (
+            <p className='text-xs text-slate-500'>No parameters</p>
+          )}
+          {Object.entries(currentParams).map(([k, v]) => (
+            <label key={k} className='block text-xs mb-2'>
+              <span className='font-medium inline-flex items-center gap-1'>{k}</span>
+              <input
+                className='mt-1 w-full border rounded px-2 py-1 text-xs'
+                value={String(v)}
+                onChange={e => handleParamChange(k, e.target.value)}
+              />
+            </label>
+          ))}
+        </>
+      )}
+
+      <pre className='text-[10px] bg-slate-200 p-2 rounded overflow-x-auto'>{JSON.stringify(currentParams, null, 2)}</pre>
     </div>
   );
 }

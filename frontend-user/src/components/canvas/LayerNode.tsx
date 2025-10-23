@@ -2,7 +2,7 @@ import { Handle, Position, NodeProps } from 'reactflow';
 import { useModelCanvasStore } from '../../store/modelCanvasStore';
 import { X } from 'lucide-react';
 
-function BaseLayerNode({ data, id, selected }: NodeProps) {
+export default function LayerNode({ data, id, selected }: NodeProps) {
   const setSelected = useModelCanvasStore(s => s.setSelected);
   const removeNode = useModelCanvasStore(s => s.removeNode);
 
@@ -36,18 +36,3 @@ function BaseLayerNode({ data, id, selected }: NodeProps) {
     </div>
   );
 }
-
-// Mapping used by React Flow's nodeTypes prop
-export const layerNodeTypes = {
-  inputLayer: BaseLayerNode,
-  denseLayer: BaseLayerNode,
-  dropoutLayer: BaseLayerNode,
-  conv2dLayer: BaseLayerNode,
-  flattenLayer: BaseLayerNode,
-  outputLayer: BaseLayerNode,
-  actLayer: BaseLayerNode,
-  maxPool2DLayer: BaseLayerNode,
-  gap2DLayer: BaseLayerNode,
-  batchNormLayer: BaseLayerNode,
-  lstmLayer: BaseLayerNode,
-};

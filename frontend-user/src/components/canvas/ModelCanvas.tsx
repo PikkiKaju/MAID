@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, useEffect } from 'react';
+import { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import ReactFlow, {
   addEdge,
   Background,
@@ -17,7 +17,7 @@ import 'reactflow/dist/style.css';
 import { nanoid } from 'nanoid/non-secure';
 
 import { useModelCanvasStore } from '../../store/modelCanvasStore';
-import { layerNodeTypes } from './nodes';
+import LayerNode from './LayerNode';
 import TopToolbar from './TopToolbar';
 import LayerPalette from './LayerPalette';
 import LayerInspector from './LayerInspector';
@@ -28,9 +28,9 @@ import RemovableEdge from './RemovableEdge';
 const initialNodes: Node[] = [
   {
     id: 'input-1',
-    type: 'inputLayer',
+    type: 'layerNode',
     position: { x: 100, y: 150 },
-    data: { label: 'Input(32)' }
+    data: { label: 'Input', layer: 'Input', params: {} }
   },
 ];
 
@@ -43,6 +43,9 @@ export default function ModelCanvas() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges.length ? storeEdges : initialEdges);
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const flowWrapperRef = useRef<HTMLDivElement | null>(null);
+  // Memoize these to avoid React Flow warning about re-creating nodeTypes/edgeTypes each render
+  const nodeTypes = useMemo(() => ({ layerNode: LayerNode }), []);
+  const edgeTypes = useMemo(() => ({ removable: RemovableEdge }), []);
 
   // Edge creation handler (adds edge with arrow marker)
   const onConnect = useCallback((connection: Edge | Connection) => {
@@ -68,10 +71,11 @@ export default function ModelCanvas() {
       try {
         // Build payload matching Django serializer: nodes as {id,type,label,params,position,notes}, edges as {id,source,target,meta}
         const nodesPayload: GraphNode[] = nodes.map(n => {
-          const data = (n.data as unknown) as { label?: string; params?: Record<string, unknown>; position?: unknown; notes?: unknown } | undefined;
+          const data = (n.data as unknown) as { label?: string; layer?: string; params?: Record<string, unknown>; position?: unknown; notes?: unknown } | undefined;
           return {
             id: n.id,
-            type: (n.type as string) || '',
+            // send actual layer type expected by backend
+            type: data?.layer || (n.type as string) || '',
             label: data?.label || '',
             params: data?.params || {},
             position: n.position || data?.position || {},
@@ -103,10 +107,10 @@ export default function ModelCanvas() {
     // Call compile endpoint on backend with current nodes/edges (use stored graph if available otherwise pass body)
     try {
       const nodesPayload: GraphNode[] = nodes.map(n => {
-        const data = (n.data as unknown) as { label?: string; params?: Record<string, unknown>; position?: unknown; notes?: unknown } | undefined;
+        const data = (n.data as unknown) as { label?: string; layer?: string; params?: Record<string, unknown>; position?: unknown; notes?: unknown } | undefined;
         return {
           id: n.id,
-          type: (n.type as string) || '',
+          type: data?.layer || (n.type as string) || '',
           label: data?.label || '',
           params: data?.params || {},
           position: n.position || data?.position || {},
@@ -148,8 +152,8 @@ export default function ModelCanvas() {
     event.preventDefault();
     if (!rfInstance) return;
 
-    const type = event.dataTransfer.getData('application/myapp-layer');
-    if (!type) return;
+  const type = event.dataTransfer.getData('application/myapp-layer'); // API layer name
+  if (!type) return;
     const rawParams = event.dataTransfer.getData('application/myapp-layer-config');
     const label = event.dataTransfer.getData('application/myapp-layer-label') || type;
     let params: Record<string, unknown> = {};
@@ -169,9 +173,9 @@ export default function ModelCanvas() {
 
     const newNode: Node = {
       id: nanoid(6),
-      type,
+      type: 'layerNode',
       position,
-      data: { label, params },
+      data: { label, layer: type, params },
     };
     setNodes(nds => nds.concat(newNode));
     // also push to store so side panels reflect without needing manual save
@@ -193,8 +197,8 @@ export default function ModelCanvas() {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
-            nodeTypes={layerNodeTypes}
-            edgeTypes={{ removable: RemovableEdge }}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             fitView
             snapToGrid
             snapGrid={[12, 12]}
@@ -207,7 +211,7 @@ export default function ModelCanvas() {
             <Controls />
           </ReactFlow>
         </div>
-        <div className='w-72 border-l p-3 bg-slate-50 overflow-y-auto'>
+        <div className='w-70 border-l p-3 bg-slate-50 overflow-y-auto'>
           <LayerInspector />
         </div>
       </div>
