@@ -120,6 +120,20 @@ const networkGraphService = {
     if (resp.status === 200) return resp.data;
     throw new Error('Failed to fetch layers specs');
   },
+
+  /**
+   * Import a Keras model JSON string and persist as a graph.
+   * Backend route: POST /network/graphs/import-keras-json
+   */
+  importKerasJson: async (modelJson: string, name?: string): Promise<NetworkGraphPayload> => {
+    const body: Record<string, unknown> = { model_json: modelJson };
+    if (name) body.name = name;
+    const resp = await djangoClient.post('network/graphs/import-keras-json/', body, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (resp.status === 201) return resp.data;
+    throw new Error('Failed to import Keras JSON');
+  },
 };
 
 export default networkGraphService;
