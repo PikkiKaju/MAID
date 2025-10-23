@@ -8,7 +8,7 @@ import {
   SidebarMenuItem,
 } from "../ui/sidebar";
 import { cn } from "../utilis/tailwind";
-import { Database, FolderOpen, Home, Sparkles, PanelsTopLeft } from "lucide-react";
+import { Database, FolderOpen, Home, Sparkles, PanelsTopLeft, Network } from "lucide-react";
 
 function AppSidebar() {
   const navigate = useNavigate();
@@ -27,6 +27,12 @@ function AppSidebar() {
       label: "Datasets",
       icon: Database,
       path: "/datasets-regresja",
+    },
+    {
+      id: "canvas",
+      label: "Canvas",
+      icon: Network,
+      path: "/canvas",
     },
   ];
 
@@ -65,19 +71,6 @@ function AppSidebar() {
             );
           })}
         </SidebarMenu>
-
-        {/* Canvas Link */}
-        <Link
-          to="/canvas"
-          className="block py-1 px-2 hover:bg-blue-800 rounded flex gap-2 items-center"
-        >
-          <PanelsTopLeft className="w-4" />
-          {showText && (
-            <span className="transition-opacity duration-300 opacity-100">
-              Canvas
-            </span>
-          )}
-        </Link>
       </SidebarContent>
     </Sidebar>
   );
