@@ -219,7 +219,6 @@ namespace backend_aspdotnet.Controllers
             _postgers.Users.Add(user);
             await _postgers.SaveChangesAsync();
 
-            var token = _authService.GenerateJwt(user);
             return Ok("New admin created");
         }
 

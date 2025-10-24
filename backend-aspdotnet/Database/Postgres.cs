@@ -10,6 +10,8 @@ namespace backend_aspdotnet.Database
         public DbSet<User> Users { get; set; }
         public DbSet<Blocked> Blocked { get; set; }
         public DbSet<Like> Likes { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
+
 
 
 
@@ -22,6 +24,7 @@ namespace backend_aspdotnet.Database
         {
             base.OnModelCreating(modelBuilder);
             modelBuilder.Entity<Blocked>().ToTable("Blocked");
+            modelBuilder.Entity<RefreshToken>().ToTable("RefreshToken");
             // e.g., modelBuilder.Entity<Element>().ToTable("elements");
         }
     }

@@ -2,8 +2,11 @@
 
 namespace backend_aspdotnet.Database
 {
+    
     public class ElementDBConterxt
     {
+       
+
         private readonly IMongoDatabase _database;
         private readonly IConfiguration _configuration;
 
@@ -21,6 +24,8 @@ namespace backend_aspdotnet.Database
 
         public IMongoCollection<ProjectDetails> ProjectDetails =>
             _database.GetCollection<ProjectDetails>("ProjectDetails");
+        
+        public IMongoDatabase GetDatabase() => _database;
 
     }
 }

@@ -1,0 +1,19 @@
+{
+    "sqltools.connections": [
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 5001,
+            "driver": "PostgreSQL",
+            "database": "mydb",
+            "username": "postgres",
+            "password": "postgres",
+            "name": "postgres",
+            "group": "maid"
+        }
+    ],
+    "cSpell.words": [
+        "aspdotnet"
+    ]
+}

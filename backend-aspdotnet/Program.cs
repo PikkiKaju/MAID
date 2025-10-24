@@ -10,11 +10,13 @@ using System.Collections.Generic;
 using MongoDB.Driver;
 using System.Data;
 using MongoDB.Bson;
-
+using Serilog;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Bson;
 using Microsoft.OpenApi.Models;
+using Serilog;
+using Serilog.Sinks.Grafana.Loki;
 using backend_aspdotnet.Helpers;
 
 BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
@@ -58,8 +60,15 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 
+
 builder.Services.AddHttpClient<PythonConectService>();
-builder.Services.AddSingleton<AuthService>();
+// Repositories
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+// Services
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IDatasetCsvService, DatasetCsvService>();
+///
 builder.Services.AddSingleton<ElementDBConterxt>();
 builder.Services.AddCors(options =>
 {
@@ -92,6 +101,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(postgresConnectionString));
 
 
+
+
 var app = builder.Build();
 
 
@@ -112,7 +123,7 @@ else
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    var authService = scope.ServiceProvider.GetRequiredService<AuthService>();
+    var authService = scope.ServiceProvider.GetRequiredService<IAuthService>();
     var mongoContext = scope.ServiceProvider.GetRequiredService<ElementDBConterxt>();
 
     db.Database.EnsureCreated();
@@ -148,17 +159,17 @@ using (var scope = app.Services.CreateScope())
         var projects = new List<ProjectMeta>
         {
             new ProjectMeta { Id = Guid.NewGuid(), Name = "Przewidywanie pogody", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true, Likes = 1 },
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Regresja interesuj�cych danych", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = true, Likes = 4},
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Regresja interesujących danych", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = true, Likes = 4},
             new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt startowy", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true },
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt pocz�tkowy", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true , Likes = 2},
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt początkowy", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true , Likes = 2},
             new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt nr 4", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = true, Likes = 5},
             new ProjectMeta { Id = Guid.NewGuid(), Name = "My project", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false },
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Przewidywanie cen pr�du", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false },
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Przewidywanie warto�ci z�ota", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = true},
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true, Likes = 3 },
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false },
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = false},
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false }
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Przewidywanie cen produ", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false },
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Przewidywanie wartości złota", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = true},
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt 1", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true, Likes = 3 },
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt 2", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false },
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt 3", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = false},
+            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt 4", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false }
         };
 
         db.Projects.AddRange(projects);
@@ -215,7 +226,7 @@ using (var scope = app.Services.CreateScope())
         {
             var mongoDatasets = datasets.Select(d => new RawDataset
             {
-                Id = d.Id, 
+                Id = d.Id,
                 Columns = new List<string> { "X", "Y" },
                 Data = new Dictionary<string, List<string>>
                 {
@@ -226,6 +237,7 @@ using (var scope = app.Services.CreateScope())
 
             mongoContext.Datasets.InsertMany(mongoDatasets);
         }
+        
     }
 }
 

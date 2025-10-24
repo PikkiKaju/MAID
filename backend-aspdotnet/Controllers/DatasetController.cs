@@ -1,5 +1,6 @@
-﻿﻿using backend_aspdotnet.Database;
+﻿using backend_aspdotnet.Database;
 using backend_aspdotnet.DTOs;
+using backend_aspdotnet.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,11 +18,13 @@ namespace backend_aspdotnet.Controllers
 
         private readonly AppDbContext _postgresDb;
         private readonly ElementDBConterxt _mongoDb;
+        private readonly IDatasetCsvService _csvDataset;
 
-        public DatasetController(AppDbContext postgeres, ElementDBConterxt mongo)
+        public DatasetController(AppDbContext postgeres, ElementDBConterxt mongo, IDatasetCsvService csvDataset)
         {
             _postgresDb = postgeres;
             _mongoDb = mongo;
+            _csvDataset = csvDataset;
         }
 
         [Authorize]
@@ -30,141 +33,90 @@ namespace backend_aspdotnet.Controllers
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> UploadCsv([FromForm] IFormFile file, [FromForm] string name, [FromForm] bool isPublic)
         {
-            // if file exists
             if (file == null || file.Length == 0)
                 return BadRequest("No file uploaded.");
 
-            // user exists
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdString))
-                return Unauthorized("User ID not found in token.");
+            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out Guid userId))
+                return Unauthorized("Invalid user ID.");
 
-            if (!Guid.TryParse(userIdString, out Guid userId))
-                return Unauthorized("Invalid user ID format.");
-
-            var fileName = Path.GetFileNameWithoutExtension(file.FileName);
-
-            // if name in database
             var existingDataset = await _postgresDb.Datasets
-                .Where(d => d.UserId == userId && d.Name == name)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(d => d.UserId == userId && d.Name == name);
 
             if (existingDataset != null)
-                return BadRequest("Dataset with this name already exists.");
+                return BadRequest("Dataset name already exists.");
 
-            // Count how many datasets user already has
-            var datasetCount = await _postgresDb.Datasets
-                .CountAsync(d => d.UserId == userId);
-
+            var datasetCount = await _postgresDb.Datasets.CountAsync(d => d.UserId == userId);
             if (datasetCount >= 5)
-                return BadRequest("User has reached dataset limit (5).");
+                return BadRequest("Dataset limit reached (5).");
 
-            using var reader = new StreamReader(file.OpenReadStream());
-            var content = await reader.ReadToEndAsync();
-            var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            var datasetId = await _csvDataset.UploadCsvAsync(file.OpenReadStream(), name, userId, isPublic);
 
-            if (lines.Length > 1000)
-                return BadRequest("CSV too large. Max 1000 lines allowed.");
-
-            var header = lines[0].Trim().Split(',');
-            if (header.Length < 2 || header.Length > 10)
-                return BadRequest("CSV must have between 2 and 10 columns.");
-
-            // Parse data into Mongo format
-            var dataDict = new Dictionary<string, List<string>>();
-            foreach (var col in header)
-                dataDict[col] = new List<string>();
-
-            for (int i = 1; i < lines.Length; i++)
-            {
-                var values = lines[i].Trim().Split(',');
-                for (int j = 0; j < header.Length && j < values.Length; j++)
-                {
-                    dataDict[header[j]].Add(values[j]);
-                }
-            }
-
-            // Store metadata in Postgres
             var metadata = new DatasetMeta
             {
-                Id = Guid.NewGuid(),
+                Id = datasetId,
                 Name = name,
                 UserId = userId,
                 CreatedAt = DateTime.UtcNow,
                 IsPublic = isPublic
             };
 
-            // Store in Mongo
-            RawDataset datasetDoc = new RawDataset()
-            {
-                Id = metadata.Id,
-                Columns = header.ToList(),
-                Data = dataDict
-            };
-            await _mongoDb.Datasets.InsertOneAsync(datasetDoc);
-
             _postgresDb.Datasets.Add(metadata);
             await _postgresDb.SaveChangesAsync();
 
-            return Ok(new { message = "Dataset uploaded successfully", datasetId = metadata.Id });
+            return Ok(new { message = "Dataset uploaded successfully", datasetId });
         }
 
 
 
-         [Authorize]
+        [Authorize]
         [HttpGet("list")]
         public async Task<IActionResult> GetUserDatasets()
         {
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdString))
-                return Unauthorized("User ID not found in token.");
+            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out Guid userId))
+                return Unauthorized("Invalid user ID.");
 
-            if (!Guid.TryParse(userIdString, out Guid userId))
-                return Unauthorized("Invalid user ID format.");
+            var query = _postgresDb.Datasets
+                .Where(d => d.UserId == userId)
+                .OrderByDescending(d => d.CreatedAt);
 
-
-             var datasets = await _postgresDb.Datasets
-              .Where(d => d.UserId == userId)
-                .Join(_postgresDb.Users,
-                    dataset => dataset.UserId,
-                    user => user.Id,
-                    (dataset, user) => new
-                    {
-                        dataset.Id,
-                        dataset.Name,
-                        dataset.CreatedAt,
-                        dataset.IsPublic
-                    })
-                    .ToListAsync();
+            var total = await query.CountAsync();
+            var datasets = await query
+                .Select(d => new
+                {
+                    d.Id,
+                    d.Name,
+                    d.CreatedAt,
+                    d.IsPublic
+                })
+                .ToListAsync();
 
             return Ok(datasets);
         }
 
         [HttpGet("dataset-public")]
         public async Task<IActionResult> GetPublicDatasets()
+         
         {
-            /*
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdString))
-                return Unauthorized("User ID not found in token.");
-
-            if (!Guid.TryParse(userIdString, out Guid userId))
-                return Unauthorized("Invalid user ID format.");
-            */
             var datasets = await _postgresDb.Datasets
-            .Join(_postgresDb.Users,
+            .Where(d => d.IsPublic) // optional: keep only public datasets
+            .Join(
+                _postgresDb.Users,
                 dataset => dataset.UserId,
                 user => user.Id,
                 (dataset, user) => new
                 {
                     dataset.Id,
                     dataset.Name,
-                    user.Username,
-                    dataset.CreatedAt
+                    dataset.CreatedAt,
+                    user.Username
                 })
-                .ToListAsync();
+            .OrderByDescending(x => x.CreatedAt) 
+            .Take(20)
+            .ToListAsync();
 
-            return Ok(datasets);
+        return Ok(datasets);
         }
 
 
