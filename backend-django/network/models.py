@@ -24,7 +24,7 @@ class NetworkGraph(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=120)
     task = models.CharField(max_length=60, blank=True, default="")
-    framework = models.CharField(max_length=60, blank=True, default="tf-keras") # TODO: Revise if needed
+    framework = models.CharField(max_length=60, blank=True, default="tf-keras")
     framework_version = models.CharField(max_length=60, blank=True, default="")
     status = models.CharField(
         max_length=16,

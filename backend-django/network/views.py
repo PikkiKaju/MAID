@@ -72,6 +72,7 @@ class LayerManifestViewSet(viewsets.ViewSet):
 
 
     def list(self, request):
+        """List all available layers with metadata."""
         mf = get_manifest()
         items = []
         for li in mf.get("layers", []):
@@ -91,15 +92,19 @@ class LayerManifestViewSet(viewsets.ViewSet):
             "layers": items,
         })
 
+
     def retrieve(self, request, pk=None):
+        """Get full manifest entry for a specific layer by name (e.g. 'Conv2D')."""
         try:
             entry = get_layer_entry(pk)
         except KeyError:
             return Response({"detail": f"Layer '{pk}' not found"}, status=status.HTTP_404_NOT_FOUND)
         return Response(entry)
 
+
     @action(detail=False, methods=["get"], url_path="specs")
     def specs(self, request):
+        """Get top-level manifest specs like param_value_specs and versions."""
         mf = get_manifest()
         return Response({
             "tensorflow_version": mf.get("tensorflow_version"),
@@ -124,14 +129,24 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
     def _resolve_graph_payload(
         self, graph: NetworkGraph, request_data: Dict[str, Any]
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-        nodes_payload: List[Dict[str, Any]] = request_data.get("nodes") or list(
-            graph.nodes.order_by("created_at").values(
+        """Helper to get nodes and edges payload from request or DB."""
+
+        print("request_data:", request_data)  # Debugging line
+        print("graph: ", graph)  # Debugging line
+
+        if graph:
+            nodes_payload = list(graph.nodes.order_by("created_at").values(
                 "id", "type", "label", "params", "position", "notes"
-            )
-        )
-        edges_payload: List[Dict[str, Any]] = request_data.get("edges") or list(
-            graph.edges.order_by("created_at").values("id", "source_id", "target_id", "meta")
-        )
+            ))
+            edges_payload = list(graph.edges.order_by("created_at").values(
+                "id", "source_id", "target_id", "meta"
+            ))
+        elif request_data:
+            nodes_payload = request_data.get("nodes") or []
+            edges_payload = request_data.get("edges") or []
+        else:
+            nodes_payload = []
+            edges_payload = []
 
         for edge in edges_payload:
             edge.setdefault("source", edge.get("source_id"))
@@ -139,11 +154,11 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
 
         return nodes_payload, edges_payload
 
-    @action(detail=True, methods=["post"], url_path="compile")
-    def compile_network(self, request, pk=None):
+    @action(detail=True, methods=["get"], url_path="compile")
+    def compile_network_from_uuid(self, request, pk=None):
         """
-        Compile the network graph into an executable model representation.
-        
+        Compile the network graph from UUID into an executable model representation and return it.
+
         Args:
             request (HttpRequest): The HTTP request object.
             pk (str, optional): The primary key of the NetworkGraph to compile. Defaults to None.
@@ -155,7 +170,7 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
         """
         graph = self.get_object()
 
-        nodes_payload, edges_payload = self._resolve_graph_payload(graph, request.data)
+        nodes_payload, edges_payload = self._resolve_graph_payload(graph, None)
 
         try:
             result = compile_graph(nodes_payload, edges_payload)
@@ -168,6 +183,35 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
             )
 
         return Response(result, status=status.HTTP_200_OK)
+    
+
+    @action(detail=False, methods=["post"], url_path="compile")
+    def compile_network_from_payload(self, request):
+        """
+        Compile the network graph from the request payload into an executable model representation and return it.
+
+        Args:
+            request (HttpRequest): The HTTP request object.
+        Returns:
+            Response: The HTTP response containing the compiled model representation.
+        Raises:
+            GraphValidationError: If the graph payload is invalid.
+            Exception: If an unexpected error occurs during compilation.        
+        """
+        nodes_payload, edges_payload = self._resolve_graph_payload(None, request.data)
+
+        try:
+            result = compile_graph(nodes_payload, edges_payload)
+        except GraphValidationError as exc:
+            return Response(getattr(exc, "detail", str(exc)), status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:  # pragma: no cover - defensive catch to surface error
+            return Response(
+                {"detail": f"Failed to compile graph: {exc}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        return Response(result, status=status.HTTP_200_OK)
+
 
     @action(detail=True, methods=["get"], url_path="export-script")
     def export_script(self, request, pk=None):

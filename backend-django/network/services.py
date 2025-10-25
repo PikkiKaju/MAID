@@ -36,11 +36,12 @@ class GraphValidationError(Exception):
 
 
 def _ensure_known_layers(nodes: Sequence[Dict[str, Any]]) -> None:
-    """Ensure all nodes reference known layer types (manifest-backed).
-
-    Accepts Keras layer class names and a special 'Input' node type.
     """
-    known = set(list_layers(include_deprecated=False)) | {"Input"}
+    Ensure all nodes reference known layer types (manifest-backed).
+
+    Accepts Keras layer class names.
+    """
+    known = set(list_layers(include_deprecated=False))
     unknown = [node["type"] for node in nodes if node.get("type") not in known]
     if unknown:
         raise GraphValidationError(
