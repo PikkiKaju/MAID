@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+import sys
+import os
+import logging
+logger = logging.getLogger(__name__)
 from typing import Any, Dict, List, Tuple
 
 from django.http import HttpResponse
 from django.utils.text import slugify
+from django.http import JsonResponse
+from django.contrib.admin.views.decorators import staff_member_required
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
 from .models import GraphPreset, GraphSnapshot, NetworkGraph
@@ -23,6 +29,8 @@ from .services import (
 )
 from .layers import (
     get_manifest,
+    regenerate_manifest,
+    refresh_manifest,
     get_layer_entry,
     list_layers,
 )
@@ -36,8 +44,32 @@ class LayerManifestViewSet(viewsets.ViewSet):
       - GET /api/network/layers/{name} -> full manifest entry for a layer
       - GET /api/network/layers/specs -> top-level param_value_specs and versions
     """
-
     permission_classes = [AllowAny]
+
+
+    @action(detail=False, methods=["get"], url_path="regenerate-manifest", permission_classes=[IsAdminUser])
+    def regenerate_layer_manifest(self, request):
+        """Regenerate the layer manifest from scratch."""
+        try:
+            if regenerate_manifest():
+                return JsonResponse({"ok": True, "message": "manifest regenerated"})
+            else:
+                return JsonResponse({"ok": False, "error": "failed to regenerate manifest"}, status=500)
+        except Exception as e:
+            return JsonResponse({"ok": False, "error": str(e)}, status=500)
+
+
+    @action(detail=False, methods=["get"], url_path="refresh-manifest", permission_classes=[IsAdminUser])
+    def refresh_layer_manifest(self, request):
+        """Refresh the layer manifest from disk."""
+        try:
+            if refresh_manifest():
+                return JsonResponse({"ok": True, "message": "manifest refreshed"})
+            else:
+                return JsonResponse({"ok": False, "error": "failed to refresh manifest"}, status=500)
+        except Exception as e:
+            return JsonResponse({"ok": False, "error": str(e)}, status=500)
+
 
     def list(self, request):
         mf = get_manifest()
@@ -77,7 +109,7 @@ class LayerManifestViewSet(viewsets.ViewSet):
 
 
 class NetworkGraphViewSet(viewsets.ModelViewSet):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     serializer_class = NetworkGraphSerializer
     queryset = NetworkGraph.objects.all().prefetch_related("nodes", "edges")
 
@@ -220,6 +252,6 @@ class GraphPresetViewSet(viewsets.ModelViewSet):
 
 
 class GraphSnapshotViewSet(viewsets.ModelViewSet):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     serializer_class = GraphSnapshotSerializer
     queryset = GraphSnapshot.objects.select_related("graph")

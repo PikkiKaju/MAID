@@ -22,48 +22,78 @@ Notes:
 
 import json
 import os
+import logging
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 # --------------------------------------------------------------------------------------
 # Manifest loading and lookup
 # --------------------------------------------------------------------------------------
 
+
+
+
 def _candidate_manifest_paths() -> List[str]:
     """Return likely paths to the layer manifest relative to this file."""
     here = os.path.dirname(__file__)
     # Typical path when generator was executed from backend-django folder
     p1 = os.path.abspath(os.path.join(here, "..", "layer_manifest.json"))
-    # Fallback: older location under network/tensorflow-data
-    p2 = os.path.abspath(os.path.join(here, "tensorflow-data", "layer_manifest.json"))
+    # Fallback: older location under network/tensorflow_data
+    p2 = os.path.abspath(os.path.join(here, "tensorflow_data", "layer_manifest.json"))
     return [p1, p2]
 
 
+def regenerate_manifest() -> bool:
+    """Regenerate and refresh the manifest."""
+    try:
+        from .tensorflow_data.generate_layer_manifest import regenerate_and_save_layer_manifest
+    except Exception as exc:  # pragma: no cover - env issue
+        raise ImportError(
+            "Layer manifest generator is required. Ensure network/generate_layer_manifest.py is present."
+        ) from exc
+
+    try:
+        success = regenerate_and_save_layer_manifest()
+        if success:
+            success = refresh_manifest()
+            logger.info("Layer manifest regenerated and refreshed, available=%s", manifest_available())
+        return success
+    except Exception as exc:
+        raise RuntimeError("Failed to regenerate layer manifest") from exc
+
+
 def _load_manifest() -> Optional[Dict[str, Any]]:
+    """Load the manifest from disk."""
     for path in _candidate_manifest_paths():
         try:
             with open(path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             continue
-    return None
+    raise FileNotFoundError("Layer manifest not found in candidate paths.")
 
 
-_MANIFEST: Optional[Dict[str, Any]] = _load_manifest()
-
-
-def refresh_manifest() -> None:
+def refresh_manifest() -> bool:
     """Reload the manifest from disk (useful after regenerating it)."""
     global _MANIFEST
-    _MANIFEST = _load_manifest()
-
+    try:
+        _MANIFEST = _load_manifest()
+    except Exception:
+        _MANIFEST = None
+        raise RuntimeError("Failed to refresh layer manifest")
+    return _MANIFEST is not None
+        
 
 def manifest_available() -> bool:
+    """Return True if the manifest is loaded and available."""
     return _MANIFEST is not None
 
 
 def get_manifest() -> Dict[str, Any]:
+    """Return the loaded manifest, or raise if not available."""
     if _MANIFEST is None:
         raise RuntimeError("Layer manifest not found. Generate it first with generate_layer_manifest.py")
     return _MANIFEST

@@ -490,6 +490,11 @@ def _collect_parameters(init_obj: Any, parameters_doc_map: Dict[str, str]) -> Li
             continue
         default_str = _default_to_str(p.default)
         annotation_str = _type_to_str(p.annotation)
+        required = True if p.default is inspect._empty else False
+        if p.name == "kwargs":
+            # Special case: **kwargs, mark as not required and no default
+            required = False
+            default_str = None
         params.append(
             ParamInfo(
                 name=p.name,
@@ -497,7 +502,7 @@ def _collect_parameters(init_obj: Any, parameters_doc_map: Dict[str, str]) -> Li
                 default=default_str,
                 annotation=annotation_str,
                 doc=parameters_doc_map.get(p.name),
-                required=(p.default is inspect._empty),
+                required=required,
             )
         )
     return params
@@ -760,6 +765,25 @@ def build_layer_manifest() -> Dict[str, Any]:
     manifest["ui_categories"] = ui_categories
     
     return manifest
+
+
+def regenerate_and_save_layer_manifest() -> bool:
+    """Regenerate and save the layer manifest."""
+    manifest = build_layer_manifest()
+    data = json.dumps(manifest, indent=2, ensure_ascii=False)
+
+    out_path = os.path.join(os.path.dirname(__file__), "layer_manifest.json")
+
+    if out_path:
+        try:
+            with open(out_path, "w", encoding="utf-8") as f:
+                f.write(data)
+                return True
+        except Exception as e:
+            sys.stderr.write(f"Error writing manifest to {out_path}: {e}\n")
+            return False
+    else:
+        return False
 
 
 def main(argv: List[str]) -> int:
