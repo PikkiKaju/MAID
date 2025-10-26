@@ -5,6 +5,7 @@ import os
 import logging
 logger = logging.getLogger(__name__)
 from typing import Any, Dict, List, Tuple
+import tempfile
 
 from django.http import HttpResponse
 from django.utils.text import slugify
@@ -26,6 +27,7 @@ from .services import (
     compile_graph,
     export_graph_to_python_script,
     import_keras_json_to_graph,
+    load_graph_from_keras_artifact,
 )
 from .layers import (
     get_manifest,
@@ -155,9 +157,9 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
         return nodes_payload, edges_payload
 
     @action(detail=True, methods=["get"], url_path="compile")
-    def compile_network_from_uuid(self, request, pk=None):
+    def compile_network_by_uuid(self, request, pk=None):
         """
-        Compile the network graph from UUID into an executable model representation and return it.
+        Compile the network graph from database by UUID into an executable model representation and return it.
 
         Args:
             request (HttpRequest): The HTTP request object.
@@ -248,15 +250,19 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
         model_json: str | None = None
         graph_name: str | None = None
 
-        if isinstance(request.data, dict) and request.data:
+        # Try reading raw body first (safe if stream not consumed).
+        try:
+            raw = request.body
+            if raw:
+                model_json = raw.decode("utf-8")
+                logger.info("Read raw request body for model_json import")
+        except Exception as exc:  # pragma: no cover - defensive: body may already be consumed
+            logger.debug("Could not read raw request.body (it may have been consumed): %s", exc)
+
+        # If no raw body content, try parsers / form data (request.data)
+        if not model_json and isinstance(request.data, dict) and request.data:
             model_json = request.data.get("model_json")
             graph_name = request.data.get("name")
-        if not model_json:
-            # Fallback: treat body as raw json string
-            try:
-                model_json = request.body.decode("utf-8")
-            except Exception:  # pragma: no cover
-                model_json = None
 
         if not model_json:
             return Response(
@@ -287,6 +293,58 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return Response(self.get_serializer(instance).data, status=status.HTTP_201_CREATED)
+
+
+    @action(detail=False, methods=["post"], url_path="import-model")
+    def import_model_artifact(self, request):
+        """Upload a Keras model artifact (.keras, .h5, or SavedModel .zip) and convert to a graph.
+
+        Supports multipart/form-data with a single file field named 'file'.
+        Optional form/body fields:
+          - name: override graph name
+          - create: if truthy, persist as NetworkGraph and return the created object
+        """
+        uploaded = request.FILES.get("file")
+        if not uploaded:
+            return Response({"detail": "Missing file upload (field name 'file')"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Persist to a temporary file preserving extension for loader heuristics
+        suffix = os.path.splitext(getattr(uploaded, "name", "uploaded.bin"))[1]
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            for chunk in uploaded.chunks():
+                tmp.write(chunk)
+            tmp_path = tmp.name
+
+        try:
+            graph_payload = load_graph_from_keras_artifact(tmp_path)
+        except GraphValidationError as exc:
+            os.unlink(tmp_path)
+            return Response(getattr(exc, "detail", str(exc)), status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:  # pragma: no cover - defensive
+            os.unlink(tmp_path)
+            return Response({"detail": f"Failed to import model: {exc}"}, status=status.HTTP_400_BAD_REQUEST)
+        finally:
+            # Temp file may remain in SavedModel dir case; safe to try unlink
+            try:
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+            except Exception:
+                pass
+
+        # Optional overrides
+        override_name = request.data.get("name") if isinstance(request.data, dict) else None
+        if override_name:
+            graph_payload["name"] = override_name
+
+        create_flag = str(request.data.get("create", "")).lower() in {"1", "true", "yes", "on"}
+        if create_flag:
+            serializer = self.get_serializer(data=graph_payload)
+            serializer.is_valid(raise_exception=True)
+            instance = serializer.save()
+            return Response(self.get_serializer(instance).data, status=status.HTTP_201_CREATED)
+
+        # Return the graph payload without persisting
+        return Response(graph_payload, status=status.HTTP_200_OK)
 
 
 class GraphPresetViewSet(viewsets.ModelViewSet):

@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 # Manifest loading and lookup
 # --------------------------------------------------------------------------------------
 
-
+_MANIFEST: Optional[Dict[str, Any]] = None
 
 
 def _candidate_manifest_paths() -> List[str]:

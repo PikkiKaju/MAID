@@ -4,7 +4,22 @@ import io
 import json
 from dataclasses import dataclass
 import uuid
+import os
+import tempfile
+import zipfile
 from typing import Any, Dict, Iterable, List, Sequence
+
+from sklearn import logger
+
+try:
+    # Prefer Keras 3 API
+    from keras import models as _keras_models  # type: ignore
+except Exception:  # pragma: no cover - fallback to tf.keras
+    _keras_models = None  # type: ignore
+try:
+    from tensorflow import keras as _tf_keras  # type: ignore
+except Exception:  # pragma: no cover
+    _tf_keras = None  # type: ignore
 
 from .layers import (
     list_layers,
@@ -43,6 +58,11 @@ def _ensure_known_layers(nodes: Sequence[Dict[str, Any]]) -> None:
     """
     known = set(list_layers(include_deprecated=False))
     unknown = [node["type"] for node in nodes if node.get("type") not in known]
+    for node in nodes:
+        ntype = node.get("type")
+        if ntype not in known:
+            logger.info(f"Unknown layer type in graph validation: {ntype}")
+            logger.info(f"Node details: {node}")
     if unknown:
         raise GraphValidationError(
             {"nodes": [f"Unsupported layer types: {sorted(set(unknown))}"]}
@@ -169,9 +189,6 @@ def validate_graph_payload(
     validation_errors: Dict[str, List[str]] = {}
     for node in structure.ordered_nodes:
         ntype = node.get("type")
-        if ntype == "Input":
-            # No manifest entry; rely on Keras for errors during build
-            continue
         params = node.get("data", {}).get("params") or node.get("params", {})
         try:
             normalize_params_for_layer(ntype, params)
@@ -222,16 +239,47 @@ def _build_keras_model(
         params = node.get("data", {}).get("params") or node.get("params", {})
         inbound_tensors = [tensors[parent_id] for parent_id in inbound_map[node["id"]]]
 
-        if ntype == "Input":
+        # If the manifest includes a dedicated input layer name (e.g. "Input" or "InputLayer")
+        known = set(list_layers(include_deprecated=False))
+        input_names_in_manifest = {n for n in ("Input", "InputLayer") if n in known}
+
+        if ntype in input_names_in_manifest:
+            # Construct an Input tensor using provided params
             from keras import Input  # lazy import
             kwargs = {k: v for k, v in (params or {}).items() if v not in (None, "")}
             tensor = Input(**kwargs)
         else:
+            # Normal layer path
             normalized = normalize_params_for_layer(ntype, params)
             layer = create_layer(ntype, normalized)
+
             if len(inbound_tensors) == 0:
-                # Most layers expect inputs; defer to Keras error if invalid
-                tensor = layer
+                # If no inbound tensors, try to synthesize an Input() from any input-like params
+                input_like_keys = {"batch_input_shape", "batch_shape", "input_shape", "input_dim", "shape", "dtype", "name"}
+                input_kwargs_raw = {k: v for k, v in (normalized or {}).items() if k in input_like_keys and v not in (None, "")}
+                if input_kwargs_raw:
+                    from keras import Input  # lazy import
+                    # map possible keys to Input() kwargs
+                    ikw: Dict[str, Any] = {}
+                    if "batch_input_shape" in input_kwargs_raw:
+                        ikw["batch_shape"] = input_kwargs_raw["batch_input_shape"]
+                    elif "batch_shape" in input_kwargs_raw:
+                        ikw["batch_shape"] = input_kwargs_raw["batch_shape"]
+                    elif "input_shape" in input_kwargs_raw:
+                        ikw["shape"] = input_kwargs_raw["input_shape"]
+                    elif "input_dim" in input_kwargs_raw:
+                        ikw["shape"] = (input_kwargs_raw["input_dim"],)
+                    elif "shape" in input_kwargs_raw:
+                        ikw["shape"] = input_kwargs_raw["shape"]
+                    if "dtype" in input_kwargs_raw:
+                        ikw["dtype"] = input_kwargs_raw["dtype"]
+                    if "name" in input_kwargs_raw:
+                        ikw["name"] = input_kwargs_raw["name"]
+                    in_tensor = Input(**ikw)
+                    tensor = layer(in_tensor)
+                else:
+                    # No inbound and no input-like params: leave as Layer instance (will likely error later)
+                    tensor = layer
             elif len(inbound_tensors) == 1:
                 tensor = layer(inbound_tensors[0])
             else:
@@ -346,10 +394,12 @@ def export_graph_to_python_script(
         ntype = node["type"]
         params = node.get("data", {}).get("params") or node.get("params", {})
         # Strict normalization against manifest where applicable
-        norm = params if ntype == "Input" else normalize_params_for_layer(ntype, params)
+        known = set(list_layers(include_deprecated=False))
+        input_names_in_manifest = {n for n in ("Input", "InputLayer") if n in known}
+        norm = params if ntype in input_names_in_manifest else normalize_params_for_layer(ntype, params)
         in_vars = [var_for[p] for p in inbound_map[nid]]
 
-        if ntype == "Input":
+        if ntype in input_names_in_manifest:
             kwargs = {k: v for k, v in (norm or {}).items() if v is not None}
             args_str = ", ".join(f"{k}={_py_lit(v)}" for k, v in kwargs.items())
             code_lines.append(f"    {v} = Input({args_str})")
@@ -357,7 +407,27 @@ def export_graph_to_python_script(
             kwargs = {k: v for k, v in (norm or {}).items() if v is not None}
             args_str = ", ".join(f"{k}={_py_lit(v)}" for k, v in kwargs.items())
             if not in_vars:
-                code_lines.append(f"    {v} = layers.{ntype}({args_str})  # no inbound provided")
+                # If no inbound provided, try to synthesize an Input from input-like params
+                input_like_keys = {"batch_input_shape", "batch_shape", "input_shape", "input_dim", "shape", "dtype", "name"}
+                has_input_like = any(k in kwargs for k in input_like_keys)
+                if has_input_like:
+                    # create an Input and apply the layer to it
+                    input_ident = f"{v}_in"
+                    ikw = {k: kwargs[k] for k in ("shape", "input_shape", "batch_shape", "batch_input_shape", "dtype", "name") if k in kwargs}
+                    # prefer shape/batch_shape mapping in the generated code
+                    if "batch_input_shape" in ikw:
+                        code_lines.append(f"    {input_ident} = Input(batch_shape={_py_lit(ikw['batch_input_shape'])}, dtype={_py_lit(ikw.get('dtype'))})")
+                        code_lines.append(f"    {v} = layers.{ntype}({args_str})({input_ident})")
+                    elif "input_shape" in ikw or "shape" in ikw or "input_dim" in ikw:
+                        # choose shape-like key
+                        shape_val = ikw.get("input_shape") or ikw.get("shape") or ikw.get("input_dim")
+                        code_lines.append(f"    {input_ident} = Input(shape={_py_lit(shape_val)}, dtype={_py_lit(ikw.get('dtype'))})")
+                        code_lines.append(f"    {v} = layers.{ntype}({args_str})({input_ident})")
+                    else:
+                        code_lines.append(f"    {v} = layers.{ntype}({args_str})  # no inbound provided")
+                else:
+                    code_lines.append(f"    {v} = layers.{ntype}({args_str})  # no inbound provided")
+
             elif len(in_vars) == 1:
                 code_lines.append(f"    {v} = layers.{ntype}({args_str})({in_vars[0]})")
             else:
@@ -609,3 +679,86 @@ def import_keras_json_to_graph(model_json: str) -> Dict[str, Any]:
     # Validate to ensure the constructed graph is acceptable
     validate_graph_payload(nodes, edges)
     return graph_payload
+
+
+# --------------------------------------------------------------------------------------
+# Importers for uploaded Keras artifacts (.keras / .h5 / SavedModel zip)
+# --------------------------------------------------------------------------------------
+
+def _is_savedmodel_dir(path: str) -> bool:
+    return os.path.isdir(path) and os.path.exists(os.path.join(path, "saved_model.pb"))
+
+
+def _safe_extract_zip(zip_path: str, dest_dir: str) -> str:
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        for member in zf.namelist():
+            # Guard against zip slip
+            member_path = os.path.normpath(os.path.join(dest_dir, member))
+            if not member_path.startswith(os.path.abspath(dest_dir)):
+                raise GraphValidationError({"detail": "Unsafe zip contents"})
+        zf.extractall(dest_dir)
+    return dest_dir
+
+
+def _keras_load_model(path: str):
+    loader = None
+    if _keras_models is not None:
+        loader = _keras_models.load_model
+    elif _tf_keras is not None:
+        loader = _tf_keras.models.load_model  # type: ignore[attr-defined]
+    else:
+        raise GraphValidationError({"detail": "Keras/TensorFlow is not available on the server"})
+    # Don't try to compile on load; we only need the graph
+    return loader(path, compile=False)
+
+
+def load_graph_from_keras_artifact(path: str) -> Dict[str, Any]:
+    """
+    Load a Keras model from an artifact and convert it to our graph payload.
+
+    Supported inputs:
+      - .keras (Keras 3 native format)
+      - .h5 / .hdf5 (HDF5 format)
+      - SavedModel directory (contains saved_model.pb)
+      - .zip containing a SavedModel directory or a single .keras/.h5
+    """
+    tmp_dir_ctx: tempfile.TemporaryDirectory[str] | None = None
+    try:
+        artifact_path = path
+        lower = path.lower()
+        if lower.endswith(".zip"):
+            tmp_dir_ctx = tempfile.TemporaryDirectory()
+            extract_dir = _safe_extract_zip(path, tmp_dir_ctx.name)
+            # Try to find a recognizable artifact inside
+            candidates: List[str] = []
+            for root, dirs, files in os.walk(extract_dir):
+                # SavedModel dir
+                if "saved_model.pb" in files:
+                    candidates.append(root)
+                for f in files:
+                    if f.lower().endswith((".keras", ".h5", ".hdf5")):
+                        candidates.append(os.path.join(root, f))
+            if not candidates:
+                raise GraphValidationError({
+                    "detail": "Zip does not contain a supported Keras artifact (.keras/.h5 or SavedModel)",
+                })
+            # Prefer SavedModel directory first
+            artifact_path = sorted(candidates, key=lambda p: (not _is_savedmodel_dir(p), len(p)))[0]
+
+        # Load model
+        if _is_savedmodel_dir(artifact_path) or artifact_path.lower().endswith((".keras", ".h5", ".hdf5")):
+            model = _keras_load_model(artifact_path)
+        else:
+            raise GraphValidationError({
+                "detail": "Unsupported artifact. Provide .keras, .h5, SavedModel dir, or a zip of those.",
+            })
+
+        # Convert to graph via JSON
+        model_json = model.to_json()
+        graph_payload = import_keras_json_to_graph(model_json)
+        # Include original model name in metadata
+        graph_payload.setdefault("metadata", {})["keras_model_name"] = getattr(model, "name", "model")
+        return graph_payload
+    finally:
+        if tmp_dir_ctx is not None:
+            tmp_dir_ctx.cleanup()
