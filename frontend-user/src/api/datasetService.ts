@@ -27,31 +27,31 @@ export interface DatasetDetail extends DatasetMetadata {
 class DatasetService {
   private baseUrl = "/dataset";
 
-async uploadCsv(
-  file: File,
-  name: string,
-  isPublic: boolean,
-  token: string
-): Promise<DatasetUploadResponse> {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("name", name);
-  formData.append("isPublic", isPublic.toString());
+  async uploadCsv(
+    file: File,
+    name: string,
+    isPublic: boolean,
+    token: string
+  ): Promise<DatasetUploadResponse> {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("name", name);
+    formData.append("isPublic", isPublic.toString());
 
-  const response = await axiosInstance.post<DatasetUploadResponse>(
-    `${this.baseUrl}/upload-csv`,
-    formData,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        // No Content-Type header here, so Axios can set multipart/form-data boundary
-      },
-      transformRequest: (data, headers) => {
-        delete headers["Content-Type"];
-        return data;
-      },
-    }
-  );
+    const response = await axiosInstance.post<DatasetUploadResponse>(
+      `${this.baseUrl}/upload-csv`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // No Content-Type header here, so Axios can set multipart/form-data boundary
+        },
+        transformRequest: (data, headers) => {
+          delete headers["Content-Type"];
+          return data;
+        },
+      }
+    );
 
   return response.data;
 }
