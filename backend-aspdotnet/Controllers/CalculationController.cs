@@ -23,6 +23,12 @@ namespace backend_aspdotnet.Controllers
     [Route("api/[controller]")]
     public class CalculationController : ControllerBase
     {
+        private readonly DatasetService _datasetService;
+
+        public CalculationController(DatasetService datasetService)
+        {
+            _datasetService = datasetService;
+        }
 
         [Authorize]
         [HttpPost("start")]
@@ -41,29 +47,32 @@ namespace backend_aspdotnet.Controllers
                 return NotFound("Project not found or not authorized");
 
             // Get dataset info from Mongo using project.DatasetId
-            var rawDataset = mongoDb.Datasets.Find(d => d.Id == project.DatasetId).FirstOrDefault();
-            if (rawDataset == null)
-                return NotFound("Dataset not found in MongoDB");
+            // var rawDataset = mongoDb.Datasets.Find(d => d.Id == project.DatasetId).FirstOrDefault();
+            // if (rawDataset == null)
+            //     return NotFound("Dataset not found in MongoDB");
 
             // Get project details from Mongo
             var projectDetails = mongoDb.ProjectDetails.Find(p => p.Id == project.Id).FirstOrDefault();
             if (projectDetails == null)
                 return NotFound("Project details not found in MongoDB");
 
-            // Prepare BaseRegressionDTO
-            List<double> xValues = rawDataset.Data[projectDetails.XColumn]
-    .Select(s => double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var d) ? d : (double?)null)
-    .Where(d => d.HasValue)
-    .Select(d => d.Value)
-    .ToList();
-            List<double> yValues = rawDataset.Data[projectDetails.YColumn]
-  .Select(s => double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var d) ? d : (double?)null)
-  .Where(d => d.HasValue)
-  .Select(d => d.Value)
-  .ToList();
+            
 
-            xValues = new List<double> {2,4,5,7,8,9};
-            yValues = new List<double> { 1, 2, 3, 4, 5, 6 };
+            // Prepare BaseRegressionDTO
+            //             List<double> xValues = rawDataset.Data[projectDetails.XColumn]
+            //     .Select(s => double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var d) ? d : (double?)null)
+            //     .Where(d => d.HasValue)
+            //     .Select(d => d.Value)
+            //     .ToList();
+            //             List<double> yValues = rawDataset.Data[projectDetails.YColumn]
+            //   .Select(s => double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var d) ? d : (double?)null)
+            //   .Where(d => d.HasValue)
+            //   .Select(d => d.Value)
+            //   .ToList();
+
+
+            List<double> xValues = _datasetService.GetCsvNumericColumnAsync(project.DatasetId, projectDetails.XColumn).Result.ToList();
+            List<double> yValues = _datasetService.GetCsvNumericColumnAsync(project.DatasetId, projectDetails.YColumn).Result.ToList();
 
             var reshapedX = xValues.Select(x => new List<double> { x }).ToList();
 
@@ -71,7 +80,7 @@ namespace backend_aspdotnet.Controllers
             {
                 X = reshapedX, // List<List<double>>
                 y = yValues,
-                predict = new List<double> { 10, 15 }
+                predict = new List<double> {}
             };
 
             Console.WriteLine(input.ToString());    

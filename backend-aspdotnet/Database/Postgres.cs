@@ -9,7 +9,8 @@ namespace backend_aspdotnet.Database
         public DbSet<ProjectMeta> Projects { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Blocked> Blocked { get; set; }
-        public DbSet<Like> Likes { get; set; }
+        public DbSet<LikeProjects> LikesProjects { get; set; }
+        public DbSet<LikeDatasets> LikesDatasets { get; set; }
 
 
 
