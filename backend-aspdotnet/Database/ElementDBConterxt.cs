@@ -16,11 +16,16 @@ namespace backend_aspdotnet.Database
             _database = client.GetDatabase(databaseName);
         }
 
-        public IMongoCollection<RawDataset> Datasets=>
+        public IMongoCollection<RawDataset> Datasets =>
+            _database.GetCollection<RawDataset>(_configuration.GetSection("MongoDB:CollectionName").Value!);
+        
+        public IMongoCollection<RawDataset> DatasetsCsv=>
             _database.GetCollection<RawDataset>(_configuration.GetSection("MongoDB:CollectionName").Value!);
 
         public IMongoCollection<ProjectDetails> ProjectDetails =>
             _database.GetCollection<ProjectDetails>("ProjectDetails");
+
+        public IMongoDatabase GetDatabase() => _database;
 
     }
 }
