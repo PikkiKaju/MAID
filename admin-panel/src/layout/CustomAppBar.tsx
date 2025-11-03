@@ -15,6 +15,7 @@ const AddAdminMenuItem = ({ onClick }: { onClick: () => void }) => (
 
 export default function CustomAppBar() {
   const [open, setOpen] = React.useState(false);
+
   return (
     <>
       <AppBar
