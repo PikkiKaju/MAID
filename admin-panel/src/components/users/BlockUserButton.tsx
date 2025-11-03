@@ -1,5 +1,6 @@
 import React from "react";
-import { Button } from "@mui/material";
+import { Button, Tooltip, Box, Alert } from "@mui/material";
+import { Block, CheckCircle } from "@mui/icons-material";
 import { httpClient, API_SERVER } from "../../api/httpClient";
 
 const apiUrl = `${API_SERVER}/Admin`;
@@ -22,29 +23,81 @@ export default function BlockUserButton({
     try {
       await httpClient(`${apiUrl}/block/${userId}`, { method: "POST" });
       setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
       if (onBlocked) onBlocked();
     } catch (err: any) {
       setError(err.message || "Błąd podczas blokowania użytkownika");
+      setTimeout(() => setError(""), 5000);
     } finally {
       setLoading(false);
     }
   };
 
+  if (success) {
+    return (
+      <Tooltip title="Użytkownik został zablokowany">
+        <Button
+          variant="contained"
+          color="success"
+          size="small"
+          startIcon={<CheckCircle />}
+          sx={{
+            minWidth: 120,
+            textTransform: "none",
+            borderRadius: 2,
+            boxShadow: "none",
+            "&:hover": {
+              boxShadow: "none",
+            },
+          }}
+        >
+          Zablokowano
+        </Button>
+      </Tooltip>
+    );
+  }
+
   return (
-    <>
-      <Button
-        variant="outlined"
-        color="error"
-        size="small"
-        onClick={handleBlock}
-        disabled={loading}
-      >
-        {loading ? "Blokowanie..." : "Zablokuj"}
-      </Button>
-      {error && <span style={{ color: "red", marginLeft: 8 }}>{error}</span>}
-      {success && (
-        <span style={{ color: "green", marginLeft: 8 }}>Zablokowano!</span>
+    <Box>
+      <Tooltip title="Zablokuj użytkownika">
+        <Button
+          variant="outlined"
+          color="error"
+          size="small"
+          startIcon={<Block />}
+          onClick={handleBlock}
+          disabled={loading}
+          sx={{
+            minWidth: 120,
+            textTransform: "none",
+            borderRadius: 2,
+            borderWidth: 1.5,
+            fontWeight: 500,
+            "&:hover": {
+              borderWidth: 1.5,
+              backgroundColor: "error.light",
+              color: "error.contrastText",
+            },
+          }}
+        >
+          {loading ? "Blokowanie..." : "Zablokuj"}
+        </Button>
+      </Tooltip>
+      {error && (
+        <Alert
+          severity="error"
+          sx={{
+            mt: 0.5,
+            fontSize: "0.75rem",
+            py: 0.5,
+            "& .MuiAlert-icon": {
+              fontSize: "1rem",
+            },
+          }}
+        >
+          {error}
+        </Alert>
       )}
-    </>
+    </Box>
   );
 }

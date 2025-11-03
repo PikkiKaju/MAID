@@ -4,7 +4,10 @@ const lightThemeOptions: ThemeOptions = {
   palette: {
     mode: "light",
     primary: {
-      main: "#1976d2",
+      main: "#4a90e2",
+      light: "#7bb3f0",
+      dark: "#2c5aa0",
+      contrastText: "#ffffff",
     },
     secondary: {
       main: "#9c27b0",
@@ -30,6 +33,16 @@ const lightThemeOptions: ThemeOptions = {
         },
       },
     },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          backgroundColor: "#f8f9fa",
+          color: "#212529",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+          borderBottom: "1px solid rgba(0,0,0,0.08)",
+        },
+      },
+    },
   },
 };
 
@@ -37,7 +50,10 @@ const darkThemeOptions: ThemeOptions = {
   palette: {
     mode: "dark",
     primary: {
-      main: "#90caf9",
+      main: "#6ba3f5",
+      light: "#9ac8ff",
+      dark: "#3d7ac7",
+      contrastText: "#ffffff",
     },
     secondary: {
       main: "#ce93d8",
@@ -61,6 +77,16 @@ const darkThemeOptions: ThemeOptions = {
         root: {
           borderRadius: 12,
           boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+        },
+      },
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          backgroundColor: "#1e1e1e",
+          color: "#ffffff",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+          borderBottom: "1px solid rgba(255,255,255,0.08)",
         },
       },
     },

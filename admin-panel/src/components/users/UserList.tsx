@@ -104,9 +104,33 @@ export const UserList = () => (
       <FunctionField
         label="Akcje"
         render={(record: any) => (
-          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 1.5,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
             <BlockUserButton userId={record.id} />
-            <ShowButton record={record} />
+            <ShowButton
+              record={record}
+              sx={{
+                "& .RaButton-icon": {
+                  fontSize: "1rem",
+                },
+                minWidth: 100,
+                textTransform: "none",
+                borderRadius: 2,
+                fontWeight: 500,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                "&:hover": {
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+                  transform: "translateY(-1px)",
+                  transition: "all 0.2s",
+                },
+              }}
+            />
           </Box>
         )}
       />
