@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Sidebar,
   SidebarContent,
@@ -8,29 +9,30 @@ import {
   SidebarMenuItem,
 } from "../ui/sidebar";
 import { cn } from "../utilis/tailwind";
-import { Database, FolderOpen, Home, Sparkles, PanelsTopLeft, Network } from "lucide-react";
+import { Database, FolderOpen, Home, Sparkles, Network } from "lucide-react";
 
 function AppSidebar() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
 
   const navigationItems = [
-    { id: "home", label: "Home", icon: Home, path: "/" },
+    { id: "home", label: t("sidebar.home"), icon: Home, path: "/" },
     {
       id: "projects",
-      label: "My Projects",
+      label: t("sidebar.myProjects"),
       icon: FolderOpen,
       path: "/projects",
     },
     {
       id: "datasets",
-      label: "Datasets",
+      label: t("sidebar.datasets"),
       icon: Database,
       path: "/datasets-regresja",
     },
     {
       id: "canvas",
-      label: "Canvas",
+      label: t("sidebar.canvas"),
       icon: Network,
       path: "/canvas",
     },

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "../../ui/card";
 import { CloudUpload, Upload, ExternalLink } from "lucide-react";
 import { Button } from "../../ui/button";
@@ -18,6 +19,8 @@ export default function UploadArea({
   onBrowseClick,
   onFileSelected,
 }: Props) {
+  const { t } = useTranslation();
+
   return (
     <Card
       className={`border-2 border-dashed transition-all duration-200 ${
@@ -45,24 +48,28 @@ export default function UploadArea({
           </div>
 
           <div className="space-y-3">
-            <h3 className="text-xl font-semibold">Add Dataset to Project</h3>
+            <h3 className="text-xl font-semibold">
+              {t("datasets.addDataset")}
+            </h3>
             <p className="text-muted-foreground text-lg">
-              Drag & drop your dataset files here, or click to browse
+              {t("datasets.uploadArea")}
             </p>
             <p className="text-sm text-muted-foreground">
-              Supports CSV, JSON, Excel, Parquet, and compressed files (ZIP,
-              TAR)
+              {t("datasets.supportedFormats", {
+                defaultValue:
+                  "Obsługiwane formaty: CSV, JSON, Excel, Parquet oraz skompresowane pliki (ZIP, TAR)",
+              })}
             </p>
           </div>
 
           <div className="flex items-center justify-center gap-4">
             <Button size="lg" onClick={onBrowseClick} className="gap-2">
               <Upload className="h-5 w-5" />
-              Browse Files
+              {t("datasets.browseFiles")}
             </Button>
             <Button variant="outline" size="lg" className="gap-2">
               <ExternalLink className="h-4 w-4" />
-              Import from URL
+              {t("datasets.importFromUrl")}
             </Button>
           </div>
 
@@ -78,7 +85,7 @@ export default function UploadArea({
           {uploading && (
             <div className="max-w-md mx-auto space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span>Uploading...</span>
+                <span>{t("datasets.uploading")}</span>
                 <span>{uploadProgress}%</span>
               </div>
               <Progress value={uploadProgress} className="h-2" />

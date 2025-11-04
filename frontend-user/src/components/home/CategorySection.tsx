@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Filter } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../ui/tabs";
@@ -24,13 +25,15 @@ export const CategorySection: React.FC<ProjectListProps> = ({
   favorites,
   handleFavoriteToggle,
 }) => {
+  const { t } = useTranslation();
+
   return (
     <section>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold">Browse by Category</h2>
+        <h2 className="text-xl font-semibold">{t("home.categories")}</h2>
         <Button variant="outline" size="sm">
           <Filter className="h-4 w-4 mr-2" />
-          Filter
+          {t("projects.filter")}
         </Button>
       </div>
 

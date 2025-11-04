@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -22,25 +23,24 @@ export default function DeleteConfirmationDialog({
   projectName,
   onConfirm,
 }: Props) {
+  const { t } = useTranslation();
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Project</AlertDialogTitle>
+          <AlertDialogTitle>{t("projects.deleteProject")}</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete "
-            <span className="font-medium">{projectName}</span>"? This action
-            cannot be undone and will permanently remove all project data,
-            including datasets and configurations.
+            {t("projects.deleteConfirmDescription", { name: projectName })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            Delete Project
+            {t("projects.deleteProject")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

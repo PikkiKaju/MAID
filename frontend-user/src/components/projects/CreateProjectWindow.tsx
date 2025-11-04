@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -25,23 +26,25 @@ function CreateProjectWindow({
   onClose,
   onConfirm,
 }: CreateProjectWindowProps) {
+  const { t } = useTranslation();
+
   return (
     <AlertDialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Utwórz nowy projekt</AlertDialogTitle>
+          <AlertDialogTitle>{t("projects.createNewProject")}</AlertDialogTitle>
           <AlertDialogDescription>
-            Podaj nazwę projektu. Nazwa powinna mieć przynajmniej 4 znaki.
+            {t("projects.projectNameHint")}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         <div className="mt-2">
           <label className="block text-sm font-medium text-muted-foreground mb-2">
-            Nazwa projektu
+            {t("projects.projectNameLabel")}
           </label>
           <Input
             type="text"
-            placeholder="Wpisz nazwę projektu..."
+            placeholder={t("projects.projectNamePlaceholder")}
             value={projectName}
             onChange={(e) => onChange(e.target.value)}
             className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-card-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -49,7 +52,9 @@ function CreateProjectWindow({
         </div>
 
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onClose}>Anuluj</AlertDialogCancel>
+          <AlertDialogCancel onClick={onClose}>
+            {t("common.cancel")}
+          </AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
             disabled={projectName.length < 4}
@@ -57,7 +62,7 @@ function CreateProjectWindow({
               projectName.length < 4 ? "opacity-60 cursor-not-allowed" : ""
             }
           >
-            Przejdź dalej
+            {t("common.save")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

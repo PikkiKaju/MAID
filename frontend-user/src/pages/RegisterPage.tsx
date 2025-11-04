@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../store/store";
 import { clearAuthStatus } from "../features/auth/authSlice";
@@ -23,16 +24,18 @@ function RegisterPage() {
     (state: RootState) => state.auth
   );
 
+  const { t } = useTranslation();
+
   // Effect to inform about user action
   useEffect(() => {
     if (isLoggedIn && status === "succeeded") {
-      alert("Rejestracja zakończona sukcesem!");
+      alert(t("auth.registrationSuccess"));
       navigate("/");
       dispatch(clearAuthStatus());
     }
     //  TODO
     //  inne informacje np o tym, że użytkownik się wylogował
-  }, [isLoggedIn, status, navigate, dispatch]);
+  }, [isLoggedIn, status, navigate, dispatch, t]);
 
   // Effect to to clear old status
   useEffect(() => {
@@ -55,7 +58,7 @@ function RegisterPage() {
     e.preventDefault();
 
     if (userToRegister.password !== userToRegister.confirmPassword) {
-      setPasswordError("Hasła nie pasują do siebie!");
+      setPasswordError(t("auth.passwordMismatch"));
       return;
     } else {
       setPasswordError("");

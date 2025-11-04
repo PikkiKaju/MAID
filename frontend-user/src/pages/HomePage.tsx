@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { sampleProjects } from "../data";
 import RecentSection from "../components/home/RecentSection";
 import TrendingSection from "../components/home/TrendingSection";
@@ -74,11 +75,15 @@ export default function HomePage() {
   const trendingProjects = sampleProjects.slice(1, 4);
   const favoriteProjects = sampleProjects.filter((p) => favorites.has(p.id));
 
+  const { t } = useTranslation();
+
   return (
     <div>
       {searchTerm ? (
         <section className="p-6 bg-background">
-          <h2 className="text-2xl font-semibold mb-6">Wyniki Wyszukiwania</h2>
+          <h2 className="text-2xl font-semibold mb-6">
+            {t("home.searchResults")}
+          </h2>
           <SearchResultsSection
             projects={filteredProjects}
             favorites={favorites}

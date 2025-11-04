@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader } from "../../ui/card";
 import { Badge } from "../../ui/badge";
 import { ImageWithFallback } from "../image/ImageWithFallback";
@@ -47,6 +48,8 @@ export default function ProjectsGrid({
   onToggleVisibility,
   onDeleteRequest,
 }: Props) {
+  const { t } = useTranslation();
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {projects.map((project) => (
@@ -70,11 +73,11 @@ export default function ProjectsGrid({
               >
                 {project.isPublic ? (
                   <>
-                    <Globe className="h-3 w-3 mr-1" /> Public
+                    <Globe className="h-3 w-3 mr-1" /> {t("projects.public")}
                   </>
                 ) : (
                   <>
-                    <Lock className="h-3 w-3 mr-1" /> Private
+                    <Lock className="h-3 w-3 mr-1" /> {t("projects.private")}
                   </>
                 )}
               </Badge>
@@ -92,10 +95,10 @@ export default function ProjectsGrid({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem>
-                  <Edit className="h-4 w-4 mr-2" /> Edit Project
+                  <Edit className="h-4 w-4 mr-2" /> {t("projects.edit")}
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <Share className="h-4 w-4 mr-2" /> Share Project
+                  <Share className="h-4 w-4 mr-2" /> {t("projects.share")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <div className="px-2 py-1.5 text-sm">
@@ -106,7 +109,9 @@ export default function ProjectsGrid({
                       ) : (
                         <Lock className="h-4 w-4" />
                       )}{" "}
-                      {project.isPublic ? "Public" : "Private"}
+                      {project.isPublic
+                        ? t("projects.public")
+                        : t("projects.private")}
                     </span>
                     <Switch
                       checked={project.isPublic}
@@ -114,7 +119,9 @@ export default function ProjectsGrid({
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {project.isPublic ? "Publicznie dostępne" : "Prywatne"}
+                    {project.isPublic
+                      ? t("projects.isPublic")
+                      : t("projects.isPrivate")}
                   </p>
                 </div>
                 <DropdownMenuSeparator />
@@ -122,7 +129,7 @@ export default function ProjectsGrid({
                   className="text-destructive"
                   onClick={() => onDeleteRequest(project)}
                 >
-                  <Trash2 className="h-4 w-4 mr-2" /> Delete Project
+                  <Trash2 className="h-4 w-4 mr-2" /> {t("projects.delete")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -145,11 +152,15 @@ export default function ProjectsGrid({
             <div className="space-y-2 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Calendar className="h-3 w-3" />{" "}
-                <span>Modified {project.lastModified}</span>
+                <span>
+                  {t("projects.lastModified")} {project.lastModified}
+                </span>
               </div>
               <div className="flex items-center gap-1">
                 <User className="h-3 w-3" />{" "}
-                <span>Created {project.createdAt}</span>
+                <span>
+                  {t("projects.createdAt")} {project.createdAt}
+                </span>
               </div>
             </div>
           </CardContent>

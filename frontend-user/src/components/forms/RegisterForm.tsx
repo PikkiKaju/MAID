@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { RegisterUserForm } from "../../models/auth";
 import { Input } from "../../ui/input";
@@ -22,6 +23,8 @@ function RegisterForm({
   error,
   passwordError,
 }: RegisterFormProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20">
       {/* If status is loading then create a loading view */}
@@ -32,7 +35,7 @@ function RegisterForm({
       {/* Register Form Box */}
       <div className="bg-background rounded-xl p-6 border border-border w-full max-w-md">
         <h2 className="text-2xl font-bold text-center text-foreground mb-6">
-          Rejestracja
+          {t("auth.register")}
         </h2>
 
         {/* Register Form */}
@@ -42,7 +45,7 @@ function RegisterForm({
               htmlFor="username"
               className="block text-sm font-medium text-muted-foreground"
             >
-              Nazwa użytkownika
+              {t("auth.username")}
             </label>
             <Input
               type="text"
@@ -61,7 +64,7 @@ function RegisterForm({
               htmlFor="email"
               className="block text-sm font-medium text-muted-foreground"
             >
-              Email
+              {t("auth.email")}
             </label>
             <Input
               type="email"
@@ -80,7 +83,7 @@ function RegisterForm({
               htmlFor="password"
               className="block text-sm font-medium text-muted-foreground"
             >
-              Hasło
+              {t("auth.password")}
             </label>
             <Input
               type="password"
@@ -99,7 +102,7 @@ function RegisterForm({
               htmlFor="confirmPassword"
               className="block text-sm font-medium text-muted-foreground"
             >
-              Potwierdź hasło
+              {t("auth.confirmPassword")}
             </label>
             <Input
               type="password"
@@ -116,24 +119,28 @@ function RegisterForm({
             )}
           </div>
 
-          {error && <p className="text-center text-red-600">Błąd: {error}</p>}
+          {error && (
+            <p className="text-center text-red-600">
+              {t("common.error")}: {error}
+            </p>
+          )}
 
           <Button
             type="submit"
             className="w-full"
             disabled={status === "loading"}
           >
-            Zarejestruj się
+            {t("auth.registerButton")}
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Masz już konto?{" "}
+          {t("auth.hasAccount")}{" "}
           <Link
             to="/login"
             className="font-medium text-indigo-600 hover:text-indigo-500"
           >
-            Zaloguj się
+            {t("auth.loginLink")}
           </Link>
         </p>
       </div>
