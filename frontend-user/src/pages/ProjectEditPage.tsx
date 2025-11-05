@@ -4,8 +4,9 @@ import axiosInstance from "../api/axiosConfig";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 import { ProjectDetail, ProjectMeta } from "../models/project";
-import { Play } from "lucide-react";
+import { Play, ArrowLeft } from "lucide-react";
 import { datasetService, DatasetMetadata } from "../api/datasetService";
+import { Button } from "../ui/button";
 
 export default function ProjectEditPage() {
   const { id } = useParams();
@@ -125,13 +126,42 @@ export default function ProjectEditPage() {
     }
   };
 
-  if (!meta || !detail)
-    return <div className="p-4">Nie znaleziono projektu.</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-lg">Ładowanie projektu...</div>
+      </div>
+    );
+  }
+
+  if (!meta || !detail) {
+    return (
+      <div className="p-4">
+        <div className="text-lg font-semibold mb-2">
+          Nie znaleziono projektu.
+        </div>
+        <button
+          onClick={() => navigate("/projects")}
+          className="text-blue-600 hover:underline"
+        >
+          Powrót do listy projektów
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
       <div className="w-80 bg-card text-card-foreground p-6 shadow-md overflow-y-auto">
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/projects")}
+          className="mb-4 flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Powrót do projektów
+        </Button>
         <h2 className="text-xl font-bold mb-6 text-foreground">
           Nazwa Projektu: {meta.name}
         </h2>

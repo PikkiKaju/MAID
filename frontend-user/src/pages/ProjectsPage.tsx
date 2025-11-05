@@ -44,6 +44,7 @@ function ProjectsPage() {
       description: "Opis domyślny",
       status: "Active",
       category: "ML",
+      lastModified: originalProject.lastModifiedAt,
       imageUrl:
         "https://images.unsplash.com/photo-1653564142048-d5af2cf9b50f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkYXRhJTIwc2NpZW5jZSUyMG1hY2hpbmUlMjBsZWFybmluZ3xlbnwxfHx8fDE3NTk3NjYyMDR8MA&ixlib=rb-4.1.0&q=80&w=1080",
     } as TabTemp;
@@ -82,6 +83,7 @@ function ProjectsPage() {
           description: "Opis domyślny",
           status: "Active",
           category: "ML",
+          lastModified: originalProject.lastModifiedAt,
           imageUrl:
             "https://images.unsplash.com/photo-1653564142048-d5af2cf9b50f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkYXRhJTIwc2NpZW5jZSUyMG1hY2hpbmUlMjBsZWFybmluZ3xlbnwxfHx8fDE3NTk3NjYyMDR8MA&ixlib=rb-4.1.0&q=80&w=1080",
         } as TabTemp)
