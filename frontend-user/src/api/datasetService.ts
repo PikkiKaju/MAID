@@ -131,18 +131,19 @@ class DatasetService {
   }
 
   async deleteDataset(id: string, token: string): Promise<void> {
-    await axiosInstance.delete(`${this.baseUrl}/${id}`, {
+    await axiosInstance.delete(`/Dataset/${id}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
   }
 
-  async getDatasetDetails(id: string, token: string): Promise<DatasetDetail> {
-    const response = await axiosInstance.get<DatasetDetail>(`${this.baseUrl}/${id}`, {
+  async getDatasetDetails(id: string, token: string): Promise<string> {
+    const response = await axiosInstance.get<string>(`/Dataset/${id}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      responseType: "text", // Important: get raw CSV text
     });
     return response.data;
   }

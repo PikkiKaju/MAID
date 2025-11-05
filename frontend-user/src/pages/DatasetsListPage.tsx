@@ -6,6 +6,7 @@ import HeaderDatasets from "../components/datasets/HeaderDatasets";
 import UploadDatasetDialog, {
   UploadFormData,
 } from "../components/datasets/UploadDatasetDialog";
+import DatasetDetailsDialog from "../components/datasets/DatasetDetailsDialog";
 import { handleDrag, handleDrop } from "../utilis/drag-and-drop";
 import { getFileIcon, getStatusColor } from "../models/dataset";
 import { useSelector, useDispatch } from "react-redux";
@@ -24,6 +25,12 @@ export default function DatasetsListPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [fileType, setFileType] = useState<"csv" | "zip" | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedDataset, setSelectedDataset] = useState<{
+    id: string;
+    name: string;
+    type: string;
+  } | null>(null);
 
   const validateFile = (
     file: File
@@ -134,8 +141,8 @@ export default function DatasetsListPage() {
   }, [dispatch, token]);
 
   const handleDelete = async (id: string, name: string) => {
-    if (!token) return;
-    if (!window.confirm(`Czy na pewno chcesz usunąć dataset "${name}"?`)) {
+    if (!token) {
+      alert("Musisz być zalogowany, aby usunąć dataset.");
       return;
     }
 
@@ -153,6 +160,24 @@ export default function DatasetsListPage() {
       );
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleViewDetails = (
+    datasetId: string,
+    datasetName: string,
+    datasetType: string
+  ) => {
+    // Only show details for CSV files
+    if (datasetType === "CSV") {
+      setSelectedDataset({
+        id: datasetId,
+        name: datasetName,
+        type: datasetType,
+      });
+      setDetailsDialogOpen(true);
+    } else {
+      alert("Podgląd szczegółów jest dostępny tylko dla plików CSV.");
     }
   };
 
@@ -237,7 +262,20 @@ export default function DatasetsListPage() {
         }, [userDatasets])}
         getFileIcon={getFileIcon}
         getStatusColor={getStatusColor}
+        onDelete={handleDelete}
+        onViewDetails={handleViewDetails}
       />
+
+      {/* Dataset Details Dialog */}
+      {selectedDataset && token && (
+        <DatasetDetailsDialog
+          open={detailsDialogOpen}
+          onOpenChange={setDetailsDialogOpen}
+          datasetId={selectedDataset.id}
+          datasetName={selectedDataset.name}
+          token={token}
+        />
+      )}
 
       <Tips />
     </div>

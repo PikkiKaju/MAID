@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { sampleProjects } from "../data";
 import RecentSection from "../components/home/RecentSection";
@@ -6,11 +6,9 @@ import TrendingSection from "../components/home/TrendingSection";
 import FavoritesSection from "../components/home/FavoritesSection";
 import CategorySection from "../components/home/CategorySection";
 import SearchResultsSection from "../components/home/SearchResultsSection";
-import AttachedDatasets from "../components/datasets/AttachedDatasets";
-import { useAppSelector, useAppDispatch } from "../store/hooks";
+import PublicDatasetsSection from "../components/datasets/PublicDatasetsSection";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { fetchPublicDatasets } from "../features/dataset/datasetThunks";
-import { getFileIcon, getStatusColor, Dataset } from "../models/dataset";
-import { Database } from "lucide-react";
 // import { useNavigate } from "react-router-dom";
 import { useProjects } from "../hooks/useProjects";
 
@@ -55,14 +53,13 @@ export default function HomePage() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set(["1", "3"]));
   // const [isLoggedIn] = useState(true); // Simulate login state - change to false to test logged out state
 
+  // All hooks must be called at the top level, in the same order
   const dispatch = useAppDispatch();
+  const { t } = useTranslation();
   const searchTerm = useAppSelector((state) => state.search.term.toLowerCase());
   // const navigate = useNavigate();
   const { loading, error } = useProjects();
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
-  const publicDatasets = useAppSelector(
-    (state) => state.dataset.publicDatasets
-  );
   // const token = useAppSelector((state) => state.auth.token);
 
   // Fetch public datasets on mount
@@ -87,8 +84,6 @@ export default function HomePage() {
   const recentProjects = sampleProjects.slice(0, 3);
   const trendingProjects = sampleProjects.slice(1, 4);
   const favoriteProjects = sampleProjects.filter((p) => favorites.has(p.id));
-
-  const { t } = useTranslation();
 
   return (
     <div>
@@ -120,46 +115,7 @@ export default function HomePage() {
             handleFavoriteToggle={handleFavoriteToggle}
           />
 
-          {publicDatasets.length > 0 && (
-            <section>
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                  <Database className="h-5 w-5 text-primary" />
-                  <h2 className="text-xl font-semibold">Publiczne Datasety</h2>
-                </div>
-              </div>
-              <AttachedDatasets
-                datasets={useMemo(() => {
-                  return publicDatasets.map((dataset: Dataset) => {
-                    const fileType = dataset.dataType === 0 ? "CSV" : "ZIP";
-
-                    const uploadDate = new Date(
-                      dataset.createdAt
-                    ).toLocaleDateString("pl-PL", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    });
-
-                    return {
-                      id: dataset.id,
-                      name: dataset.name,
-                      type: fileType,
-                      status: "Ready",
-                      uploadDate: uploadDate,
-                      author: dataset.username,
-                      likes: dataset.likes,
-                      isPublic: dataset.isPublic,
-                      isLiked: dataset.isLiked,
-                    };
-                  });
-                }, [publicDatasets])}
-                getFileIcon={getFileIcon}
-                getStatusColor={getStatusColor}
-                hideHeader={true}
-              />
-            </section>
-          )}
+          <PublicDatasetsSection />
 
           {isLoggedIn && favoriteProjects.length > 0 && (
             <FavoritesSection

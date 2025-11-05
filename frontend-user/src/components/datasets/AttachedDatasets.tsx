@@ -10,8 +10,6 @@ import {
 import { Button } from "../../ui/button";
 import {
   Calendar,
-  Download,
-  Upload,
   Trash2,
   Eye,
   ExternalLink,
@@ -39,6 +37,12 @@ interface Props {
   getFileIcon: (type: string) => React.ReactNode;
   getStatusColor: (status: string) => string;
   hideHeader?: boolean; // Hide the default header
+  onDelete?: (datasetId: string, datasetName: string) => void; // Callback for delete action
+  onViewDetails?: (
+    datasetId: string,
+    datasetName: string,
+    datasetType: string
+  ) => void; // Callback for view details action
 }
 
 export default function AttachedDatasets({
@@ -46,6 +50,8 @@ export default function AttachedDatasets({
   getFileIcon,
   getStatusColor,
   hideHeader = false,
+  onDelete,
+  onViewDetails,
 }: Props) {
   return (
     <div>
@@ -132,10 +138,18 @@ export default function AttachedDatasets({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm">
-                    <Eye className="h-4 w-4 mr-2" />
-                    Preview
-                  </Button>
+                  {onViewDetails && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        onViewDetails(dataset.id, dataset.name, dataset.type)
+                      }
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Preview
+                    </Button>
+                  )}
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -144,18 +158,15 @@ export default function AttachedDatasets({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <Eye className="h-4 w-4 mr-2" /> View Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Download className="h-4 w-4 mr-2" /> Download
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Upload className="h-4 w-4 mr-2" /> Replace
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
-                        <Trash2 className="h-4 w-4 mr-2" /> Remove from Project
-                      </DropdownMenuItem>
+                      {onDelete && (
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => onDelete(dataset.id, dataset.name)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" /> Remove from
+                          Project
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
