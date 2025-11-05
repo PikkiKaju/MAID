@@ -21,6 +21,18 @@ namespace backend_aspdotnet.Controllers
         {
             private readonly AppDbContext _context;
             private readonly ElementDBConterxt _mongo;
+            
+            private readonly List<string> allowedAlgorithms = new List<string>
+            {
+                "linear",
+                "polynomial",
+                "ridge",
+                "lasso",
+                "elasticnet",
+                "svr",
+                "decision-tree",
+                "random-forest"
+            };
 
             public ProjectController(AppDbContext context, ElementDBConterxt mongo)
             {
@@ -186,8 +198,9 @@ namespace backend_aspdotnet.Controllers
             var detail = new ProjectDetails
             {
                 Id = projectId,
-                Algorithm = "linear",    // default algorithm
-                XColumn = string.Empty,  // no columns selected yet
+                Algorithm = "linear",
+                XColumn = string.Empty,
+                X2Column = string.Empty,     
                 YColumn = string.Empty,
                 Parameters = new Dictionary<string, string>()
             };
@@ -201,7 +214,7 @@ namespace backend_aspdotnet.Controllers
 
             [HttpPut("{id}/details")]
             [Authorize]
-        public async Task<IActionResult> UpdateDetails(Guid id, [FromBody] UpdateProjectDetailsDto dto)
+    public async Task<IActionResult> UpdateDetails(Guid id, [FromBody] UpdateProjectDetailsDto dto)
 {
     var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
     if (string.IsNullOrEmpty(userIdString))
@@ -211,16 +224,35 @@ namespace backend_aspdotnet.Controllers
         return Unauthorized("Invalid user ID format.");
 
     var projectMeta = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
-    if (projectMeta == null) return NotFound("Project not found.");
+    if (projectMeta == null) 
+        return NotFound("Project not found.");
 
     var filter = Builders<ProjectDetails>.Filter.Eq(p => p.Id, id);
+    
     var updateDefs = new List<UpdateDefinition<ProjectDetails>>();
-
+    
     if (dto.Algorithm != null)
+    {
+        if (!allowedAlgorithms.Contains(dto.Algorithm))
+                return BadRequest("Invalid algorithm specified.");
+
         updateDefs.Add(Builders<ProjectDetails>.Update.Set(p => p.Algorithm, dto.Algorithm));
+    }
 
     if (dto.XColumn != null)
+    {
         updateDefs.Add(Builders<ProjectDetails>.Update.Set(p => p.XColumn, dto.XColumn));
+    }
+        
+    if (dto.X2Column == null || dto.X2Column == "")
+    {
+        updateDefs.Add(Builders<ProjectDetails>.Update.Set(p => p.X2Column, string.Empty));
+    }
+    else
+    {
+         updateDefs.Add(Builders<ProjectDetails>.Update.Set(p => p.X2Column, dto.X2Column));        
+    }
+    
 
     if (dto.YColumn != null)
         updateDefs.Add(Builders<ProjectDetails>.Update.Set(p => p.YColumn, dto.YColumn));

@@ -12,9 +12,9 @@ namespace backend_aspdotnet.Controllers
 {
     public class RegressionInput
     {
-        public List<List<double>> X { get; set; }  // changed
+        public List<List<double>> X { get; set; }
         public List<double> y { get; set; }
-        public List<double> predict { get; set; }
+        public Dictionary<string, string> parameters { get; set; } = new();
     }
 
 
@@ -56,7 +56,7 @@ namespace backend_aspdotnet.Controllers
             if (projectDetails == null)
                 return NotFound("Project details not found in MongoDB");
 
-            
+
 
             // Prepare BaseRegressionDTO
             //             List<double> xValues = rawDataset.Data[projectDetails.XColumn]
@@ -69,18 +69,30 @@ namespace backend_aspdotnet.Controllers
             //   .Where(d => d.HasValue)
             //   .Select(d => d.Value)
             //   .ToList();
+            List<List<double>> xValues;
+            if (projectDetails.X2Column == string.Empty || projectDetails.X2Column == null)
+            {
+                List<double> x1Values = _datasetService.GetCsvNumericColumnAsync(project.DatasetId, projectDetails.XColumn).Result.ToList();
+                xValues= x1Values.Select(x => new List<double> { x }).ToList();
+            }
+            else
+            {
+                List<double> x1Values = (await _datasetService.GetCsvNumericColumnAsync(project.DatasetId, projectDetails.XColumn)).ToList();
 
-
-            List<double> xValues = _datasetService.GetCsvNumericColumnAsync(project.DatasetId, projectDetails.XColumn).Result.ToList();
+                List<double> x2Values = (await _datasetService.GetCsvNumericColumnAsync(project.DatasetId, projectDetails.X2Column)).ToList();
+                xValues = x1Values.Zip(x2Values, (x1, x2) => new List<double> { x1, x2 }).ToList();
+            }
+                
             List<double> yValues = _datasetService.GetCsvNumericColumnAsync(project.DatasetId, projectDetails.YColumn).Result.ToList();
 
-            var reshapedX = xValues.Select(x => new List<double> { x }).ToList();
+
 
             var input = new RegressionInput
             {
-                X = reshapedX, // List<List<double>>
+                X = xValues, // List<List<double>>
                 y = yValues,
-                predict = new List<double> {}
+                parameters = projectDetails.Parameters
+
             };
 
             Console.WriteLine(input.ToString());    
