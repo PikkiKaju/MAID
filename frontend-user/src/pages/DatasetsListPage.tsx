@@ -228,9 +228,10 @@ export default function DatasetsListPage() {
               name: dataset.name,
               type: fileType,
               status: "Ready",
-              size: "N/A", // Size not available from API
-              rows: "N/A", // Rows not available from API
               uploadDate: uploadDate,
+              author: dataset.username,
+              likes: dataset.likes,
+              isPublic: dataset.isPublic,
             };
           });
         }, [userDatasets])}

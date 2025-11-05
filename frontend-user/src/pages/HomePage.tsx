@@ -10,6 +10,7 @@ import AttachedDatasets from "../components/datasets/AttachedDatasets";
 import { useAppSelector, useAppDispatch } from "../store/hooks";
 import { fetchPublicDatasets } from "../features/dataset/datasetThunks";
 import { getFileIcon, getStatusColor, Dataset } from "../models/dataset";
+import { Database } from "lucide-react";
 // import { useNavigate } from "react-router-dom";
 import { useProjects } from "../hooks/useProjects";
 
@@ -120,7 +121,13 @@ export default function HomePage() {
           />
 
           {publicDatasets.length > 0 && (
-            <section className="p-6 bg-background">
+            <section>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <Database className="h-5 w-5 text-primary" />
+                  <h2 className="text-xl font-semibold">Publiczne Datasety</h2>
+                </div>
+              </div>
               <AttachedDatasets
                 datasets={useMemo(() => {
                   return publicDatasets.map((dataset: Dataset) => {
@@ -139,14 +146,17 @@ export default function HomePage() {
                       name: dataset.name,
                       type: fileType,
                       status: "Ready",
-                      size: "N/A", // Size not available from API
-                      rows: "N/A", // Rows not available from API
                       uploadDate: uploadDate,
+                      author: dataset.username,
+                      likes: dataset.likes,
+                      isPublic: dataset.isPublic,
+                      isLiked: dataset.isLiked,
                     };
                   });
                 }, [publicDatasets])}
                 getFileIcon={getFileIcon}
                 getStatusColor={getStatusColor}
+                hideHeader={true}
               />
             </section>
           )}
