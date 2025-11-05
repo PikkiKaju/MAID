@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { logout } from "../features/auth/authSlice";
 import { clearSearchTerm, setSearchTerm } from "../features/search/searchSlice";
-import { SidebarTrigger } from "../ui/sidebar";
+import { SidebarTrigger, useSidebar } from "../ui/sidebar";
 import { Input } from "../ui/input";
 import {
   DropdownMenu,
@@ -24,12 +24,18 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { ThemeToggle } from "./theme/ThemeToggle";
 import { LanguageSwitcher } from "./language/LanguageSwitcher";
+import { cn } from "../utilis/tailwind";
 
 export default function Header() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { isLoggedIn, displayName } = useAppSelector((state) => state.auth);
   const searchTerm = useAppSelector((state) => state.search.term);
+  const { open, isMobile, openMobile } = useSidebar();
+
+  // Logo pokazuje się tylko gdy sidebar jest zamknięty
+  const isSidebarOpen = isMobile ? openMobile : open;
+  const showLogo = !isSidebarOpen;
 
   const handleLogout = () => dispatch(logout());
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -37,21 +43,23 @@ export default function Header() {
   const handleSearchClear = () => dispatch(clearSearchTerm());
 
   return (
-    <header className="h-16 border-b bg-background px-6 flex items-center justify-between">
+    <header className="h-16 shadow-md bg-sidebar-accent/70 dark:bg-sidebar-accent/30 px-6 flex items-center justify-between">
       {/* Logo and Sidebar Toggle */}
       <div className="flex items-center gap-3">
         <SidebarTrigger className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors hover:bg-accent h-9 w-9 p-0">
           <Menu className="h-4 w-4" />
         </SidebarTrigger>
 
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
-            <Sparkles className="h-4 w-4 text-white" />
+        {showLogo && (
+          <div className={cn("flex items-center gap-3")}>
+            <div className="h-8 w-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
+              <Sparkles className="h-4 w-4 text-white" />
+            </div>
+            <span className="font-semibold text-lg bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              Maid
+            </span>
           </div>
-          <span className="font-semibold text-lg bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Maid
-          </span>
-        </div>
+        )}
       </div>
 
       {/* Search */}
