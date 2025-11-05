@@ -81,9 +81,9 @@ function LoginForm({
             </div>
 
             {error && (
-              <p className="text-center text-red-600">
-                {t("common.error")}: {error}
-              </p>
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                <p className="text-sm text-destructive text-center">{error}</p>
+              </div>
             )}
 
             <Button
