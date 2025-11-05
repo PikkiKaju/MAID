@@ -15,6 +15,8 @@ export default function ProjectEditPage() {
   const [loading, setLoading] = useState(true);
   const [datasets, setDatasets] = useState<DatasetMetadata[]>([]);
   const [datasetSearch] = useState("");
+  const [datasetColumns, setDatasetColumns] = useState<string[]>([]);
+  const [loadingColumns, setLoadingColumns] = useState(false);
   const [calculationResult, setCalculationResult] = useState<{
     prediction: number[];
     svg_plot: string;
@@ -104,12 +106,50 @@ export default function ProjectEditPage() {
       .catch(() => alert("Wystąpił błąd podczas usuwania projektu."));
   };
 
+  // Fetch columns when dataset changes
+  useEffect(() => {
+    const fetchColumns = async () => {
+      if (!meta?.datasetId || !token) {
+        setDatasetColumns([]);
+        return;
+      }
+
+      // Only fetch columns for CSV datasets (not empty GUID)
+      if (meta.datasetId === "00000000-0000-0000-0000-000000000000") {
+        setDatasetColumns([]);
+        return;
+      }
+
+      setLoadingColumns(true);
+      try {
+        const columns = await datasetService.getDatasetColumns(
+          meta.datasetId,
+          token
+        );
+        setDatasetColumns(columns);
+      } catch (error) {
+        console.error("Error fetching columns:", error);
+        setDatasetColumns([]);
+      } finally {
+        setLoadingColumns(false);
+      }
+    };
+
+    fetchColumns();
+  }, [meta?.datasetId, token]);
+
   const handleDatasetChange = async (
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
     if (!meta || !id || !token) return;
     const newDatasetId = e.target.value;
     setMeta((meta) => meta && { ...meta, datasetId: newDatasetId });
+
+    // Reset column selections when dataset changes
+    setDetail((detail) =>
+      detail ? { ...detail, xColumn: "", yColumn: "" } : null
+    );
+
     try {
       await axiosInstance.put(
         `/Project/${id}/dataset`,
@@ -170,24 +210,80 @@ export default function ProjectEditPage() {
           <label className="block text-sm font-medium text-muted-foreground mb-1">
             X Column
           </label>
-          <input
-            type="text"
-            value={detail.xColumn}
-            onChange={(e) => setDetail({ ...detail, xColumn: e.target.value })}
-            className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
-          />
+          {datasetColumns.length > 0 ? (
+            <select
+              value={detail.xColumn}
+              onChange={(e) =>
+                setDetail({ ...detail, xColumn: e.target.value })
+              }
+              className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
+              disabled={loadingColumns}
+            >
+              <option value="">Wybierz kolumnę</option>
+              {datasetColumns.map((column) => (
+                <option key={column} value={column}>
+                  {column}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              value={detail.xColumn}
+              onChange={(e) =>
+                setDetail({ ...detail, xColumn: e.target.value })
+              }
+              placeholder={
+                meta.datasetId === "00000000-0000-0000-0000-000000000000"
+                  ? "Wybierz dataset, aby załadować kolumny"
+                  : loadingColumns
+                  ? "Ładowanie kolumn..."
+                  : "Brak dostępnych kolumn"
+              }
+              disabled={loadingColumns}
+              className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
+            />
+          )}
         </div>
 
         <div className="mb-4">
           <label className="block text-sm font-medium text-muted-foreground mb-1">
             Y Column
           </label>
-          <input
-            type="text"
-            value={detail.yColumn}
-            onChange={(e) => setDetail({ ...detail, yColumn: e.target.value })}
-            className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
-          />
+          {datasetColumns.length > 0 ? (
+            <select
+              value={detail.yColumn}
+              onChange={(e) =>
+                setDetail({ ...detail, yColumn: e.target.value })
+              }
+              className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
+              disabled={loadingColumns}
+            >
+              <option value="">Wybierz kolumnę</option>
+              {datasetColumns.map((column) => (
+                <option key={column} value={column}>
+                  {column}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              value={detail.yColumn}
+              onChange={(e) =>
+                setDetail({ ...detail, yColumn: e.target.value })
+              }
+              placeholder={
+                meta.datasetId === "00000000-0000-0000-0000-000000000000"
+                  ? "Wybierz dataset, aby załadować kolumny"
+                  : loadingColumns
+                  ? "Ładowanie kolumn..."
+                  : "Brak dostępnych kolumn"
+              }
+              disabled={loadingColumns}
+              className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
+            />
+          )}
         </div>
 
         <div className="mb-4">

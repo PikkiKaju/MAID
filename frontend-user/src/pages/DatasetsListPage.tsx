@@ -115,16 +115,9 @@ export default function DatasetsListPage() {
   const token = useSelector((state: RootState) => state.auth.token);
 
   // Datasets from Redux store
-  const {
-    publicDatasets,
-    userDatasets,
-    publicStatus,
-    userStatus,
-    uploadStatus,
-    publicError,
-    userError,
-    uploadError: reduxUploadError,
-  } = useSelector((state: RootState) => state.dataset);
+  const { userDatasets, uploadStatus } = useSelector(
+    (state: RootState) => state.dataset
+  );
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
 

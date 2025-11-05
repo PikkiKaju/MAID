@@ -118,7 +118,7 @@
     "browseFiles": "Przeglądaj pliki",
     "importFromUrl": "Importuj z URL",
     "uploading": "Przesyłanie...",
-    "supportedFormats": "Obsługiwane formaty: CSV, JSON, Excel, Parquet oraz skompresowane pliki (ZIP, TAR)",
+    "supportedFormats": "Obsługiwane formaty: CSV, ZIP",
     "attachedDatasets": "Załączone zbiory danych",
     "tips": "Wskazówki",
     "emptyState": "Brak zbiorów danych",

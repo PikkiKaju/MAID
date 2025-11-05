@@ -56,8 +56,7 @@ export default function UploadArea({
             </p>
             <p className="text-sm text-muted-foreground">
               {t("datasets.supportedFormats", {
-                defaultValue:
-                  "Obsługiwane formaty: CSV, JSON, Excel, Parquet oraz skompresowane pliki (ZIP, TAR)",
+                defaultValue: "Obsługiwane formaty: CSV, ZIP )",
               })}
             </p>
           </div>
@@ -66,10 +65,6 @@ export default function UploadArea({
             <Button size="lg" onClick={onBrowseClick} className="gap-2">
               <Upload className="h-5 w-5" />
               {t("datasets.browseFiles")}
-            </Button>
-            <Button variant="outline" size="lg" className="gap-2">
-              <ExternalLink className="h-4 w-4" />
-              {t("datasets.importFromUrl")}
             </Button>
           </div>
 

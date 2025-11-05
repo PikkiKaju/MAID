@@ -147,6 +147,15 @@ class DatasetService {
     });
     return response.data;
   }
+
+  async getDatasetColumns(id: string, token: string): Promise<string[]> {
+    const response = await axiosInstance.get<string[]>(`/Dataset/${id}/columns`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  }
 }
 
 export const datasetService = new DatasetService();

@@ -58,12 +58,8 @@ export default function AttachedDatasets({
       {!hideHeader && (
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">
-            Attached Datasets ({datasets.length})
+            Moje Datasety ({datasets.length})
           </h2>
-          <Button variant="outline" size="sm">
-            <ExternalLink className="h-4 w-4 mr-2" />
-            Connect External Dataset
-          </Button>
         </div>
       )}
 
@@ -163,8 +159,7 @@ export default function AttachedDatasets({
                           className="text-destructive"
                           onClick={() => onDelete(dataset.id, dataset.name)}
                         >
-                          <Trash2 className="h-4 w-4 mr-2" /> Remove from
-                          Project
+                          <Trash2 className="h-4 w-4 mr-2" /> Remove
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>
