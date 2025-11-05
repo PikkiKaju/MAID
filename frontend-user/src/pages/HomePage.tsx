@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { sampleProjects } from "../data";
 import RecentSection from "../components/home/RecentSection";
@@ -6,7 +6,10 @@ import TrendingSection from "../components/home/TrendingSection";
 import FavoritesSection from "../components/home/FavoritesSection";
 import CategorySection from "../components/home/CategorySection";
 import SearchResultsSection from "../components/home/SearchResultsSection";
-import { useAppSelector } from "../store/hooks";
+import AttachedDatasets from "../components/datasets/AttachedDatasets";
+import { useAppSelector, useAppDispatch } from "../store/hooks";
+import { fetchPublicDatasets } from "../features/dataset/datasetThunks";
+import { getFileIcon, getStatusColor, Dataset } from "../models/dataset";
 // import { useNavigate } from "react-router-dom";
 import { useProjects } from "../hooks/useProjects";
 
@@ -51,11 +54,20 @@ export default function HomePage() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set(["1", "3"]));
   // const [isLoggedIn] = useState(true); // Simulate login state - change to false to test logged out state
 
+  const dispatch = useAppDispatch();
   const searchTerm = useAppSelector((state) => state.search.term.toLowerCase());
   // const navigate = useNavigate();
   const { loading, error } = useProjects();
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
+  const publicDatasets = useAppSelector(
+    (state) => state.dataset.publicDatasets
+  );
   // const token = useAppSelector((state) => state.auth.token);
+
+  // Fetch public datasets on mount
+  useEffect(() => {
+    dispatch(fetchPublicDatasets());
+  }, [dispatch]);
 
   const filteredProjects = sampleProjects.filter((project) =>
     project.title.toLowerCase().includes(searchTerm)
@@ -106,6 +118,38 @@ export default function HomePage() {
             favorites={favorites}
             handleFavoriteToggle={handleFavoriteToggle}
           />
+
+          {publicDatasets.length > 0 && (
+            <section className="p-6 bg-background">
+              <AttachedDatasets
+                datasets={useMemo(() => {
+                  return publicDatasets.map((dataset: Dataset) => {
+                    const fileType = dataset.dataType === 0 ? "CSV" : "ZIP";
+
+                    const uploadDate = new Date(
+                      dataset.createdAt
+                    ).toLocaleDateString("pl-PL", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    });
+
+                    return {
+                      id: dataset.id,
+                      name: dataset.name,
+                      type: fileType,
+                      status: "Ready",
+                      size: "N/A", // Size not available from API
+                      rows: "N/A", // Rows not available from API
+                      uploadDate: uploadDate,
+                    };
+                  });
+                }, [publicDatasets])}
+                getFileIcon={getFileIcon}
+                getStatusColor={getStatusColor}
+              />
+            </section>
+          )}
 
           {isLoggedIn && favoriteProjects.length > 0 && (
             <FavoritesSection

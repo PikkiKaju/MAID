@@ -30,16 +30,20 @@ class DatasetService {
   async uploadCsv(
     file: File,
     name: string,
+    columnTransform: string,
+    emptyTransform: string,
     isPublic: boolean,
     token: string
   ): Promise<DatasetUploadResponse> {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("name", name);
+    formData.append("columnTransform", columnTransform);
+    formData.append("emptyTransform", emptyTransform);
     formData.append("isPublic", isPublic.toString());
 
     const response = await axiosInstance.post<DatasetUploadResponse>(
-      `${this.baseUrl}/upload-csv`,
+      "/Dataset/upload-csv",
       formData,
       {
         headers: {
@@ -53,8 +57,37 @@ class DatasetService {
       }
     );
 
-  return response.data;
-}
+    return response.data;
+  }
+
+  async uploadPhoto(
+    file: File,
+    name: string,
+    isPublic: boolean,
+    token: string
+  ): Promise<DatasetUploadResponse> {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("name", name);
+    formData.append("isPublic", isPublic.toString());
+
+    const response = await axiosInstance.post<DatasetUploadResponse>(
+      "/Dataset/upload-photo",
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // No Content-Type header here, so Axios can set multipart/form-data boundary
+        },
+        transformRequest: (data, headers) => {
+          delete headers["Content-Type"];
+          return data;
+        },
+      }
+    );
+
+    return response.data;
+  }
 
   async getDatasets(token: string): Promise<DatasetMyMetadata[]> {
     const response = await axiosInstance.get<DatasetMyMetadata[]>(

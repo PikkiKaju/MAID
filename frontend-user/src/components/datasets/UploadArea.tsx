@@ -73,15 +73,6 @@ export default function UploadArea({
             </Button>
           </div>
 
-          <input
-            id="file-input"
-            type="file"
-            multiple
-            className="hidden"
-            onChange={(e) => e.target.files && onFileSelected(e.target.files)}
-            accept=".csv,.json,.xlsx,.xls,.parquet,.zip,.tar,.gz"
-          />
-
           {uploading && (
             <div className="max-w-md mx-auto space-y-2">
               <div className="flex items-center justify-between text-sm">
