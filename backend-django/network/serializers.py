@@ -2,7 +2,7 @@ from typing import Any, Dict, List
 
 from rest_framework import serializers
 
-from .models import Edge, GraphPreset, GraphSnapshot, LayerNode, NetworkGraph
+from .models import Edge, GraphPreset, GraphSnapshot, LayerNode, NetworkGraph, TrainingJob
 from .manifests.layers import list_layers, normalize_params_for_layer
 from .services import GraphValidationError, validate_graph_payload
 
@@ -256,3 +256,31 @@ class GraphSnapshotSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = ("id", "created_at", "updated_at")
+
+
+class TrainingJobSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TrainingJob
+        fields = (
+            "id",
+            "graph",
+            "status",
+            "params",
+            "result",
+            "dataset_path",
+            "artifact_path",
+            "progress",
+            "error",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "status",
+            "result",
+            "artifact_path",
+            "progress",
+            "error",
+            "created_at",
+            "updated_at",
+        )
