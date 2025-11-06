@@ -6,6 +6,9 @@ __pycache__
 db.sqlite3
 media
 
+# Local Tensorflow/Keras manifest files
+network/tensorflow_data/manifests/*.json
+
 # Backup files # 
 *.bak 
 
