@@ -134,6 +134,53 @@ const networkGraphService = {
     if (resp.status === 201) return resp.data;
     throw new Error('Failed to import Keras JSON');
   },
+
+  // Training endpoints
+  startTraining: async (
+    graphId: string,
+    csvFile: File,
+    options: {
+      x_columns: string[];
+      y_column: string;
+      optimizer?: string;
+      loss?: string;
+      metrics?: string[];
+      epochs?: number;
+      batch_size?: number;
+      validation_split?: number;
+      test_split?: number;
+    }
+  ) => {
+    const form = new FormData();
+    form.append('file', csvFile);
+    form.append('x_columns', JSON.stringify(options.x_columns));
+    form.append('y_column', options.y_column);
+    if (options.optimizer) form.append('optimizer', options.optimizer);
+    if (options.loss) form.append('loss', options.loss);
+    if (options.metrics) form.append('metrics', JSON.stringify(options.metrics));
+    if (options.epochs != null) form.append('epochs', String(options.epochs));
+    if (options.batch_size != null) form.append('batch_size', String(options.batch_size));
+    if (options.validation_split != null) form.append('validation_split', String(options.validation_split));
+    if (options.test_split != null) form.append('test_split', String(options.test_split));
+
+    const resp = await djangoClient.post(`network/graphs/${graphId}/train/`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    if (resp.status === 202) return resp.data;
+    throw new Error('Failed to start training job');
+  },
+
+  getTrainingJob: async (jobId: string) => {
+    const resp = await djangoClient.get(`network/training-jobs/${jobId}/`);
+    if (resp.status === 200) return resp.data;
+    throw new Error('Failed to get training job');
+  },
+
+  downloadArtifact: async (jobId: string): Promise<Blob> => {
+    const resp = await djangoClient.get(`network/training-jobs/${jobId}/artifact/`, { responseType: 'blob' });
+    if (resp.status === 200) return resp.data as Blob;
+    throw new Error('Failed to download artifact');
+  },
 };
 
 export default networkGraphService;
