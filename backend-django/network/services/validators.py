@@ -5,7 +5,7 @@ from sklearn import logger
 
 from network.services.types import GraphStructure, GraphValidationError
 
-from network.layers import (
+from network.manifests.layers import (
     list_layers,
     normalize_params_for_layer,
 )

@@ -17,8 +17,9 @@ except Exception:  # pragma: no cover
     _tf_keras = None  # type: ignore
 
 from network.services.types import GraphValidationError
+from network.services.validators import validate_graph_payload
 
-from network.layers import (
+from network.manifests.layers import (
     list_layers,
     get_layer_entry,
     normalize_params_for_layer,

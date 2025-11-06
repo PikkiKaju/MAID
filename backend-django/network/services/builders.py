@@ -7,7 +7,7 @@ from .types import GraphStructure, GraphValidationError
 
 from network.services import validate_graph_payload
 
-from network.layers import (
+from network.manifests.layers import (
     list_layers,
     normalize_params_for_layer,
     create_layer,

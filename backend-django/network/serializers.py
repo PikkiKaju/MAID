@@ -3,7 +3,7 @@ from typing import Any, Dict, List
 from rest_framework import serializers
 
 from .models import Edge, GraphPreset, GraphSnapshot, LayerNode, NetworkGraph
-from .layers import list_layers, normalize_params_for_layer
+from .manifests.layers import list_layers, normalize_params_for_layer
 from .services import GraphValidationError, validate_graph_payload
 
 
