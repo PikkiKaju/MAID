@@ -576,6 +576,28 @@ def build_optimizer_manifest() -> Dict[str, Any]:
     return manifest
 
 
+def generate_manifest() -> str:
+    """Generate the optimizer manifest JSON file and return the output path.
+
+    Writes to network/tensorflow_data/manifests/optimizer_manifest.json relative
+    to this file's location.
+    """
+    # Determine output path under the shared manifests directory
+    script_dir = os.path.dirname(__file__)
+    manifests_dir = os.path.join(os.path.dirname(script_dir), "manifests")
+    os.makedirs(manifests_dir, exist_ok=True)
+    out_path = os.path.join(manifests_dir, "optimizer_manifest.json")
+
+    manifest = build_optimizer_manifest()
+    data = json.dumps(manifest, indent=2, ensure_ascii=False)
+
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(data)
+
+    print(f"\u2713 Optimizer manifest written to {out_path}")
+    return out_path
+
+
 def main(argv: List[str]) -> int:
     out_path: Optional[str] = ""
     # Simple arg parsing

@@ -680,6 +680,22 @@ def build_loss_manifest() -> Dict[str, Any]:
     return manifest
 
 
+def generate_manifest():
+    """Generate the loss manifest JSON file."""
+    manifest = build_loss_manifest()
+    data = json.dumps(manifest, indent=2, ensure_ascii=False)
+
+    # Write to manifests directory
+    script_dir = os.path.dirname(__file__)
+    manifests_dir = os.path.join(os.path.dirname(script_dir), "manifests")
+    os.makedirs(manifests_dir, exist_ok=True)
+    out_path = os.path.join(manifests_dir, "loss_manifest.json")
+
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(data)
+    
+    print(f"✓ Loss manifest written to {out_path}")
+
 def main(argv: List[str]) -> int:
     out_path: Optional[str] = ""
     # Simple arg parsing
