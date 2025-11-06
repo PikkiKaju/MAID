@@ -4,7 +4,7 @@ import { AppDispatch, RootState } from "../store/store";
 import { clearAuthStatus } from "../features/auth/authSlice";
 import { loginUser } from "../features/auth/loginThunks";
 import { useNavigate } from "react-router-dom";
-import LoginForm from "../components/LoginForm";
+import LoginForm from "../components/forms/LoginForm";
 
 function LoginPage() {
   const [username, setUsername] = useState("");

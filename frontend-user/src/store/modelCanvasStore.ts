@@ -7,6 +7,7 @@ export interface ModelCanvasState {
   nodes: Node[];
   edges: Edge[];
   selectedNodeId?: string;
+  // 'type' here is the API layer name; nodes always use React Flow type 'layerNode'
   addNode: (type: string, defaults: Record<string, unknown>) => void;
   setGraph: (nodes: Node[], edges: Edge[]) => void;
   setSelected: (id?: string) => void;
@@ -19,13 +20,14 @@ export const useModelCanvasStore = create<ModelCanvasState>((set) => ({
   nodes: [],
   edges: [],
   // Adds a new node with a random-ish position (basic scatter so they don't overlap exactly)
+  // 'type' parameter is the API layer name. We store it in data.layer and render with RF type 'layerNode'.
   addNode: (type, defaults) => set((state) => {
     const position = { x: 250 + Math.random() * 200, y: 100 + Math.random() * 200 };
     const node: Node = {
       id: nanoid(6),
-      type,
+      type: 'layerNode',
       position,
-      data: { label: type, params: defaults },
+      data: { label: type, layer: type, params: defaults },
     };
     return { nodes: [...state.nodes, node] };
   }),

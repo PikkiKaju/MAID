@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, useEffect } from 'react';
+import { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import ReactFlow, {
   addEdge,
   Background,
@@ -14,82 +14,28 @@ import ReactFlow, {
   ReactFlowInstance,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { useModelCanvasStore } from '../../store/modelCanvasStore';
-import type { ModelCanvasState } from '../../store/modelCanvasStore';
-import { layerNodeTypes } from './nodes';
-import TopToolbar from './TopToolbar';
 import { nanoid } from 'nanoid/non-secure';
-import { Info, ChevronDown, ChevronRight } from 'lucide-react';
+
+import { useModelCanvasStore } from '../../store/modelCanvasStore';
+import LayerNode from './LayerNode';
+import TopToolbar from './TopToolbar';
+import LayerPalette from './LayerPalette';
+import LayerInspector from './LayerInspector';
+import networkGraphService, { GraphNode, GraphEdge } from '../../api/networkGraphService';
 import RemovableEdge from './RemovableEdge';
 
 // Initial seed graph (can be removed when implementing full load-from-backend)
 const initialNodes: Node[] = [
   {
     id: 'input-1',
-    type: 'inputLayer',
+    type: 'layerNode',
     position: { x: 100, y: 150 },
-    data: { label: 'Input(32)' }
+    data: { label: 'Input', layer: 'Input', params: {} }
   },
 ];
 
 const initialEdges: Edge[] = [];
 
-// Descriptions for layer parameters.
-const LAYER_PARAM_HELP: Record<string, Record<string, string>> = {
-  inputLayer: {
-    shape: 'Shape of the input tensor excluding batch dimension. E.g. (32,) or (28,28,1).',
-    dtype: 'Data type of the input (float32, int32, etc.).',
-    name: 'Optional symbolic layer name.'
-  },
-  denseLayer: {
-    units: 'Number of neurons / output dimensions of the dense layer.',
-    activation: 'Activation function (relu, sigmoid, softmax, linear, etc.).',
-    use_bias: 'Whether to include a bias term.',
-    kernel_initializer: 'Initializer for the kernel weights matrix.',
-    bias_initializer: 'Initializer for the bias vector.'
-  },
-  dropoutLayer: {
-    rate: 'Fraction (0-1) of input units to drop during training.',
-    seed: 'Random seed for reproducibility.'
-  },
-  conv2dLayer: {
-    filters: 'Number of convolution kernels (output feature maps).',
-    kernel: 'Kernel size (e.g. 3x3).',
-    strides: 'Stride size (e.g. 1x1 or 2x2).',
-    padding: 'Padding mode (valid or same).',
-    activation: 'Activation function applied after convolution + bias.',
-    use_bias: 'Include a bias vector if true.'
-  },
-  flattenLayer: {
-    data_format: 'Channels first or channels last (if relevant to backend).'
-  },
-  outputLayer: {
-    units: 'Dimensionality of the model output (classes or regression targets).',
-    activation: 'Final activation (softmax for multi-class, sigmoid for binary, linear for regression).'
-  },
-  actLayer: {
-    activation: 'Applies an activation without needing parameters besides the function name.'
-  },
-  maxPool2DLayer: {
-    pool: 'Spatial window size for downsampling (e.g. 2x2).',
-    strides: 'Stride for the pooling operation.',
-    padding: 'Padding mode (valid or same).'
-  },
-  gap2DLayer: {},
-  batchNormLayer: {
-    momentum: 'Momentum for the moving average (typical ~0.99).',
-    epsilon: 'Small float added to variance to avoid dividing by zero.',
-    center: 'If true, add offset (beta).',
-    scale: 'If true, multiply by scale (gamma).'
-  },
-  lstmLayer: {
-    units: 'Dimensionality of the output space.',
-    return_sequences: 'If true, returns the full sequence; otherwise only the last output.',
-    dropout: 'Fraction (0-1) of the units to drop for input connections.',
-    recurrent_dropout: 'Fraction (0-1) to drop for recurrent state.',
-    bidirectional: 'If true, indicates a bidirectional wrapper (conceptual).'
-  }
-};
 
 export default function ModelCanvas() {
   const { nodes: storeNodes, edges: storeEdges, setGraph } = useModelCanvasStore();
@@ -97,6 +43,9 @@ export default function ModelCanvas() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges.length ? storeEdges : initialEdges);
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const flowWrapperRef = useRef<HTMLDivElement | null>(null);
+  // Memoize these to avoid React Flow warning about re-creating nodeTypes/edgeTypes each render
+  const nodeTypes = useMemo(() => ({ layerNode: LayerNode }), []);
+  const edgeTypes = useMemo(() => ({ removable: RemovableEdge }), []);
 
   // Edge creation handler (adds edge with arrow marker)
   const onConnect = useCallback((connection: Edge | Connection) => {
@@ -117,7 +66,79 @@ export default function ModelCanvas() {
 
   const handlePersist = () => {
     setGraph(nodes, edges); // persist latest working copy
-    // TODO: call backend (Django) endpoint to persist graph / translate to TensorFlow JSON
+    // Attempt to persist to backend: if graph already has an id in metadata use update, otherwise create
+    (async () => {
+      try {
+        // Build payload matching Django serializer: nodes as {id,type,label,params,position,notes}, edges as {id,source,target,meta}
+        const nodesPayload: GraphNode[] = nodes.map(n => {
+          const data = (n.data as unknown) as { label?: string; layer?: string; params?: Record<string, unknown>; position?: unknown; notes?: unknown } | undefined;
+          return {
+            id: n.id,
+            // send actual layer type expected by backend
+            type: data?.layer || (n.type as string) || '',
+            label: data?.label || '',
+            params: data?.params || {},
+            position: n.position || data?.position || {},
+            notes: data?.notes || {},
+          } as GraphNode;
+        });
+        const edgesPayload: GraphEdge[] = edges.map(e => ({
+          id: e.id!,
+          source: e.source,
+          target: e.target,
+          meta: ((e as unknown) as { meta?: Record<string, unknown> }).meta || {},
+        }));
+
+        // Use a simple metadata id if you want to track created graph; for now try to create every time
+        const payload = { name: 'Untitled graph', nodes: nodesPayload, edges: edgesPayload };
+        const created = await networkGraphService.createGraph(payload);
+        // If created, we could store graph id in localStorage or update app state - for now log
+        console.log('Graph created:', created);
+        alert('Graph saved to backend');
+      } catch (err: unknown) {
+        console.error('Failed to save graph', err);
+        const msg = err instanceof Error ? err.message : String(err);
+        alert('Failed to save graph to backend: ' + msg);
+      }
+    })();
+  };
+
+  const handlePreview = async () => {
+    // Call compile endpoint on backend with current nodes/edges (use stored graph if available otherwise pass body)
+    try {
+      const nodesPayload: GraphNode[] = nodes.map(n => {
+        const data = (n.data as unknown) as { label?: string; layer?: string; params?: Record<string, unknown>; position?: unknown; notes?: unknown } | undefined;
+        return {
+          id: n.id,
+          type: data?.layer || (n.type as string) || '',
+          label: data?.label || '',
+          params: data?.params || {},
+          position: n.position || data?.position || {},
+          notes: data?.notes || {},
+        } as GraphNode;
+      });
+      const edgesPayload: GraphEdge[] = edges.map(e => ({
+        id: e.id!,
+        source: e.source,
+        target: e.target,
+        meta: ((e as unknown) as { meta?: Record<string, unknown> }).meta || {},
+      }));
+
+      // The compile endpoint is defined as POST /network/graphs/{id}/compile/
+      // We don't have a persisted graph id yet; some backends accept compile without id if body provided, but this API requires a graph id.
+      // As a pragmatic approach, POST to import-keras-json isn't appropriate. So we'll create a temporary graph then compile it.
+      const temp = await networkGraphService.createGraph({ name: 'temp-preview', nodes: nodesPayload, edges: edgesPayload });
+      const graphId = String(temp.id);
+      const compiled = await networkGraphService.compileGraph(graphId);
+      console.log('Compiled result:', compiled);
+      alert('Compile success — see console for details');
+      // Optionally delete the temporary graph
+      try { await networkGraphService.deleteGraph(graphId); } catch { /* ignore */ }
+    } catch (err: unknown) {
+      console.error('Preview/compile failed', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      alert('Preview/compile failed: ' + msg);
+    }
   };
 
   // Needed so drop is allowed in most browsers
@@ -131,8 +152,8 @@ export default function ModelCanvas() {
     event.preventDefault();
     if (!rfInstance) return;
 
-    const type = event.dataTransfer.getData('application/myapp-layer');
-    if (!type) return;
+  const type = event.dataTransfer.getData('application/myapp-layer'); // API layer name
+  if (!type) return;
     const rawParams = event.dataTransfer.getData('application/myapp-layer-config');
     const label = event.dataTransfer.getData('application/myapp-layer-label') || type;
     let params: Record<string, unknown> = {};
@@ -152,9 +173,9 @@ export default function ModelCanvas() {
 
     const newNode: Node = {
       id: nanoid(6),
-      type,
+      type: 'layerNode',
       position,
-      data: { label, params },
+      data: { label, layer: type, params },
     };
     setNodes(nds => nds.concat(newNode));
     // also push to store so side panels reflect without needing manual save
@@ -163,7 +184,7 @@ export default function ModelCanvas() {
 
   return (
     <div className='h-[calc(90vh-100px)] flex flex-col border rounded bg-white shadow'>
-      <TopToolbar onSave={handlePersist} />
+      <TopToolbar onSave={handlePersist} onPreview={handlePreview} />
       <div className='flex flex-1 min-h-0'>
         <div className='w-56 border-r p-2 space-y-2 bg-slate-50 overflow-y-auto text-xs'>
           <h3 className='font-semibold text-slate-600 text-sm'>Layers</h3>
@@ -176,8 +197,8 @@ export default function ModelCanvas() {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
-            nodeTypes={layerNodeTypes}
-            edgeTypes={{ removable: RemovableEdge }}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             fitView
             snapToGrid
             snapGrid={[12, 12]}
@@ -190,184 +211,13 @@ export default function ModelCanvas() {
             <Controls />
           </ReactFlow>
         </div>
-        <div className='w-72 border-l p-3 bg-slate-50 overflow-y-auto'>
-          <Inspector />
+        <div className='w-70 border-l p-3 bg-slate-50 overflow-y-auto'>
+          <LayerInspector />
         </div>
       </div>
     </div>
   );
 }
 
-// Left side layer palette (drag source + click fallback)
-function LayerPalette() {
-  const addNode = useModelCanvasStore((s: ModelCanvasState) => s.addNode); // Keep button click fallback
-  // Structured palette groups for better discoverability
-  const groups: Array<{
-    id: string;
-    label: string;
-    items: { type: string; label: string; defaults: Record<string, unknown> }[];
-    defaultOpen?: boolean;
-  }> = [
-    {
-      id: 'core',
-      label: 'Core',
-      defaultOpen: true,
-      items: [
-        { type: 'inputLayer', label: 'Input', defaults: { shape: '(32,)', dtype: 'float32', name: 'input_1' } },
-        { type: 'denseLayer', label: 'Dense', defaults: { units: 128, activation: 'relu', use_bias: true, kernel_initializer: 'glorot_uniform', bias_initializer: 'zeros' } },
-        { type: 'actLayer', label: 'Activation', defaults: { activation: 'relu' } },
-        { type: 'flattenLayer', label: 'Flatten', defaults: { data_format: 'channels_last' } }
-      ]
-    },
-    {
-      id: 'convolution',
-      label: 'Convolution',
-      items: [
-        { type: 'conv2dLayer', label: 'Conv2D', defaults: { filters: 32, kernel: '3x3', strides: '1x1', padding: 'same', activation: 'relu', use_bias: true } },
-        { type: 'maxPool2DLayer', label: 'MaxPool2D', defaults: { pool: '2x2', strides: '2x2', padding: 'valid' } },
-        { type: 'gap2DLayer', label: 'GlobalAvgPool2D', defaults: {} }
-      ]
-    },
-    {
-      id: 'regularization',
-      label: 'Regularization',
-      items: [
-        { type: 'dropoutLayer', label: 'Dropout', defaults: { rate: 0.5, seed: 42 } },
-        { type: 'batchNormLayer', label: 'BatchNorm', defaults: { momentum: 0.99, epsilon: 0.001, center: true, scale: true } }
-      ]
-    },
-    {
-      id: 'recurrent',
-      label: 'Recurrent',
-      items: [
-        { type: 'lstmLayer', label: 'LSTM', defaults: { units: 64, return_sequences: false, dropout: 0.0, recurrent_dropout: 0.0, bidirectional: false } }
-      ]
-    },
-    {
-      id: 'output',
-      label: 'Output',
-      items: [
-        { type: 'outputLayer', label: 'Output', defaults: { units: 10, activation: 'softmax' } }
-      ]
-    }
-  ];
-  interface PaletteItem { type: string; label: string; defaults: Record<string, unknown>; }
-  const handleDragStart = (e: React.DragEvent, p: PaletteItem) => {
-    e.dataTransfer.setData('application/myapp-layer', p.type);
-    e.dataTransfer.setData('application/myapp-layer-config', JSON.stringify(p.defaults));
-    e.dataTransfer.setData('application/myapp-layer-label', p.label);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(
-    () => groups.reduce((acc, g) => { acc[g.id] = !!g.defaultOpen; return acc; }, {} as Record<string, boolean>)
-  );
-  const toggleGroup = (id: string) => setOpenGroups(o => ({ ...o, [id]: !o[id] }));
 
-  return (
-    <div className='flex flex-col gap-3'>
-      {groups.map(group => {
-        const opened = openGroups[group.id];
-        return (
-          <div key={group.id} className='border rounded bg-white/60 backdrop-blur-sm shadow-sm'>
-            <button
-              type='button'
-              onClick={() => toggleGroup(group.id)}
-              className='w-full flex items-center justify-between px-2 py-1 text-left text-[11px] font-semibold text-slate-600 hover:bg-slate-100 rounded-t'
-            >
-              <span className='flex items-center gap-2'>
-                {opened ? <ChevronDown size={14}/> : <ChevronRight size={14}/>} {group.label}
-              </span>
-              <span className='text-[10px] font-normal text-slate-400'>{group.items.length}</span>
-            </button>
-            {opened && (
-              <div className='p-2 pt-0 grid gap-1'>
-                {group.items.map(p => (
-                  <button
-                    key={p.type}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, p)}
-                    onClick={() => addNode(p.type, p.defaults)}
-                    className='text-left px-2 py-1 rounded border bg-white hover:border-blue-500 hover:bg-blue-50 transition cursor-grab active:cursor-grabbing'
-                    title='Drag to canvas or click to add'
-                  >
-                    <span className='block text-[11px] font-medium text-slate-700'>{p.label}</span>
-                    {Object.keys(p.defaults).length > 0 && (
-                      <span className='block text-[9px] text-slate-400 truncate'>
-                        {Object.keys(p.defaults).slice(0,3).join(', ')}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
-// Right side inspector showing editable parameters for the selected node
-function Inspector() {
-  const selectedNodeId = useModelCanvasStore((s: ModelCanvasState) => s.selectedNodeId);
-  const updateNodeData = useModelCanvasStore((s: ModelCanvasState) => s.updateNodeData);
-  const nodes = useModelCanvasStore((s: ModelCanvasState) => s.nodes);
-  const node = nodes.find((n: Node) => n.id === selectedNodeId);
-
-  if (!node) return <p className='text-sm text-slate-500'>Select a layer to edit its parameters.</p>;
-
-  const entries = Object.entries(node.data.params || {});
-  const paramDocs = LAYER_PARAM_HELP[node.type as string] || {};
-
-  const handleChange = (key: string, value: string) => {
-    // Attempt typed coercion: number -> boolean -> string
-  let cast: string | number | boolean = value;
-    if (value === 'true') cast = true;
-    else if (value === 'false') cast = false;
-    else if (!isNaN(Number(value)) && value.trim() !== '') cast = Number(value);
-    updateNodeData(node.id, { params: { ...node.data.params, [key]: cast } });
-  };
-
-  return (
-    <div className='space-y-3'>
-      <h3 className='font-semibold text-slate-700 text-sm'>Layer Parameters</h3>
-      {entries.length === 0 && <p className='text-xs text-slate-500'>No parameters</p>}
-      {entries.map(([k, v]) => {
-        const desc = paramDocs[k];
-        return (
-          <label key={k} className='block text-xs mb-2'>
-            <span className='font-medium inline-flex items-center gap-1'>
-              {k}
-              {desc && (
-                <Tooltip content={desc} />
-              )}
-            </span>
-            <input
-              className='mt-1 w-full border rounded px-2 py-1 text-xs'
-              defaultValue={String(v)}
-              onChange={e => handleChange(k, e.target.value)}
-            />
-          </label>
-        );
-      })}
-      <pre className='text-[10px] bg-slate-200 p-2 rounded overflow-x-auto'>{JSON.stringify(node.data.params, null, 2)}</pre>
-    </div>
-  );
-}
-
-// Simple tooltip component (no external dependency) using group hover.
-function Tooltip({ content }: { content: string }) {
-  return (
-    <span className='relative inline-flex'>
-      <span className='group inline-flex'>
-        <Info size={12} className='text-slate-400 hover:text-slate-600 cursor-help' />
-        {/* Tooltip bubble positioned to the right to avoid overlap with canvas; higher z-index to sit above ReactFlow */}
-        <span className='pointer-events-none absolute left-full top-1/2 hidden w-50 -translate-y-1/2 translate-x-2 z-50 group-hover:block'>
-          <span className='block rounded border border-slate-300 bg-white px-2 py-1 text-[10px] leading-snug shadow-lg text-slate-600'>
-            {content}
-          </span>
-        </span>
-      </span>
-    </span>
-  );
-}
