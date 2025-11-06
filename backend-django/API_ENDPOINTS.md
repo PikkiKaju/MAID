@@ -242,6 +242,73 @@ Example: `/api/network/activations/relu/`
 
 ---
 
+## 6. Training API (Phase 1, async) (`/api/network/...`)
+
+### Start training for a graph
+
+**POST** `/api/network/graphs/{graph_id}/train/`
+
+Content-Type: `multipart/form-data`
+
+Fields:
+
+- `file`: CSV file with dataset (required for phase 1)
+- `x_columns`: JSON array of feature column names (e.g. `["x1","x2"]`)
+- `y_column`: Target column name (e.g. `"y"`)
+- `optimizer`: String optimizer id (default: `adam`)
+- `loss`: String loss id (default: `mse`)
+- `metrics`: JSON array of metrics (e.g. `["mae"]`)
+- `epochs`: Integer (default: `10`)
+- `batch_size`: Integer (default: `32`)
+- `validation_split`: Float 0..1 (default: `0.1`)
+- `test_split`: Float 0..1 (default: `0.1`)
+
+Response: `202 Accepted`
+
+```
+{
+  "id": "job-uuid",
+  "graph": "graph-uuid",
+  "status": "queued",
+  "progress": 0.0
+}
+```
+
+Poll the `Location` header or use the Jobs API below.
+
+### Jobs API
+
+**GET** `/api/network/training-jobs/`
+
+List your jobs.
+
+**GET** `/api/network/training-jobs/{job_id}/`
+
+Returns job status and results when available:
+
+```
+{
+  "id": "job-uuid",
+  "status": "succeeded",
+  "result": {
+    "history": { "loss": [0.9, 0.5, ...], "val_loss": [ ... ] },
+    "evaluation": { "loss": 0.12, "mae": 0.08 }
+  },
+  "artifact_path": "/app/artifacts/<job>.keras"
+}
+```
+
+**GET** `/api/network/training-jobs/{job_id}/artifact/`
+
+Downloads the trained Keras model (`.keras`).
+
+Notes:
+
+- Phase 1 accepts raw CSV upload; later phases can pass dataset identifiers and server-side loaders.
+- Jobs are processed asynchronously within the Django worker process (simple background thread).
+
+---
+
 ## Parameter Metadata
 
 All component manifests include rich parameter metadata:
@@ -277,6 +344,7 @@ All component manifests include rich parameter metadata:
 
 - **List/Retrieve endpoints**: Public access (AllowAny)
 - **Regenerate/Refresh endpoints**: Admin only (IsAdminUser)
+- **Training endpoints**: Auth required (IsAuthenticated)
 
 ---
 
