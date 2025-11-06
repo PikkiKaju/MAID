@@ -206,7 +206,7 @@ export default function ModelCanvas() {
   }, [rfInstance, setNodes, setGraph, nodes, edges]);
 
   return (
-    <div className='h-[calc(90vh-100px)] flex flex-col border rounded bg-white shadow'>
+    <div className='h-full flex flex-col border-t bg-white'>
       <TopToolbar onSave={handlePersist} onLoadGraph={loadGraphFromPayload} />
       <div className='flex flex-1 min-h-0'>
         <div className='w-56 border-r p-2 space-y-2 bg-slate-50 overflow-y-auto text-xs'>
