@@ -44,6 +44,9 @@ class LayerNodeSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = ("created_at", "updated_at")
+        extra_kwargs = {
+            'id': {'validators': []},  # Disable automatic uniqueness validation
+        }
 
 
 class EdgeSerializer(serializers.ModelSerializer):
@@ -61,6 +64,9 @@ class EdgeSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = ("created_at", "updated_at")
+        extra_kwargs = {
+            'id': {'validators': []},  # Disable automatic uniqueness validation
+        }
 
 
 class NetworkGraphSerializer(serializers.ModelSerializer):
@@ -198,14 +204,29 @@ class NetworkGraphSerializer(serializers.ModelSerializer):
         graph.nodes.filter(id__in=existing_ids - incoming_ids).delete()
 
         for node in nodes_data:
-            defaults = {
-                "type": node.get("type"),
-                "label": node.get("label", ""),
-                "params": node.get("params") or node.get("data", {}).get("params", {}),
-                "position": node.get("position") or node.get("data", {}).get("position", {}),
-                "notes": node.get("notes", {}),
-            }
-            LayerNode.objects.update_or_create(id=node["id"], graph=graph, defaults=defaults)
+            node_id = node["id"]
+            # Check if this node exists in THIS graph
+            existing_node = graph.nodes.filter(id=node_id).first()
+            
+            if existing_node:
+                # Update existing node
+                existing_node.type = node.get("type")
+                existing_node.label = node.get("label", "")
+                existing_node.params = node.get("params") or node.get("data", {}).get("params", {})
+                existing_node.position = node.get("position") or node.get("data", {}).get("position", {})
+                existing_node.notes = node.get("notes", {})
+                existing_node.save()
+            else:
+                # Create new node for this graph
+                LayerNode.objects.create(
+                    id=node_id,
+                    graph=graph,
+                    type=node.get("type"),
+                    label=node.get("label", ""),
+                    params=node.get("params") or node.get("data", {}).get("params", {}),
+                    position=node.get("position") or node.get("data", {}).get("position", {}),
+                    notes=node.get("notes", {}),
+                )
 
     def _sync_edges(self, graph: NetworkGraph, edges_data: List[Dict[str, Any]]) -> None:
         """
@@ -221,12 +242,25 @@ class NetworkGraphSerializer(serializers.ModelSerializer):
         graph.edges.filter(id__in=existing_ids - incoming_ids).delete()
 
         for edge in edges_data:
-            defaults = {
-                "source_id": edge.get("source"),
-                "target_id": edge.get("target"),
-                "meta": edge.get("meta", {}),
-            }
-            Edge.objects.update_or_create(id=edge["id"], graph=graph, defaults=defaults)
+            edge_id = edge["id"]
+            # Check if this edge exists in THIS graph
+            existing_edge = graph.edges.filter(id=edge_id).first()
+            
+            if existing_edge:
+                # Update existing edge
+                existing_edge.source_id = edge.get("source")
+                existing_edge.target_id = edge.get("target")
+                existing_edge.meta = edge.get("meta", {})
+                existing_edge.save()
+            else:
+                # Create new edge for this graph
+                Edge.objects.create(
+                    id=edge_id,
+                    graph=graph,
+                    source_id=edge.get("source"),
+                    target_id=edge.get("target"),
+                    meta=edge.get("meta", {}),
+                )
 
 
 class GraphPresetSerializer(serializers.ModelSerializer):

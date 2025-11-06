@@ -14,6 +14,75 @@ from network.manifests.layers import (
 )
 
 
+def _is_empty(v: Any) -> bool:
+    """Check if a value is empty/null-like."""
+    if v is None or v == "":
+        return True
+    if isinstance(v, str) and v.lower() in ('none', 'null', 'undefined'):
+        return True
+    if isinstance(v, (list, dict)) and len(v) == 0:
+        return True
+    return False
+
+
+def _parse_shape(v: Any) -> tuple | None:
+    """Parse shape string like '(5,10)' or '[5,10]' into tuple of ints."""
+    if isinstance(v, (list, tuple)):
+        return tuple(int(x) if x is not None else None for x in v)
+    if isinstance(v, str):
+        # Remove parentheses, brackets, spaces
+        v = v.strip().strip('()[]')
+        if not v:
+            return None
+        # Split by comma and convert to ints
+        try:
+            parts = [x.strip() for x in v.split(',')]
+            return tuple(int(x) if x.lower() != 'none' else None for x in parts if x)
+        except (ValueError, AttributeError):
+            return None
+    if isinstance(v, int):
+        return (v,)
+    return v
+
+
+def _normalize_input_params(params: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Normalize parameters for keras.Input() by filtering invalid params,
+    removing None/empty values, and handling mutually exclusive parameters.
+    
+    Args:
+        params: Raw parameters from the graph node
+        
+    Returns:
+        Cleaned parameters safe to pass to keras.Input()
+    """
+    # Valid Input() parameters in Keras 3.x
+    valid_input_params = {
+        'shape', 'batch_size', 'dtype', 'sparse', 'ragged', 
+        'batch_shape', 'name', 'tensor', 'optional'
+    }
+    
+    kwargs = {}
+    for k, v in (params or {}).items():
+        if k not in valid_input_params or _is_empty(v):
+            continue
+        
+        # Parse shape-like parameters
+        if k in ('shape', 'batch_shape'):
+            parsed = _parse_shape(v)
+            if parsed is not None:
+                kwargs[k] = parsed
+        else:
+            kwargs[k] = v
+    
+    # Handle mutually exclusive parameters
+    # batch_shape takes priority over shape (more specific)
+    if 'batch_shape' in kwargs and 'shape' in kwargs:
+        del kwargs['shape']
+    
+    return kwargs
+
+
 def _topological_sort(
     node_ids: Iterable[str],
     incoming_map: Dict[str, List[str]],
@@ -133,8 +202,10 @@ def build_keras_model(
 
     # Build the model using the functional API
     for node in structure.ordered_nodes:
-        ntype = node.get("type")
-        params = node.get("data", {}).get("params") or node.get("params", {})
+        node_data = node.get("data", {})
+        # Use data.layer for type, fallback to node.type for legacy/other node types
+        ntype = node_data.get("layer") or node.get("type")
+        params = node_data.get("params") or node.get("params", {})
         inbound_tensors = [tensors[parent_id] for parent_id in inbound_map[node["id"]]]
 
         # If the manifest includes a dedicated input layer name (e.g. "Input" or "InputLayer")
@@ -144,7 +215,7 @@ def build_keras_model(
         if ntype in input_names_in_manifest:
             # Construct an Input tensor using provided params
             from keras import Input  # lazy import
-            kwargs = {k: v for k, v in (params or {}).items() if v not in (None, "")}
+            kwargs = _normalize_input_params(params)
             tensor = Input(**kwargs)
         else:
             # Normal layer path
@@ -154,21 +225,24 @@ def build_keras_model(
             if len(inbound_tensors) == 0:
                 # If no inbound tensors, try to synthesize an Input() from any input-like params
                 input_like_keys = {"batch_input_shape", "batch_shape", "input_shape", "input_dim", "shape", "dtype", "name"}
-                input_kwargs_raw = {k: v for k, v in (normalized or {}).items() if k in input_like_keys and v not in (None, "")}
+                
+                input_kwargs_raw = {k: v for k, v in (normalized or {}).items() if k in input_like_keys and not _is_empty(v)}
                 if input_kwargs_raw:
                     from keras import Input  # lazy import
                     # map possible keys to Input() kwargs
                     ikw: Dict[str, Any] = {}
+                    # Priority order: batch_input_shape > batch_shape > input_shape > input_dim > shape
                     if "batch_input_shape" in input_kwargs_raw:
-                        ikw["batch_shape"] = input_kwargs_raw["batch_input_shape"]
+                        ikw["batch_shape"] = _parse_shape(input_kwargs_raw["batch_input_shape"])
                     elif "batch_shape" in input_kwargs_raw:
-                        ikw["batch_shape"] = input_kwargs_raw["batch_shape"]
+                        ikw["batch_shape"] = _parse_shape(input_kwargs_raw["batch_shape"])
                     elif "input_shape" in input_kwargs_raw:
-                        ikw["shape"] = input_kwargs_raw["input_shape"]
+                        ikw["shape"] = _parse_shape(input_kwargs_raw["input_shape"])
                     elif "input_dim" in input_kwargs_raw:
-                        ikw["shape"] = (input_kwargs_raw["input_dim"],)
+                        dim = input_kwargs_raw["input_dim"]
+                        ikw["shape"] = (int(dim),) if not isinstance(dim, (list, tuple)) else _parse_shape(dim)
                     elif "shape" in input_kwargs_raw:
-                        ikw["shape"] = input_kwargs_raw["shape"]
+                        ikw["shape"] = _parse_shape(input_kwargs_raw["shape"])
                     if "dtype" in input_kwargs_raw:
                         ikw["dtype"] = input_kwargs_raw["dtype"]
                     if "name" in input_kwargs_raw:
@@ -176,8 +250,16 @@ def build_keras_model(
                     in_tensor = Input(**ikw)
                     tensor = layer(in_tensor)
                 else:
-                    # No inbound and no input-like params: leave as Layer instance (will likely error later)
-                    tensor = layer
+                    # No inbound tensors and no input-like params: this layer cannot be placed without an input.
+                    # Raise a clear validation error instead of returning a raw Layer instance which breaks Model(...).
+                    raise GraphValidationError({
+                        "nodes": [
+                            (
+                                f"Layer '{ntype}' (id={node.get('id')}) has no inbound connection and no input shape. "
+                                f"Add an Input layer and connect it, or set one of input_shape/batch_shape/input_dim/shape on the layer."
+                            )
+                        ]
+                    })
             elif len(inbound_tensors) == 1:
                 tensor = layer(inbound_tensors[0])
             else:
