@@ -154,6 +154,31 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
         return response
 
+    @action(detail=False, methods=["post"], url_path="export-script")
+    def export_script_from_payload(self, request):
+        """Export Python script from payload without saving to database."""
+        nodes_payload, edges_payload = self._resolve_graph_payload(None, request.data)
+        model_name = request.data.get("name", "model")
+
+        try:
+            script = export_graph_to_python_script(
+                nodes_payload,
+                edges_payload,
+                model_name=model_name,
+            )
+        except GraphValidationError as exc:
+            return Response(getattr(exc, "detail", str(exc)), status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:  # pragma: no cover - defensive
+            return Response(
+                {"detail": f"Failed to export graph script: {exc}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        filename = f"{slugify(model_name)}.py"
+        response = HttpResponse(script, content_type="text/x-python")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+
     @action(detail=False, methods=["post"], url_path="import-keras-json")
     def import_keras_json(self, request):
         """Accepts a Keras model.to_json() string and creates a corresponding graph.
