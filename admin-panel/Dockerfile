@@ -1,13 +1,17 @@
-FROM node:20-alpine AS builder
+FROM node:20-bullseye-slim AS builder
 
 WORKDIR /app
 
 COPY package.json package-lock.json ./
 
-# Install dependencies in package.json
-RUN npm ci
+# Resolve deps on glibc (no musl lock)
+RUN rm -f package-lock.json \
+    && npm install --no-audit --no-fund
 
 COPY . .
+
+# Ensure native esbuild binary matches the JS package
+RUN npm rebuild esbuild
 
 # Build app with Vite in dist folder
 RUN npm run build
