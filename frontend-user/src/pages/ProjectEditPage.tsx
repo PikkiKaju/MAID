@@ -21,9 +21,57 @@ export default function ProjectEditPage() {
     prediction: number[];
     svg_plot: string;
   } | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true);
 
   const navigate = useNavigate();
   const token = useSelector((state: RootState) => state.auth.token);
+
+  // Konfiguracja wymaganych parametrów dla każdej metody
+  const paramConfig: Record<
+    string,
+    Array<{
+      key: string;
+      label: string;
+      type: "number" | "text" | "select";
+      options?: string[];
+      min?: number;
+    }>
+  > = {
+    linear: [],
+    ridge: [{ key: "alpha", label: "Alpha", type: "number", min: 0 }],
+    lasso: [{ key: "alpha", label: "Alpha", type: "number", min: 0 }],
+    polynomial: [
+      { key: "degree", label: "Stopień (degree)", type: "number", min: 1 },
+    ],
+    svr: [
+      {
+        key: "kernel",
+        label: "Kernel",
+        type: "select",
+        options: ["linear", "poly", "rbf", "sigmoid"],
+      },
+      { key: "C", label: "C", type: "number", min: 0 },
+      { key: "epsilon", label: "Epsilon", type: "number", min: 0 },
+    ],
+    "decision-tree": [
+      { key: "max_depth", label: "Max depth", type: "number", min: 1 },
+      { key: "random_state", label: "Random state", type: "number", min: 0 },
+    ],
+    elasticnet: [
+      { key: "alpha", label: "Alpha", type: "number", min: 0 },
+      { key: "l1_ratio", label: "L1 ratio", type: "number", min: 0 },
+    ],
+    "random-forest": [
+      { key: "max_depth", label: "Max depth", type: "number", min: 1 },
+      { key: "random_state", label: "Random state", type: "number", min: 0 },
+      {
+        key: "n_estimators",
+        label: "Liczba drzew (n_estimators)",
+        type: "number",
+        min: 1,
+      },
+    ],
+  };
 
   useEffect(() => {
     if (!id || !token) return;
@@ -36,10 +84,13 @@ export default function ProjectEditPage() {
       })
       .then((res) => {
         setMeta(res.data.meta);
+        // Użyj danych z backendu jako źródła prawdy
         setDetail(() => ({
           ...res.data.detail,
           isPublic: res.data.meta.isPublic,
         }));
+        // Brak niezapisanych zmian zaraz po wczytaniu
+        setHasUnsavedChanges(false);
       })
       .finally(() => setLoading(false));
 
@@ -60,7 +111,7 @@ export default function ProjectEditPage() {
   const handleStartCalculation = () => {
     if (!id || !detail) return;
     axiosInstance
-      .post(`/Calculation/start`, id, {
+      .post(`/Calculation/start`, JSON.stringify(id), {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
@@ -83,7 +134,10 @@ export default function ProjectEditPage() {
           },
         }
       )
-      .then(() => alert("Zapisano zmiany w projekcie."))
+      .then(() => {
+        alert("Zapisano zmiany w projekcie.");
+        setHasUnsavedChanges(false);
+      })
       .catch(() => alert("Błąd podczas zapisywania zmian."));
   };
 
@@ -149,6 +203,7 @@ export default function ProjectEditPage() {
     setDetail((detail) =>
       detail ? { ...detail, xColumn: "", yColumn: "" } : null
     );
+    setHasUnsavedChanges(true);
 
     try {
       await axiosInstance.put(
@@ -213,9 +268,10 @@ export default function ProjectEditPage() {
           {datasetColumns.length > 0 ? (
             <select
               value={detail.xColumn}
-              onChange={(e) =>
-                setDetail({ ...detail, xColumn: e.target.value })
-              }
+              onChange={(e) => {
+                setDetail({ ...detail, xColumn: e.target.value });
+                setHasUnsavedChanges(true);
+              }}
               className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
               disabled={loadingColumns}
             >
@@ -230,9 +286,52 @@ export default function ProjectEditPage() {
             <input
               type="text"
               value={detail.xColumn}
-              onChange={(e) =>
-                setDetail({ ...detail, xColumn: e.target.value })
+              onChange={(e) => {
+                setDetail({ ...detail, xColumn: e.target.value });
+                setHasUnsavedChanges(true);
+              }}
+              placeholder={
+                meta.datasetId === "00000000-0000-0000-0000-000000000000"
+                  ? "Wybierz dataset, aby załadować kolumny"
+                  : loadingColumns
+                  ? "Ładowanie kolumn..."
+                  : "Brak dostępnych kolumn"
               }
+              disabled={loadingColumns}
+              className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
+            />
+          )}
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-muted-foreground mb-1">
+            X2 Column (opcjonalnie)
+          </label>
+          {datasetColumns.length > 0 ? (
+            <select
+              value={detail.x2Column || ""}
+              onChange={(e) => {
+                setDetail({ ...detail, x2Column: e.target.value });
+                setHasUnsavedChanges(true);
+              }}
+              className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
+              disabled={loadingColumns}
+            >
+              <option value="">Brak</option>
+              {datasetColumns.map((column) => (
+                <option key={column} value={column}>
+                  {column}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              value={detail.x2Column || ""}
+              onChange={(e) => {
+                setDetail({ ...detail, x2Column: e.target.value });
+                setHasUnsavedChanges(true);
+              }}
               placeholder={
                 meta.datasetId === "00000000-0000-0000-0000-000000000000"
                   ? "Wybierz dataset, aby załadować kolumny"
@@ -253,9 +352,10 @@ export default function ProjectEditPage() {
           {datasetColumns.length > 0 ? (
             <select
               value={detail.yColumn}
-              onChange={(e) =>
-                setDetail({ ...detail, yColumn: e.target.value })
-              }
+              onChange={(e) => {
+                setDetail({ ...detail, yColumn: e.target.value });
+                setHasUnsavedChanges(true);
+              }}
               className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
               disabled={loadingColumns}
             >
@@ -270,9 +370,10 @@ export default function ProjectEditPage() {
             <input
               type="text"
               value={detail.yColumn}
-              onChange={(e) =>
-                setDetail({ ...detail, yColumn: e.target.value })
-              }
+              onChange={(e) => {
+                setDetail({ ...detail, yColumn: e.target.value });
+                setHasUnsavedChanges(true);
+              }}
               placeholder={
                 meta.datasetId === "00000000-0000-0000-0000-000000000000"
                   ? "Wybierz dataset, aby załadować kolumny"
@@ -295,6 +396,7 @@ export default function ProjectEditPage() {
             checked={!!detail.isPublic}
             onChange={(e) => {
               setDetail({ ...detail, isPublic: e.target.checked });
+              setHasUnsavedChanges(true);
             }}
             className="mr-2"
           />
@@ -329,16 +431,75 @@ export default function ProjectEditPage() {
           </label>
           <select
             value={detail.algorithm}
-            onChange={(e) =>
-              setDetail({ ...detail, algorithm: e.target.value })
-            }
+            onChange={(e) => {
+              setDetail({ ...detail, algorithm: e.target.value });
+              setHasUnsavedChanges(true);
+            }}
             className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
           >
             <option value="linear">Regresja liniowa</option>
             <option value="ridge">Regresja grzbietowa</option>
             <option value="lasso">Lasso</option>
+            <option value="svr">SVR</option>
+            <option value="decision-tree">Drzewo decyzyjne</option>
+            <option value="elasticnet">Elastic Net</option>
+            <option value="random-forest">Random Forest</option>
+            <option value="polynomial">Wielomianowa</option>
           </select>
         </div>
+
+        {/* Dynamiczne parametry zależne od metody */}
+        {paramConfig[detail.algorithm]?.length > 0 && (
+          <div className="mb-6 space-y-3">
+            {paramConfig[detail.algorithm].map((p) => (
+              <div key={p.key}>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">
+                  {p.label}
+                </label>
+                {p.type === "select" ? (
+                  <select
+                    value={detail.parameters?.[p.key] ?? ""}
+                    onChange={(e) => {
+                      setDetail({
+                        ...detail,
+                        parameters: {
+                          ...detail.parameters,
+                          [p.key]: e.target.value,
+                        },
+                      });
+                      setHasUnsavedChanges(true);
+                    }}
+                    className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
+                  >
+                    <option value="">Wybierz</option>
+                    {p.options?.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type={p.type}
+                    min={p.min}
+                    value={detail.parameters?.[p.key] ?? ""}
+                    onChange={(e) => {
+                      setDetail({
+                        ...detail,
+                        parameters: {
+                          ...detail.parameters,
+                          [p.key]: e.target.value,
+                        },
+                      });
+                      setHasUnsavedChanges(true);
+                    }}
+                    className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Main */}
@@ -354,7 +515,17 @@ export default function ProjectEditPage() {
 
           <button
             onClick={handleStartCalculation}
-            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 shadow"
+            className={`px-6 py-2 rounded shadow text-white ${
+              hasUnsavedChanges
+                ? "bg-blue-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700"
+            }`}
+            disabled={hasUnsavedChanges}
+            title={
+              hasUnsavedChanges
+                ? "Najpierw zapisz zmiany"
+                : "Uruchom obliczenia"
+            }
           >
             <Play />
           </button>
@@ -367,27 +538,68 @@ export default function ProjectEditPage() {
           </button>
         </div>
 
-        {/* TODO
-        Podgląd wyników i wizualizacja
-        */}
         <div className="text-gray-600">
           {calculationResult && (
-            <div className="mt-4">
-              <h3 className="font-bold mb-2">Predykcje:</h3>
-              <ul className="mb-4">
-                {calculationResult.prediction.map((val, idx) => (
-                  <li key={idx}>
-                    Wynik {idx + 1}: {val}
-                  </li>
-                ))}
-              </ul>
-              <h3 className="font-bold mb-2">Wizualizacja:</h3>
-              <div className="border p-2 bg-card rounded text-card-foreground">
-                <div
-                  dangerouslySetInnerHTML={{
-                    __html: atob(calculationResult.svg_plot),
-                  }}
-                />
+            <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h3 className="font-bold mb-2">Wizualizacja:</h3>
+                <div className="border p-2 bg-card rounded text-card-foreground">
+                  <div
+                    dangerouslySetInnerHTML={{
+                      __html: calculationResult.svg_plot,
+                    }}
+                  />
+                </div>
+              </div>
+              <div>
+                <h3 className="font-bold mb-2">Informacje o modelu:</h3>
+                {(() => {
+                  const info = (calculationResult as any).model_info;
+                  const degree = (calculationResult as any).degree;
+                  const n_features = (calculationResult as any).n_features;
+                  const coefficients =
+                    (calculationResult as any).coefficients ||
+                    info?.coefficients;
+                  const intercept =
+                    (calculationResult as any).intercept || info?.intercept;
+                  const r2 = info?.r_squared;
+                  return (
+                    <div className="space-y-2 text-sm">
+                      {typeof degree !== "undefined" && (
+                        <div>
+                          <span className="font-medium">Degree:</span> {degree}
+                        </div>
+                      )}
+                      {typeof n_features !== "undefined" && (
+                        <div>
+                          <span className="font-medium">Liczba cech:</span>{" "}
+                          {n_features}
+                        </div>
+                      )}
+                      {typeof r2 !== "undefined" && (
+                        <div>
+                          <span className="font-medium">R²:</span> {r2}
+                        </div>
+                      )}
+                      {typeof intercept !== "undefined" && (
+                        <div>
+                          <span className="font-medium">Intercept:</span>{" "}
+                          {intercept}
+                        </div>
+                      )}
+                      {Array.isArray(coefficients) && (
+                        <div>
+                          <div className="font-medium">Współczynniki:</div>
+                          <ul className="list-disc ml-5">
+                            {coefficients.map((c: number, i: number) => (
+                              <li key={i}>{c}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
