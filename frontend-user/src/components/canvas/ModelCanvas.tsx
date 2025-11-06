@@ -21,7 +21,7 @@ import LayerNode from './LayerNode';
 import TopToolbar from './TopToolbar';
 import LayerPalette from './LayerPalette';
 import LayerInspector from './LayerInspector';
-import networkGraphService, { GraphNode, GraphEdge } from '../../api/networkGraphService';
+import networkGraphService, { GraphNode, GraphEdge, NetworkGraphPayload } from '../../api/networkGraphService';
 import RemovableEdge from './RemovableEdge';
 
 // Initial seed graph (can be removed when implementing full load-from-backend)
@@ -69,6 +69,53 @@ export default function ModelCanvas() {
   useEffect(() => {
     setEdges(storeEdges);
   }, [storeEdges, setEdges]);
+
+  const loadGraphFromPayload = useCallback((graph: NetworkGraphPayload) => {
+    // Helper to convert backend position format to ReactFlow
+    const toXY = (val: unknown): { x: number; y: number } => {
+      if (val && typeof val === 'object') {
+        const rec = val as Record<string, unknown>;
+        const xv = rec['x']; const yv = rec['y'];
+        if (typeof xv === 'number' && typeof yv === 'number') return { x: xv, y: yv };
+      }
+      return { x: 100, y: 100 };
+    };
+
+    // Helper to extract node ID from backend edge format
+    // Backend returns edges with source/target like "Dense (node-id)" instead of just "node-id"
+    const extractNodeId = (nodeRef: string): string => {
+      // Try to extract ID from format "LayerName (id)"
+      const match = nodeRef.match(/\(([^)]+)\)$/);
+      return match ? match[1] : nodeRef;
+    };
+
+    // Convert nodes
+    const loadedNodes: Node[] = (graph.nodes || []).map(n => ({
+      id: String(n.id),
+      type: 'layerNode',
+      position: toXY(n.position),
+      data: { label: n.label || n.type, layer: n.type, params: n.params || {} },
+    }));
+
+    // Convert edges - extract actual node IDs from formatted strings
+    const loadedEdges: Edge[] = (graph.edges || []).map(e => ({
+      id: String(e.id),
+      source: extractNodeId(String(e.source)),
+      target: extractNodeId(String(e.target)),
+      type: 'removable',
+      markerEnd: { type: MarkerType.ArrowClosed }
+    }));
+
+    // Update canvas and store
+    setNodes(loadedNodes);
+    setEdges(loadedEdges);
+    setGraph(loadedNodes, loadedEdges);
+    
+    // Store the graph ID for future updates
+    if (graph.id) {
+      setPersistedGraphId(graph.id);
+    }
+  }, [setNodes, setEdges, setGraph]);
 
   const handlePersist = () => {
     setGraph(nodes, edges); // persist latest working copy
@@ -160,7 +207,7 @@ export default function ModelCanvas() {
 
   return (
     <div className='h-[calc(90vh-100px)] flex flex-col border rounded bg-white shadow'>
-      <TopToolbar onSave={handlePersist} />
+      <TopToolbar onSave={handlePersist} onLoadGraph={loadGraphFromPayload} />
       <div className='flex flex-1 min-h-0'>
         <div className='w-56 border-r p-2 space-y-2 bg-slate-50 overflow-y-auto text-xs'>
           <h3 className='font-semibold text-slate-600 text-sm'>Layers</h3>

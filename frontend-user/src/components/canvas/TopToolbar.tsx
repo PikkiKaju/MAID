@@ -1,12 +1,16 @@
-import { Save, Trash2, Play, FileDown, Upload } from 'lucide-react';
+import { Save, Trash2, Play, FileDown, Upload, FolderOpen } from 'lucide-react';
+import LoadGraphModal from './LoadGraphModal';
 import { useModelCanvasStore } from '../../store/modelCanvasStore';
 import networkGraphService, { GraphEdge, GraphNode, NetworkGraphPayload } from '../../api/networkGraphService';
 import { useRef, useState } from 'react';
 import { Edge as RFEdge, Node as RFNode } from 'reactflow';
 
-interface Props { onSave: () => void }
+interface Props { 
+  onSave: () => void;
+  onLoadGraph: (graph: NetworkGraphPayload) => void;
+}
 
-export default function TopToolbar({ onSave }: Props) {
+export default function TopToolbar({ onSave, onLoadGraph }: Props) {
   const setGraph = useModelCanvasStore(s => s.setGraph);
   const currentNodes = useModelCanvasStore(s => s.nodes);
   const currentEdges = useModelCanvasStore(s => s.edges);
@@ -14,6 +18,7 @@ export default function TopToolbar({ onSave }: Props) {
   const fileKerasRef = useRef<HTMLInputElement | null>(null);
   const fileGraphRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState<null | string>(null);
+  const [showLoadModal, setShowLoadModal] = useState(false);
 
   const clearAll = () => setGraph([], []);
 
@@ -146,13 +151,24 @@ export default function TopToolbar({ onSave }: Props) {
   };
 
   return (
-    <div className='flex items-center gap-2 border-b px-3 py-2 bg-slate-100 text-xs'>
-      {/* Save current canvas (delegates to parent) */}
-      <button onClick={onSave} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60'>
-        <Save size={14}/> Save
-      </button>
+    <>
+      <LoadGraphModal 
+        open={showLoadModal} 
+        onOpenChange={setShowLoadModal} 
+        onLoad={onLoadGraph} 
+      />
+      <div className='flex items-center gap-2 border-b px-3 py-2 bg-slate-100 text-xs'>
+        {/* Save current canvas (delegates to parent) */}
+        <button onClick={onSave} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60'>
+          <Save size={14}/> Save
+        </button>
 
-      {/* Compile on backend */}
+        {/* Load saved graph */}
+        <button onClick={() => setShowLoadModal(true)} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-60'>
+          <FolderOpen size={14}/> Load
+        </button>
+
+        {/* Compile on backend */}
       <button onClick={compileGraph} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-60'>
         <Play size={14}/> Compile
       </button>
@@ -178,10 +194,11 @@ export default function TopToolbar({ onSave }: Props) {
         <FileDown size={14}/> Export Python
       </button>
 
-      {/* Clear canvas */}
-      <button onClick={clearAll} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-rose-600 text-white rounded hover:bg-rose-700 disabled:opacity-60 ml-auto'>
-        <Trash2 size={14}/> Clear
-      </button>
-    </div>
+        {/* Clear canvas */}
+        <button onClick={clearAll} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-rose-600 text-white rounded hover:bg-rose-700 disabled:opacity-60 ml-auto'>
+          <Trash2 size={14}/> Clear
+        </button>
+      </div>
+    </>
   );
 }
