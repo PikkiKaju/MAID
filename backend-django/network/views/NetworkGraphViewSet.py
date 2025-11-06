@@ -17,7 +17,7 @@ from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
 from network.models import NetworkGraph
-from network.serializers import NetworkGraphSerializer
+from network.serializers import NetworkGraphSerializer, TrainingJobSerializer
 
 from network.services import (
     GraphValidationError,
@@ -26,6 +26,8 @@ from network.services import (
     import_keras_json_to_graph,
     load_graph_from_keras_artifact,
 )
+from network.models import TrainingJob
+from network.services.training import launch_training_job
 
 
 class NetworkGraphViewSet(viewsets.ModelViewSet):
@@ -258,3 +260,72 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
 
         # Return the graph payload without persisting
         return Response(graph_payload, status=status.HTTP_200_OK)
+
+
+    @action(detail=True, methods=["post"], url_path="train")
+    def train(self, request, pk=None):
+        """
+        Start an asynchronous training job for a graph.
+
+        Accepts multipart/form-data with:
+          - file: CSV dataset (required for phase 1)
+          - x_columns: JSON array of input feature column names
+          - y_column: target column name
+          - optimizer: string (e.g., 'adam')
+          - loss: string (e.g., 'mse')
+          - metrics: JSON array of metric names
+          - epochs: int
+          - batch_size: int
+          - validation_split: float (0..1)
+          - test_split: float (0..1)
+
+        Returns 202 Accepted with job payload {id, status, ...} and Location header to poll.
+        """
+        graph = self.get_object()
+
+        uploaded = request.FILES.get("file")
+        if not uploaded:
+            return Response({"detail": "Missing CSV file (field name 'file')"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Persist dataset to a temp path tied to the job id
+        # Parse JSON-like fields if they are strings
+        import json as _json
+        def _maybe_json(val):
+            if isinstance(val, str):
+                try:
+                    return _json.loads(val)
+                except Exception:
+                    return val
+            return val
+
+        job = TrainingJob.objects.create(
+            graph=graph,
+            params={
+                "x_columns": _maybe_json(request.data.get("x_columns")),
+                "y_column": request.data.get("y_column"),
+                "optimizer": request.data.get("optimizer", "adam"),
+                "loss": request.data.get("loss", "mse"),
+                "metrics": _maybe_json(request.data.get("metrics")),
+                "epochs": request.data.get("epochs", 10),
+                "batch_size": request.data.get("batch_size", 32),
+                "validation_split": request.data.get("validation_split", 0.1),
+                "test_split": request.data.get("test_split", 0.1),
+            },
+        )
+
+        # Create a per-job temp CSV file
+        import tempfile, os
+        suffix = os.path.splitext(getattr(uploaded, "name", "dataset.csv"))[1] or ".csv"
+        temp_dir = tempfile.gettempdir()
+        dataset_path = os.path.join(temp_dir, f"job-{job.id}{suffix}")
+        with open(dataset_path, "wb") as fp:
+            for chunk in uploaded.chunks():
+                fp.write(chunk)
+        job.dataset_path = dataset_path
+        job.save(update_fields=["dataset_path", "updated_at"])
+
+        # Launch background worker
+        launch_training_job(job)
+
+        headers = {"Location": request.build_absolute_uri(f"/api/network/training-jobs/{job.id}/")}
+        return Response(TrainingJobSerializer(job).data, status=status.HTTP_202_ACCEPTED, headers=headers)

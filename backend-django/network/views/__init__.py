@@ -6,6 +6,7 @@ from .OptimizerManifestViewSet import OptimizerManifestViewSet
 from .LossManifestViewSet import LossManifestViewSet
 from .MetricManifestViewSet import MetricManifestViewSet
 from .ActivationManifestViewSet import ActivationManifestViewSet
+from .TrainingJobViewSet import TrainingJobViewSet
 
 __all__ = [
     "NetworkGraphViewSet",
@@ -16,4 +17,5 @@ __all__ = [
     "LossManifestViewSet",
     "MetricManifestViewSet",
     "ActivationManifestViewSet",
+    "TrainingJobViewSet",
 ]
