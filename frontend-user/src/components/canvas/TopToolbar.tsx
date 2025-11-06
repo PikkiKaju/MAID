@@ -42,13 +42,10 @@ export default function TopToolbar({ onSave }: Props) {
     try {
       setBusy('compile');
       const { nodes, edges } = buildPayloadFromStore();
-      // create temp graph then compile
-      const temp: NetworkGraphPayload = await networkGraphService.createGraph({ name: 'temp-compile', nodes, edges });
-      const graphId = String(((temp as { id?: string | number }).id) ?? '');
-      const compiled = await networkGraphService.compileGraph(graphId);
+      // Compile from payload without saving
+      const compiled = await networkGraphService.compileGraphFromPayload(nodes, edges);
       console.log('Compiled result:', compiled);
       alert('Compile successful. See console for full result.');
-      try { await networkGraphService.deleteGraph(graphId); } catch { /* ignore */ }
     } catch (err: unknown) {
       console.error('Compile failed', err);
       alert('Compile failed: ' + (err instanceof Error ? err.message : String(err)));
@@ -95,7 +92,7 @@ export default function TopToolbar({ onSave }: Props) {
       setBusy('import-graph');
       const text = await file.text();
       const json = JSON.parse(text) as NetworkGraphPayload;
-      const created: NetworkGraphPayload = await networkGraphService.createGraph(json);
+      // Load directly to canvas without persisting to DB
       const toXY = (val: unknown): { x: number; y: number } => {
         if (val && typeof val === 'object') {
           const rec = val as Record<string, unknown>;
@@ -104,13 +101,13 @@ export default function TopToolbar({ onSave }: Props) {
         }
         return { x: 100, y: 100 };
       };
-      const nodes: RFNode[] = (created.nodes || []).map(n => ({
+      const nodes: RFNode[] = (json.nodes || []).map(n => ({
         id: String(n.id),
         type: 'layerNode',
         position: toXY(n.position),
         data: { label: n.label || n.type, layer: n.type, params: n.params || {} },
       }));
-      const edges: RFEdge[] = (created.edges || []).map(e => ({
+      const edges: RFEdge[] = (json.edges || []).map(e => ({
         id: String(e.id), source: String(e.source), target: String(e.target)
       }));
       setGraph(nodes, edges);
@@ -127,22 +124,19 @@ export default function TopToolbar({ onSave }: Props) {
   const exportPython = async () => {
     try {
       setBusy('export-python');
-  const { nodes, edges } = buildPayloadFromStore();
-  const created: NetworkGraphPayload = await networkGraphService.createGraph({ name: 'export-script', nodes, edges });
-  const graphId = String(((created as { id?: string | number }).id) ?? '');
-      const code: string = await networkGraphService.getModelPythonCode(graphId);
+      const { nodes, edges } = buildPayloadFromStore();
+      // Export from payload without saving
+      const code: string = await networkGraphService.exportPythonFromPayload(nodes, edges, 'model');
       // trigger browser download
       const blob = new Blob([code], { type: 'text/x-python' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-  a.download = `${(created.name || 'model')}.py`;
+      a.download = 'model.py';
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      // optional cleanup
-      try { await networkGraphService.deleteGraph(graphId); } catch { /* ignore */ }
     } catch (err: unknown) {
       console.error('Export python failed', err);
       alert('Export python failed: ' + (err instanceof Error ? err.message : String(err)));

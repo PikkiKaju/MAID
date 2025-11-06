@@ -84,10 +84,30 @@ const networkGraphService = {
     throw new Error('Failed to compile graph');
   },
 
+  /**
+   * Compile graph from payload without saving to database.
+   * Uses POST /api/network/graphs/compile endpoint.
+   */
+  compileGraphFromPayload: async (nodes: GraphNode[], edges: GraphEdge[]) => {
+    const resp = await djangoClient.post(`network/graphs/compile/`, { nodes, edges });
+    if (resp.status === 200) return resp.data;
+    throw new Error('Failed to compile graph from payload');
+  },
+
   getModelPythonCode: async (id: string) => {
     const resp = await djangoClient.get(`network/graphs/${id}/export-script/`, { responseType: 'text' });
     if (resp.status === 200) return resp.data;
     throw new Error('Failed to get model python code');
+  },
+
+  /**
+   * Export Python code from payload without saving to database.
+   * Uses POST /api/network/graphs/export-script endpoint.
+   */
+  exportPythonFromPayload: async (nodes: GraphNode[], edges: GraphEdge[], name: string = 'model'): Promise<string> => {
+    const resp = await djangoClient.post(`network/graphs/export-script/`, { nodes, edges, name }, { responseType: 'text' });
+    if (resp.status === 200) return resp.data;
+    throw new Error('Failed to export Python code from payload');
   },
 
   getLayersList: async (forceRefresh = false): Promise<unknown> => {
