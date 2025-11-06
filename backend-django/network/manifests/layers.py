@@ -179,10 +179,46 @@ def normalize_params_for_layer(layer_name: str, raw_params: Dict[str, Any]) -> D
             return s[1:-1]
         return val
 
+    def _parse_tuple_string(val: str) -> Any:
+        """Parse string representations of tuples/lists into Python tuples.
+        
+        Examples:
+          "(2, 2)" -> (2, 2)
+          "[3, 3]" -> (3, 3)
+          "(1, 1)" -> (1, 1)
+        
+        Returns the original value if parsing fails.
+        """
+        s = val.strip()
+        # Remove parentheses or brackets
+        if (s.startswith('(') and s.endswith(')')) or (s.startswith('[') and s.endswith(']')):
+            s = s[1:-1]
+        else:
+            return val  # Not a tuple/list string
+        
+        # Split by comma and try to parse each element
+        try:
+            parts = [x.strip() for x in s.split(',') if x.strip()]
+            if not parts:
+                return val
+            # Try to convert to integers
+            parsed = []
+            for p in parts:
+                if p.lower() == 'none':
+                    parsed.append(None)
+                else:
+                    parsed.append(int(p))
+            return tuple(parsed)
+        except (ValueError, AttributeError):
+            return val  # Parsing failed, return original
+
     entry = get_layer_entry(layer_name)
     declared_params = [p for p in entry.get("parameters", []) if p.get("name")]
     declared_names = {p["name"] for p in declared_params}
     required_names = {p["name"] for p in declared_params if p.get("required")}
+    
+    # Build a quick lookup for param metadata
+    param_meta = {p["name"]: p for p in declared_params}
 
     cleaned: Dict[str, Any] = {}
 
@@ -199,6 +235,31 @@ def normalize_params_for_layer(layer_name: str, raw_params: Dict[str, Any]) -> D
             if coerced is None:
                 continue
             v = coerced
+            
+            # Try to parse tuple-like strings for common shape/size parameters
+            if k in ('kernel_size', 'strides', 'pool_size', 'size', 'dilation_rate', 
+                     'shape', 'batch_shape', 'input_shape', 'output_shape', 'target_shape'):
+                parsed = _parse_tuple_string(v)
+                if parsed != v:  # Parsing succeeded
+                    v = parsed
+            
+            # Type coercion based on param_type from manifest
+            elif isinstance(v, str):
+                pmeta = param_meta.get(k, {})
+                ptype = pmeta.get("param_type")
+                if ptype == "int":
+                    try:
+                        v = int(v)
+                    except (ValueError, TypeError):
+                        pass  # Leave as string, Keras will complain
+                elif ptype == "float":
+                    try:
+                        v = float(v)
+                    except (ValueError, TypeError):
+                        pass
+                elif ptype == "bool":
+                    # Already handled by _coerce_manifest_string for "true"/"false"
+                    pass
 
         spec = get_param_choices(layer_name, k)
         if spec and isinstance(v, str):
