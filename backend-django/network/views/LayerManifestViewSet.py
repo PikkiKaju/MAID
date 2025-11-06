@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-from network.layers import (
+from network.manifests.layers import (
     get_manifest,
     regenerate_manifest,
     refresh_manifest,
