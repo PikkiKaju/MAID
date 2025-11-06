@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import CategoryGrid from "./CategoryGrid";
 import { Clock } from "lucide-react";
 import { Button } from "../../ui/button";
@@ -16,15 +17,17 @@ const RecentSection: React.FC<Props> = ({
   favorites,
   handleFavoriteToggle,
 }) => {
+  const { t } = useTranslation();
+
   return (
     <section>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Clock className="h-5 w-5 text-primary" />
-          <h2 className="text-xl font-semibold">Recent Projects</h2>
+          <h2 className="text-xl font-semibold">{t("home.recentProjects")}</h2>
         </div>
         <Button variant="ghost" size="sm">
-          View All
+          {t("home.viewAll")}
         </Button>
       </div>
 

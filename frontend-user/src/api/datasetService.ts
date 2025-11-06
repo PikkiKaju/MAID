@@ -27,34 +27,67 @@ export interface DatasetDetail extends DatasetMetadata {
 class DatasetService {
   private baseUrl = "/dataset";
 
-async uploadCsv(
-  file: File,
-  name: string,
-  isPublic: boolean,
-  token: string
-): Promise<DatasetUploadResponse> {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("name", name);
-  formData.append("isPublic", isPublic.toString());
+  async uploadCsv(
+    file: File,
+    name: string,
+    columnTransform: string,
+    emptyTransform: string,
+    isPublic: boolean,
+    token: string
+  ): Promise<DatasetUploadResponse> {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("name", name);
+    formData.append("columnTransform", columnTransform);
+    formData.append("emptyTransform", emptyTransform);
+    formData.append("isPublic", isPublic.toString());
 
-  const response = await axiosInstance.post<DatasetUploadResponse>(
-    `${this.baseUrl}/upload-csv`,
-    formData,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        // No Content-Type header here, so Axios can set multipart/form-data boundary
-      },
-      transformRequest: (data, headers) => {
-        delete headers["Content-Type"];
-        return data;
-      },
-    }
-  );
+    const response = await axiosInstance.post<DatasetUploadResponse>(
+      "/Dataset/upload-csv",
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // No Content-Type header here, so Axios can set multipart/form-data boundary
+        },
+        transformRequest: (data, headers) => {
+          delete headers["Content-Type"];
+          return data;
+        },
+      }
+    );
 
-  return response.data;
-}
+    return response.data;
+  }
+
+  async uploadPhoto(
+    file: File,
+    name: string,
+    isPublic: boolean,
+    token: string
+  ): Promise<DatasetUploadResponse> {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("name", name);
+    formData.append("isPublic", isPublic.toString());
+
+    const response = await axiosInstance.post<DatasetUploadResponse>(
+      "/Dataset/upload-photo",
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // No Content-Type header here, so Axios can set multipart/form-data boundary
+        },
+        transformRequest: (data, headers) => {
+          delete headers["Content-Type"];
+          return data;
+        },
+      }
+    );
+
+    return response.data;
+  }
 
   async getDatasets(token: string): Promise<DatasetMyMetadata[]> {
     const response = await axiosInstance.get<DatasetMyMetadata[]>(
@@ -98,15 +131,25 @@ async uploadCsv(
   }
 
   async deleteDataset(id: string, token: string): Promise<void> {
-    await axiosInstance.delete(`${this.baseUrl}/${id}`, {
+    await axiosInstance.delete(`/Dataset/${id}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
   }
 
-  async getDatasetDetails(id: string, token: string): Promise<DatasetDetail> {
-    const response = await axiosInstance.get<DatasetDetail>(`${this.baseUrl}/${id}`, {
+  async getDatasetDetails(id: string, token: string): Promise<string> {
+    const response = await axiosInstance.get<string>(`/Dataset/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      responseType: "text", // Important: get raw CSV text
+    });
+    return response.data;
+  }
+
+  async getDatasetColumns(id: string, token: string): Promise<string[]> {
+    const response = await axiosInstance.get<string[]>(`/Dataset/${id}/columns`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

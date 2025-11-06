@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Input } from "../../ui/input";
 import { Button } from "../../ui/button";
@@ -23,6 +24,8 @@ function LoginForm({
   status,
   error,
 }: LoginFormProps) {
+  const { t } = useTranslation();
+
   return (
     <>
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20">
@@ -34,7 +37,7 @@ function LoginForm({
         {/* Login Form Box - match FavoritesSection background and use theme border */}
         <div className="bg-background rounded-xl p-6 border border-border w-full max-w-md">
           <h2 className="text-2xl font-bold text-center text-foreground mb-6">
-            Logowanie
+            {t("auth.login")}
           </h2>
 
           {/* Login Form */}
@@ -44,7 +47,7 @@ function LoginForm({
                 htmlFor="username"
                 className="block text-sm font-medium text-muted-foreground"
               >
-                Nazwa użytkownika
+                {t("auth.username")}
               </label>
               <Input
                 type="text"
@@ -63,7 +66,7 @@ function LoginForm({
                 htmlFor="password"
                 className="block text-sm font-medium text-muted-foreground"
               >
-                Hasło
+                {t("auth.password")}
               </label>
               <Input
                 type="password"
@@ -77,24 +80,28 @@ function LoginForm({
               />
             </div>
 
-            {error && <p className="text-center text-red-600">Błąd: {error}</p>}
+            {error && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                <p className="text-sm text-destructive text-center">{error}</p>
+              </div>
+            )}
 
             <Button
               type="submit"
               className="w-full"
               disabled={status === "loading"}
             >
-              Zaloguj się
+              {t("auth.loginButton")}
             </Button>
           </form>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            Nie masz konta?{" "}
+            {t("auth.noAccount")}{" "}
             <Link
               to="/register"
               className="font-medium text-primary hover:text-primary/90"
             >
-              Zarejestruj się
+              {t("auth.registerLink")}
             </Link>
           </p>
         </div>

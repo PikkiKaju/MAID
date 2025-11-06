@@ -1,14 +1,17 @@
-import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
 
-type Language = "en" | "pl";
-
 export function LanguageSwitcher() {
-  const [currentLanguage, setCurrentLanguage] = useState<Language>("en");
+  const { i18n } = useTranslation();
+  const currentLanguage = i18n.language;
 
   const toggleLanguage = () => {
-    setCurrentLanguage(currentLanguage === "en" ? "pl" : "en");
+    const newLanguage = currentLanguage === "en" ? "pl" : "en";
+    i18n.changeLanguage(newLanguage);
+    localStorage.setItem("maid-language", newLanguage);
   };
+
+  const { t } = useTranslation();
 
   return (
     <Button
@@ -16,7 +19,9 @@ export function LanguageSwitcher() {
       size="icon"
       className="h-9 w-9 rounded-md flex items-center justify-center p-[2px] overflow-hidden"
       onClick={toggleLanguage}
-      title={`Switch to ${currentLanguage === "en" ? "Polish" : "English"}`}
+      title={`${t("language.switchTo")} ${
+        currentLanguage === "en" ? t("language.polish") : t("language.english")
+      }`}
     >
       <div>
         {currentLanguage === "en" ? (

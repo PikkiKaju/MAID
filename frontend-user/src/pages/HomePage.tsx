@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { sampleProjects } from "../data";
 import RecentSection from "../components/home/RecentSection";
 import TrendingSection from "../components/home/TrendingSection";
 import FavoritesSection from "../components/home/FavoritesSection";
 import CategorySection from "../components/home/CategorySection";
 import SearchResultsSection from "../components/home/SearchResultsSection";
-import { useAppSelector } from "../store/hooks";
+import PublicDatasetsSection from "../components/datasets/PublicDatasetsSection";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { fetchPublicDatasets } from "../features/dataset/datasetThunks";
 // import { useNavigate } from "react-router-dom";
 import { useProjects } from "../hooks/useProjects";
 
@@ -50,11 +53,19 @@ export default function HomePage() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set(["1", "3"]));
   // const [isLoggedIn] = useState(true); // Simulate login state - change to false to test logged out state
 
+  // All hooks must be called at the top level, in the same order
+  const dispatch = useAppDispatch();
+  const { t } = useTranslation();
   const searchTerm = useAppSelector((state) => state.search.term.toLowerCase());
   // const navigate = useNavigate();
   const { loading, error } = useProjects();
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
   // const token = useAppSelector((state) => state.auth.token);
+
+  // Fetch public datasets on mount
+  useEffect(() => {
+    dispatch(fetchPublicDatasets());
+  }, [dispatch]);
 
   const filteredProjects = sampleProjects.filter((project) =>
     project.title.toLowerCase().includes(searchTerm)
@@ -78,7 +89,9 @@ export default function HomePage() {
     <div>
       {searchTerm ? (
         <section className="p-6 bg-background">
-          <h2 className="text-2xl font-semibold mb-6">Wyniki Wyszukiwania</h2>
+          <h2 className="text-2xl font-semibold mb-6">
+            {t("home.searchResults")}
+          </h2>
           <SearchResultsSection
             projects={filteredProjects}
             favorites={favorites}
@@ -101,6 +114,8 @@ export default function HomePage() {
             favorites={favorites}
             handleFavoriteToggle={handleFavoriteToggle}
           />
+
+          <PublicDatasetsSection />
 
           {isLoggedIn && favoriteProjects.length > 0 && (
             <FavoritesSection

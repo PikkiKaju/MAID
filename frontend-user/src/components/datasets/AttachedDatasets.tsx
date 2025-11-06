@@ -10,11 +10,12 @@ import {
 import { Button } from "../../ui/button";
 import {
   Calendar,
-  Download,
-  Upload,
   Trash2,
   Eye,
   ExternalLink,
+  User,
+  Heart,
+  Lock,
 } from "lucide-react";
 
 interface Dataset {
@@ -22,33 +23,45 @@ interface Dataset {
   name: string;
   type: string;
   status: string;
-  size: string;
-  rows: number | string;
+  size?: string;
+  rows?: number | string;
   uploadDate: string;
+  author?: string;
+  likes?: number;
+  isPublic?: boolean;
+  isLiked?: boolean;
 }
 
 interface Props {
   datasets: Dataset[];
   getFileIcon: (type: string) => React.ReactNode;
   getStatusColor: (status: string) => string;
+  hideHeader?: boolean; // Hide the default header
+  onDelete?: (datasetId: string, datasetName: string) => void; // Callback for delete action
+  onViewDetails?: (
+    datasetId: string,
+    datasetName: string,
+    datasetType: string
+  ) => void; // Callback for view details action
 }
 
 export default function AttachedDatasets({
   datasets,
   getFileIcon,
   getStatusColor,
+  hideHeader = false,
+  onDelete,
+  onViewDetails,
 }: Props) {
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">
-          Attached Datasets ({datasets.length})
-        </h2>
-        <Button variant="outline" size="sm">
-          <ExternalLink className="h-4 w-4 mr-2" />
-          Connect External Dataset
-        </Button>
-      </div>
+      {!hideHeader && (
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">
+            Moje Datasety ({datasets.length})
+          </h2>
+        </div>
+      )}
 
       <div className="space-y-3">
         {datasets.map((dataset) => (
@@ -66,11 +79,52 @@ export default function AttachedDatasets({
                         {dataset.status}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>{dataset.size}</span>
-                      <span>•</span>
-                      <span>{dataset.rows} records</span>
-                      <span>•</span>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                      {dataset.size && dataset.size !== "N/A" && (
+                        <>
+                          <span>{dataset.size}</span>
+                          <span>•</span>
+                        </>
+                      )}
+                      {dataset.rows && dataset.rows !== "N/A" && (
+                        <>
+                          <span>{dataset.rows} records</span>
+                          <span>•</span>
+                        </>
+                      )}
+                      {dataset.author && (
+                        <>
+                          <div className="flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            <span>{dataset.author}</span>
+                          </div>
+                          <span>•</span>
+                        </>
+                      )}
+                      {dataset.likes !== undefined && (
+                        <>
+                          <div className="flex items-center gap-1">
+                            <Heart
+                              className={`h-3 w-3 ${
+                                dataset.isLiked
+                                  ? "fill-red-500 text-red-500"
+                                  : ""
+                              }`}
+                            />
+                            <span>{dataset.likes}</span>
+                          </div>
+                          <span>•</span>
+                        </>
+                      )}
+                      {dataset.isPublic !== undefined && !dataset.isPublic && (
+                        <>
+                          <div className="flex items-center gap-1">
+                            <Lock className="h-3 w-3 text-blue-600" />
+                            <span className="text-blue-600">Prywatny</span>
+                          </div>
+                          <span>•</span>
+                        </>
+                      )}
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         <span>Uploaded {dataset.uploadDate}</span>
@@ -80,10 +134,18 @@ export default function AttachedDatasets({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm">
-                    <Eye className="h-4 w-4 mr-2" />
-                    Preview
-                  </Button>
+                  {onViewDetails && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        onViewDetails(dataset.id, dataset.name, dataset.type)
+                      }
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Preview
+                    </Button>
+                  )}
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -92,18 +154,14 @@ export default function AttachedDatasets({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <Eye className="h-4 w-4 mr-2" /> View Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Download className="h-4 w-4 mr-2" /> Download
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Upload className="h-4 w-4 mr-2" /> Replace
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
-                        <Trash2 className="h-4 w-4 mr-2" /> Remove from Project
-                      </DropdownMenuItem>
+                      {onDelete && (
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => onDelete(dataset.id, dataset.name)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" /> Remove
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>

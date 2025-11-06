@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import CategoryGrid from "./CategoryGrid";
 import { Project } from "./CategorySection";
 
@@ -19,21 +20,24 @@ const SearchResultsSection: React.FC<Props> = ({
   error,
   searchTerm,
 }) => {
+  const { t } = useTranslation();
+
   if (loading)
     return (
       <div className="text-center text-muted-foreground italic mt-10">
-        Ładowanie wyników...
+        {t("common.loading")}
       </div>
     );
   if (error)
     return (
-      <div className="text-center text-red-500 italic mt-10">Błąd: {error}</div>
+      <div className="text-center text-red-500 italic mt-10">
+        {t("common.error")}: {error}
+      </div>
     );
   if (projects.length === 0)
     return (
       <div className="text-center text-muted-foreground italic mt-10">
-        Brak wyników wyszukiwania dla "
-        <strong className="text-foreground">{searchTerm}</strong>".
+        {t("home.noResults")} "{searchTerm}"
       </div>
     );
 

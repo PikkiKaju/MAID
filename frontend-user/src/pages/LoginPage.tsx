@@ -9,6 +9,7 @@ import LoginForm from "../components/forms/LoginForm";
 function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
@@ -31,11 +32,39 @@ function LoginPage() {
     };
   }, [dispatch]);
 
+  // Client-side validation
+  const validateForm = (): string | null => {
+    if (!username.trim()) {
+      return "Nazwa użytkownika jest wymagana.";
+    }
+    if (!password.trim()) {
+      return "Hasło jest wymagane.";
+    }
+    if (username.trim().length < 3) {
+      return "Nazwa użytkownika musi mieć co najmniej 3 znaki.";
+    }
+    if (password.length < 4) {
+      return "Hasło musi mieć co najmniej 4 znaki.";
+    }
+    return null;
+  };
+
   // function to submit button
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (status === "loading") {
+      return;
+    }
+
+    // Clear previous errors
+    setValidationError(null);
+    dispatch(clearAuthStatus());
+
+    // Client-side validation
+    const validationErr = validateForm();
+    if (validationErr) {
+      setValidationError(validationErr);
       return;
     }
 
@@ -50,7 +79,7 @@ function LoginPage() {
       setPassword={setPassword}
       handleSubmit={handleSubmit}
       status={status}
-      error={error}
+      error={validationError || error}
     />
   );
 }

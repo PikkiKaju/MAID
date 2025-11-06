@@ -9,7 +9,6 @@ import NotFoundPage from "../pages/NotFoundPage";
 import { loginFromStorage } from "../features/auth/authSlice";
 import { store } from "../store/store";
 import ProjectEditPage from "../pages/ProjectEditPage";
-import DatasetPageUpload from "../pages/DatasetPageUpload";
 import DatasetsListPage from "../pages/DatasetsListPage";
 import CanvasPage from "../pages/CanvasPage";
 import { ProfileSettingsPage } from "../pages/ProfileSettingPage";
@@ -34,10 +33,6 @@ const router = createBrowserRouter([
       {
         path: "projects",
         element: <ProjectsPage />,
-      },
-      {
-        path: "upload-regression",
-        element: <DatasetPageUpload />,
       },
       {
         path: "datasets-regresja",

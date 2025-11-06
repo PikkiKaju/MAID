@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Sidebar,
   SidebarContent,
@@ -8,37 +9,38 @@ import {
   SidebarMenuItem,
 } from "../ui/sidebar";
 import { cn } from "../utilis/tailwind";
-import { Database, FolderOpen, Home, Sparkles, PanelsTopLeft, Network } from "lucide-react";
+import { Database, FolderOpen, Home, Sparkles, Network } from "lucide-react";
 
 function AppSidebar() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
 
   const navigationItems = [
-    { id: "home", label: "Home", icon: Home, path: "/" },
+    { id: "home", label: t("sidebar.home"), icon: Home, path: "/" },
     {
       id: "projects",
-      label: "My Projects",
+      label: t("sidebar.myProjects"),
       icon: FolderOpen,
       path: "/projects",
     },
     {
       id: "datasets",
-      label: "Datasets",
+      label: t("sidebar.datasets"),
       icon: Database,
       path: "/datasets-regresja",
     },
     {
       id: "canvas",
-      label: "Canvas",
+      label: t("sidebar.canvas"),
       icon: Network,
       path: "/canvas",
     },
   ];
 
   return (
-    <Sidebar className="border-r">
-      <SidebarHeader className="border-b px-6 py-4">
+    <Sidebar className="border-none">
+      <SidebarHeader className="shadow-md px-6 py-4">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
             <Sparkles className="h-4 w-4 text-white" />
@@ -49,7 +51,7 @@ function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-4 py-6">
+      <SidebarContent className="px-4 py-6 light:bg-gray-200 dark:bg-sidebar-accent/30">
         <SidebarMenu>
           {navigationItems.map((item) => {
             const Icon = item.icon;

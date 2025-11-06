@@ -9,10 +9,11 @@ import {
   XIcon,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { logout } from "../features/auth/authSlice";
 import { clearSearchTerm, setSearchTerm } from "../features/search/searchSlice";
-import { SidebarTrigger } from "../ui/sidebar";
+import { SidebarTrigger, useSidebar } from "../ui/sidebar";
 import { Input } from "../ui/input";
 import {
   DropdownMenu,
@@ -23,11 +24,18 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { ThemeToggle } from "./theme/ThemeToggle";
 import { LanguageSwitcher } from "./language/LanguageSwitcher";
+import { cn } from "../utilis/tailwind";
 
 export default function Header() {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { isLoggedIn, displayName } = useAppSelector((state) => state.auth);
   const searchTerm = useAppSelector((state) => state.search.term);
+  const { open, isMobile, openMobile } = useSidebar();
+
+  // Logo pokazuje się tylko gdy sidebar jest zamknięty
+  const isSidebarOpen = isMobile ? openMobile : open;
+  const showLogo = !isSidebarOpen;
 
   const handleLogout = () => dispatch(logout());
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -35,28 +43,30 @@ export default function Header() {
   const handleSearchClear = () => dispatch(clearSearchTerm());
 
   return (
-    <header className="h-16 border-b bg-background px-6 flex items-center justify-between">
+    <header className="h-16 shadow-md bg-sidebar-accent/70 dark:bg-sidebar-accent/30 px-6 flex items-center justify-between">
       {/* Logo and Sidebar Toggle */}
       <div className="flex items-center gap-3">
         <SidebarTrigger className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors hover:bg-accent h-9 w-9 p-0">
           <Menu className="h-4 w-4" />
         </SidebarTrigger>
 
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
-            <Sparkles className="h-4 w-4 text-white" />
+        {showLogo && (
+          <div className={cn("flex items-center gap-3")}>
+            <div className="h-8 w-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
+              <Sparkles className="h-4 w-4 text-white" />
+            </div>
+            <span className="font-semibold text-lg bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              Maid
+            </span>
           </div>
-          <span className="font-semibold text-lg bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Maid
-          </span>
-        </div>
+        )}
       </div>
 
       {/* Search */}
       <div className="flex-1 max-w-md mx-8 relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
         <Input
-          placeholder="Szukaj projektów, danych..."
+          placeholder={t("header.searchPlaceholder")}
           value={searchTerm}
           onChange={handleSearchChange}
           className="pl-10 pr-8 bg-input-background border-0"
@@ -83,13 +93,13 @@ export default function Header() {
               to="/register"
               className="flex items-center gap-1 border border-gray-400 text-sm px-3 py-2 rounded-full hover:bg-accent transition"
             >
-              <UserPlus className="h-4 w-4" /> Rejestracja
+              <UserPlus className="h-4 w-4" /> {t("header.register")}
             </Link>
             <Link
               to="/login"
               className="flex items-center gap-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm px-3 py-2 rounded-full hover:opacity-90 transition"
             >
-              <LogIn className="h-4 w-4" /> Logowanie
+              <LogIn className="h-4 w-4" /> {t("header.login")}
             </Link>
           </div>
         ) : (
@@ -102,26 +112,26 @@ export default function Header() {
                 </AvatarFallback>
               </Avatar>
               <span className="font-medium hidden sm:inline">
-                {displayName || "Użytkownik"}
+                {displayName || t("header.user")}
               </span>
               <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:inline" />
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem asChild>
-                <Link to="/profile">Profil</Link>
+                <Link to="/profile">{t("header.profile")}</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/settings">Ustawienia</Link>
+                <Link to="/settings">{t("header.settings")}</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/help-support">Pomoc i Wsparcie</Link>
+                <Link to="/help-support">{t("header.help")}</Link>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={handleLogout}
                 className="text-destructive"
               >
-                Wyloguj
+                {t("header.logout")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
