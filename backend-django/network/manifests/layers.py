@@ -95,8 +95,13 @@ def manifest_available() -> bool:
 
 def get_manifest() -> Dict[str, Any]:
     """Return the loaded manifest, or raise if not available."""
+    global _MANIFEST
     if _MANIFEST is None:
-        raise RuntimeError("Layer manifest not found. Generate it first with generate_layer_manifest.py")
+        # Try to load from disk first before failing
+        try:
+            _MANIFEST = _load_manifest()
+        except Exception:
+            raise RuntimeError("Layer manifest not found. Generate it first with generate_layer_manifest.py or call the regenerate API endpoint.")
     return _MANIFEST
 
 
@@ -155,6 +160,25 @@ def normalize_params_for_layer(layer_name: str, raw_params: Dict[str, Any]) -> D
     - Parameters with value None or empty string are omitted to let Keras defaults apply.
     - Required parameters must be present (after omission of None/empty) or an error is raised.
     """
+    def _coerce_manifest_string(val: str) -> Any:
+        """Best-effort cleanup for manifest-derived string defaults.
+
+        - Drop textual nulls ("none", "null", "undefined").
+        - Strip surrounding single/double quotes around literal strings (e.g., "'glorot_uniform'" -> "glorot_uniform").
+        - Coerce booleans "true"/"false" to Python bool.
+        """
+        s = val.strip()
+        ls = s.lower()
+        if ls in ("none", "null", "undefined"):
+            return None
+        if ls == "true":
+            return True
+        if ls == "false":
+            return False
+        if (s.startswith("'") and s.endswith("'")) or (s.startswith('"') and s.endswith('"')):
+            return s[1:-1]
+        return val
+
     entry = get_layer_entry(layer_name)
     declared_params = [p for p in entry.get("parameters", []) if p.get("name")]
     declared_names = {p["name"] for p in declared_params}
@@ -167,9 +191,14 @@ def normalize_params_for_layer(layer_name: str, raw_params: Dict[str, Any]) -> D
         if k not in declared_names:
             continue
 
-        # Treat empty string as omission (let default apply)
+        # Treat empty string, None, or string "None" as omission (let default apply)
         if v == "" or v is None:
             continue
+        if isinstance(v, str):
+            coerced = _coerce_manifest_string(v)
+            if coerced is None:
+                continue
+            v = coerced
 
         spec = get_param_choices(layer_name, k)
         if spec and isinstance(v, str):

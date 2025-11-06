@@ -85,8 +85,13 @@ def manifest_available() -> bool:
 
 def get_manifest() -> Dict[str, Any]:
     """Return the loaded manifest, or raise if not available."""
+    global _MANIFEST
     if _MANIFEST is None:
-        raise RuntimeError("Activation manifest not found. Generate it first with generate_activations_manifest.py")
+        # Try to load from disk first before failing
+        try:
+            _MANIFEST = _load_manifest()
+        except Exception:
+            raise RuntimeError("Activation manifest not found. Generate it first with generate_activations_manifest.py or call the regenerate API endpoint.")
     return _MANIFEST
 
 
