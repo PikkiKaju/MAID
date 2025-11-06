@@ -62,6 +62,9 @@ class ParamInfo:
     annotation: Optional[str]
     doc: Optional[str]
     required: bool
+    param_type: Optional[str]
+    possible_values: Optional[List[str]]
+    value_range: Optional[Dict[str, Any]]
 
 
 # Method information
@@ -150,8 +153,154 @@ def _infer_param_type(annotation: Optional[str], default_str: Optional[str], nam
     # Names that conventionally represent tuples
     if name in {"kernel_size", "pool_size", "strides", "dilation_rate", "size", "kernel", "pool"}:
         return "tuple_int"
+    
+    # Names that conventionally represent integers
+    if name in {"seed", "units", "filters", "num_heads", "key_dim", "value_dim", "num_classes", "vocabulary_size", "output_dim"}:
+        return "int"
+    
+    # Names that conventionally represent floats
+    if any(x in name.lower() for x in ["rate", "dropout", "epsilon", "momentum", "alpha", "beta", "gamma", "lambda"]):
+        return "float"
 
     # Unknown -> let consumers treat as object
+    return None
+
+
+def _extract_value_range_from_doc(doc: str, param_type: Optional[str]) -> Optional[Dict[str, Any]]:
+    """
+    Extract value range constraints from parameter documentation.
+    Returns a dict with 'min', 'max', or other constraints.
+    """
+    if not doc:
+        return None
+    
+    doc_lower = doc.lower()
+    range_info: Dict[str, Any] = {}
+    
+    # Pattern 1: "in range [min, max]" or "in the range [min, max]" or "in `[min, max]`"
+    range_match = re.search(r"in\s+(?:the\s+)?range\s+`?[\[\(]([0-9.]+)\s*,\s*([0-9.]+)[\]\)]`?", doc_lower)
+    if range_match:
+        try:
+            range_info["min"] = float(range_match.group(1))
+            range_info["max"] = float(range_match.group(2))
+        except ValueError:
+            pass
+    
+    # Pattern 1b: Just "[min, max]" or "`[min, max]`" at start or after "in"
+    if not range_info:
+        standalone_range = re.search(r"(?:^|\s)in\s+`?[\[\(]([0-9.]+)\s*,\s*([0-9.]+)[\]\)]`?", doc_lower)
+        if standalone_range:
+            try:
+                range_info["min"] = float(standalone_range.group(1))
+                range_info["max"] = float(standalone_range.group(2))
+            except ValueError:
+                pass
+    
+    # Pattern 1c: Type annotation style "float in [min, max]" or "float in `[min, max]`"
+    if not range_info:
+        type_range = re.search(r"(?:float|int|number)\s+in\s+`?[\[\(]([0-9.]+)\s*,\s*([0-9.]+)[\]\)]`?", doc_lower)
+        if type_range:
+            try:
+                range_info["min"] = float(type_range.group(1))
+                range_info["max"] = float(type_range.group(2))
+            except ValueError:
+                pass
+    
+    # Pattern 2: "between min and max"
+    between_match = re.search(r"between\s+([0-9.]+)\s+and\s+([0-9.]+)", doc_lower)
+    if between_match and not range_info:
+        try:
+            range_info["min"] = float(between_match.group(1))
+            range_info["max"] = float(between_match.group(2))
+        except ValueError:
+            pass
+    
+    # Pattern 3: "must be >= min" or "must be > min"
+    min_match = re.search(r"(?:must be|should be|>=|>)\s*(>=|>)\s*([0-9.]+)", doc_lower)
+    if min_match and not range_info.get("min"):
+        try:
+            val = float(min_match.group(2))
+            if min_match.group(1) == ">":
+                range_info["min_exclusive"] = val
+            else:
+                range_info["min"] = val
+        except ValueError:
+            pass
+    
+    # Pattern 4: "must be <= max" or "must be < max"
+    max_match = re.search(r"(?:must be|should be|<=|<)\s*(<=|<)\s*([0-9.]+)", doc_lower)
+    if max_match and not range_info.get("max"):
+        try:
+            val = float(max_match.group(2))
+            if max_match.group(1) == "<":
+                range_info["max_exclusive"] = val
+            else:
+                range_info["max"] = val
+        except ValueError:
+            pass
+    
+    # Pattern 5: "positive" (min > 0)
+    if "positive" in doc_lower and param_type in ["int", "float"]:
+        if not range_info.get("min") and not range_info.get("min_exclusive"):
+            range_info["min_exclusive"] = 0
+    
+    # Pattern 6: "non-negative" or "nonnegative" (min >= 0)
+    if ("non-negative" in doc_lower or "nonnegative" in doc_lower) and param_type in ["int", "float"]:
+        if not range_info.get("min"):
+            range_info["min"] = 0
+    
+    return range_info if range_info else None
+
+
+def _extract_possible_values_from_doc(doc: str) -> Optional[List[str]]:
+    """
+    Extract enum-like possible values from parameter documentation.
+    Returns a list of possible string values.
+    """
+    if not doc:
+        return None
+    
+    doc_lower = doc.lower()
+    
+    # Keywords that suggest enumeration
+    enum_keywords = [
+        "one of",
+        "either",
+        "can be",
+        "options are",
+        "must be one of",
+        "valid values",
+        "supported values",
+    ]
+    
+    has_enum_keyword = any(keyword in doc_lower for keyword in enum_keywords)
+    
+    # Extract quoted values
+    quoted_values = re.findall(r'["\']([a-zA-Z0-9_\-]+)["\']', doc)
+    
+    # Extract values in curly braces {a, b, c}
+    brace_values: List[str] = []
+    for match in re.findall(r'\{([^}]+)\}', doc):
+        parts = [p.strip().strip('"').strip("'") for p in match.split(",")]
+        brace_values.extend([p for p in parts if p and p.replace("_", "").replace("-", "").isalnum()])
+    
+    all_values = quoted_values + brace_values
+    
+    # Deduplicate while preserving order
+    seen = set()
+    unique_values = []
+    for val in all_values:
+        val_lower = val.lower()
+        if val_lower not in seen and val_lower not in ["none", "null", "true", "false"]:
+            seen.add(val_lower)
+            unique_values.append(val)
+    
+    # Only return if we found enum keywords and at least 2 values
+    if has_enum_keyword and len(unique_values) >= 2:
+        return unique_values
+    elif len(unique_values) >= 3:  # Or if we found 3+ values even without keywords
+        return unique_values
+    
     return None
 
 
@@ -491,18 +640,33 @@ def _collect_parameters(init_obj: Any, parameters_doc_map: Dict[str, str]) -> Li
         default_str = _default_to_str(p.default)
         annotation_str = _type_to_str(p.annotation)
         required = True if p.default is inspect._empty else False
+        param_doc = parameters_doc_map.get(p.name)
+        
         if p.name == "kwargs":
             # Special case: **kwargs, mark as not required and no default
             required = False
             default_str = None
+        
+        # Infer parameter type
+        param_type = _infer_param_type(annotation_str, default_str, p.name)
+        
+        # Extract possible values (for enums)
+        possible_values = _extract_possible_values_from_doc(param_doc) if param_doc else None
+        
+        # Extract value range (for numeric types)
+        value_range = _extract_value_range_from_doc(param_doc, param_type) if param_doc else None
+        
         params.append(
             ParamInfo(
                 name=p.name,
                 kind=str(p.kind),
                 default=default_str,
                 annotation=annotation_str,
-                doc=parameters_doc_map.get(p.name),
+                doc=param_doc,
                 required=required,
+                param_type=param_type,
+                possible_values=possible_values,
+                value_range=value_range,
             )
         )
     return params
@@ -722,14 +886,14 @@ def build_layer_manifest() -> Dict[str, Any]:
     for li in layer_infos:
         params_out: List[Dict[str, Any]] = []
         for p in li.parameters:
-            # Derive param_type
-            param_type = _infer_param_type(p.annotation, p.default, p.name)
+            # Convert ParamInfo to dict
             p_dict = asdict(p)
-            p_dict["param_type"] = param_type
-            # Attach inline enum spec if available
+            # Attach inline enum spec if available from param_value_specs
             enum_spec = _enum_for(li.name, p.name)
             if enum_spec:
-                p_dict["enum"] = enum_spec.get("enum")
+                # Only add enum info if not already present from doc extraction
+                if not p_dict.get("possible_values"):
+                    p_dict["enum"] = enum_spec.get("enum")
                 if enum_spec.get("case_insensitive") is not None:
                     p_dict["case_insensitive"] = bool(enum_spec.get("case_insensitive"))
                 if enum_spec.get("nullable") is not None:
