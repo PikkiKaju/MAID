@@ -39,20 +39,21 @@ _MANIFEST: Optional[Dict[str, Any]] = None
 def _candidate_manifest_paths() -> List[str]:
     """Return likely paths to the layer manifest relative to this file."""
     here = os.path.dirname(__file__)
-    # Typical path when generator was executed from backend-django folder
-    p1 = os.path.abspath(os.path.join(here, "..", "layer_manifest.json"))
-    # Fallback: older location under network/tensorflow_data
-    p2 = os.path.abspath(os.path.join(here, "tensorflow_data", "layer_manifest.json"))
-    return [p1, p2]
+    # Primary path under network/tensorflow_data/manifests (go up one level from network/manifests/)
+    p1 = os.path.abspath(os.path.join(here, "..", "tensorflow_data", "manifests", "layer_manifest.json"))
+    # Legacy fallback paths
+    p2 = os.path.abspath(os.path.join(here, "..", "..", "layer_manifest.json"))
+    p3 = os.path.abspath(os.path.join(here, "..", "tensorflow_data", "layer_manifest.json"))
+    return [p1, p2, p3]
 
 
 def regenerate_manifest() -> bool:
     """Regenerate and refresh the manifest."""
     try:
-        from .tensorflow_data.generate_layer_manifest import regenerate_and_save_layer_manifest
+        from ..tensorflow_data.generators.generate_layer_manifest import regenerate_and_save_layer_manifest
     except Exception as exc:  # pragma: no cover - env issue
         raise ImportError(
-            "Layer manifest generator is required. Ensure network/generate_layer_manifest.py is present."
+            "Layer manifest generator is required. Ensure network/tensorflow_data/generators/generate_layer_manifest.py is present."
         ) from exc
 
     try:
