@@ -8,6 +8,6 @@ from network.serializers import GraphSnapshotSerializer
 
 
 class GraphSnapshotViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     serializer_class = GraphSnapshotSerializer
     queryset = GraphSnapshot.objects.select_related("graph")

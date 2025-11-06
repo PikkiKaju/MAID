@@ -31,7 +31,7 @@ from network.services.training import launch_training_job
 
 
 class NetworkGraphViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     serializer_class = NetworkGraphSerializer
     queryset = NetworkGraph.objects.all().prefetch_related("nodes", "edges")
 

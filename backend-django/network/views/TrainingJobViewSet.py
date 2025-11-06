@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from django.http import FileResponse, Http404
 from rest_framework import viewsets, status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -12,7 +12,7 @@ from network.serializers import TrainingJobSerializer
 
 
 class TrainingJobViewSet(viewsets.ReadOnlyModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     serializer_class = TrainingJobSerializer
     queryset = TrainingJob.objects.all()
 
