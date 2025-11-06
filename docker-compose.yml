@@ -3,6 +3,7 @@ services:
     build:
       context: ./backend-aspdotnet
       dockerfile: Dockerfile
+    mem_limit: 128m
     ports:
       - "5000:8080"
     networks:
@@ -11,7 +12,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - MongoDB__ConnectionString=mongodb://mongo:27017
       - MongoDB__DatabaseName=mydb
-      - PostgreSQL__ConnectionString=Host=postgres;Database=mydb;Username=postgres;Password=postgres
+      - PostgreSQL__ConnectionString=Host=postgres;Database=maid_app;Username=postgres;Password=postgres
     depends_on:
       postgres:
         condition: service_healthy
@@ -22,6 +23,7 @@ services:
     build:
       context: ./backend-django
       dockerfile: Dockerfile
+    mem_limit: 512m
     container_name: django
     ports:
       - "8000:8000"
@@ -38,6 +40,7 @@ services:
     build:
       context: ./frontend-user
       dockerfile: Dockerfile
+    mem_limit: 128m
     ports:
       - "3000:80"
     networks:
@@ -53,6 +56,7 @@ services:
     build:
       context: ./admin-panel
       dockerfile: Dockerfile
+    mem_limit: 128m
     ports:
       - "3001:80"
     networks:
@@ -65,6 +69,7 @@ services:
       - REACT_APP_DJANGO_API_URL=http://django:8000
 
   mongo:
+    mem_limit: 256m
     image: mongo:6
     container_name: mongo
     restart: always
@@ -82,6 +87,7 @@ services:
       retries: 7
 
   postgres:
+    mem_limit: 128m
     image: postgres:16
     container_name: postgres
     restart: always
@@ -95,7 +101,7 @@ services:
     networks:
       - maid-net
     environment:
-      POSTGRES_DB: mydb
+      POSTGRES_DB: maid_app
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
