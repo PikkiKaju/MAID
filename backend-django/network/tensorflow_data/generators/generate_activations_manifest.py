@@ -1,14 +1,14 @@
 """
-Script to generate a comprehensive manifest of all TensorFlow/Keras metrics.
+Script to generate a comprehensive manifest of all TensorFlow/Keras activation functions.
 
-This script introspects the tf.keras.metrics module to extract:
-- All metric classes with their metadata
-- Constructor parameters with types, ranges, and possible values
+This script introspects the tf.keras.activations module to extract:
+- All activation functions with their metadata
+- Function parameters with types, ranges, and possible values
 - Descriptions from docstrings
-- Base classes and module information
+- Module information
 
 The output is a JSON file that can be consumed by the frontend for rendering
-appropriate UI controls for metric configuration.
+appropriate UI controls for activation function configuration.
 """
 
 import json
@@ -27,7 +27,7 @@ os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
 try:
     import tensorflow as tf  # type: ignore
 except Exception as e:
-    sys.stderr.write("Error: TensorFlow is required to generate the optimizer manifest. "
+    sys.stderr.write("Error: TensorFlow is required to generate the activation manifest. "
                      "Please install tensorflow (pip install tensorflow) and try again.\n"
                      f"Details: {e}\n")
     sys.exit(1)
@@ -48,15 +48,14 @@ class ParamInfo:
 
 
 @dataclass
-class MetricInfo:
-    """Information about a metric class."""
+class ActivationInfo:
+    """Information about an activation function."""
     name: str
     qualified_name: str
     module: str
-    bases: List[str]
     description: str
     parameters: List[ParamInfo]
-    is_base_class: bool = False
+    is_utility: bool = False  # For get, serialize, deserialize
 
 
 def _extract_value_range_from_doc(doc: str, param_name: str) -> Optional[Dict[str, float]]:
@@ -237,20 +236,19 @@ def _infer_param_type(
         elif doc_lower.startswith('str') or 'string' in doc_lower:
             return 'string'
     
-    # From conventional parameter names
-    conventional_int_params = {
-        'num_classes', 'num_samples', 'num_thresholds', 
-        'top_k', 'class_id', 'sample_weight', 'k'
-    }
+    # From conventional parameter names for activation functions
     conventional_float_params = {
-        'threshold', 'beta', 'alpha', 'gamma', 'epsilon',
-        'label_smoothing', 'delta', 'rho'
+        'alpha', 'beta', 'gamma', 'epsilon', 'threshold',
+        'negative_slope', 'max_value', 'min_value'
+    }
+    conventional_int_params = {
+        'axis', 'dim'
     }
     
-    if param_name in conventional_int_params:
-        return 'int'
-    elif param_name in conventional_float_params:
+    if param_name in conventional_float_params:
         return 'float'
+    elif param_name in conventional_int_params:
+        return 'int'
     
     return None
 
@@ -290,12 +288,12 @@ def _extract_doc_for_param(docstring: str, param_name: str) -> Optional[str]:
     return None
 
 
-def _collect_parameters(cls) -> List[ParamInfo]:
+def _collect_parameters(func) -> List[ParamInfo]:
     """
-    Collect parameter information for a metric class.
+    Collect parameter information for an activation function.
     
     Args:
-        cls: The metric class to inspect
+        func: The activation function to inspect
         
     Returns:
         List of ParamInfo objects
@@ -303,11 +301,11 @@ def _collect_parameters(cls) -> List[ParamInfo]:
     params = []
     
     try:
-        sig = inspect.signature(cls.__init__)
-        docstring = inspect.getdoc(cls)
+        sig = inspect.signature(func)
+        docstring = inspect.getdoc(func)
         
         for param_name, param in sig.parameters.items():
-            if param_name in ('self', 'args', 'kwargs'):
+            if param_name in ('args', 'kwargs'):
                 continue
             
             # Get parameter documentation
@@ -348,22 +346,22 @@ def _collect_parameters(cls) -> List[ParamInfo]:
             ))
     
     except Exception as e:
-        print(f"Warning: Could not inspect parameters for {cls.__name__}: {e}")
+        print(f"Warning: Could not inspect parameters for {func.__name__}: {e}")
     
     return params
 
 
-def _get_class_description(cls) -> str:
+def _get_function_description(func) -> str:
     """
-    Extract the class description from its docstring.
+    Extract the function description from its docstring.
     
     Args:
-        cls: The class to get description for
+        func: The function to get description for
         
     Returns:
         First line/paragraph of the docstring
     """
-    doc = inspect.getdoc(cls)
+    doc = inspect.getdoc(func)
     if not doc:
         return ""
     
@@ -373,109 +371,107 @@ def _get_class_description(cls) -> str:
     
     for line in lines:
         line = line.strip()
-        if not line or line.lower().startswith(('args:', 'arguments:', 'parameters:', 'attributes:')):
+        if not line or line.lower().startswith(('args:', 'arguments:', 'parameters:', 'returns:', 'example:')):
             break
         description_lines.append(line)
     
     return ' '.join(description_lines)
 
 
-def _is_base_metric_class(cls) -> bool:
+def _is_utility_function(name: str) -> bool:
     """
-    Determine if a class is a base/abstract metric class.
+    Determine if a function is a utility function (not an actual activation).
     
     Args:
-        cls: The class to check
+        name: The function name
         
     Returns:
-        True if it's a base class
+        True if it's a utility function
     """
-    base_class_names = {
-        'Metric', 'Mean', 'Sum', 'Reduce', 'MeanMetricWrapper'
+    utility_functions = {
+        'get', 'serialize', 'deserialize'
     }
-    return cls.__name__ in base_class_names
+    return name in utility_functions
 
 
-def collect_metrics() -> List[MetricInfo]:
+def collect_activations() -> List[ActivationInfo]:
     """
-    Collect information about all metrics in tf.keras.metrics.
+    Collect information about all activation functions in tf.keras.activations.
     
     Returns:
-        List of MetricInfo objects
+        List of ActivationInfo objects
     """
-    metrics = []
+    activations = []
     
-    # Get all classes from tf.keras.metrics
-    metrics_module = tf.keras.metrics
+    # Get all functions from tf.keras.activations
+    activations_module = tf.keras.activations
     
-    for name, obj in inspect.getmembers(metrics_module, inspect.isclass):
-        # Skip private classes
+    for name, obj in inspect.getmembers(activations_module, inspect.isfunction):
+        # Skip private functions
         if name.startswith('_'):
             continue
         
         # Get qualified name
         qualified_name = f"{obj.__module__}.{obj.__name__}"
         
-        # Get base classes
-        bases = [f"{base.__module__}.{base.__name__}" for base in obj.__bases__]
-        
         # Get description
-        description = _get_class_description(obj)
+        description = _get_function_description(obj)
         
         # Get parameters
         parameters = _collect_parameters(obj)
         
-        # Check if base class
-        is_base = _is_base_metric_class(obj)
+        # Check if utility function
+        is_utility = _is_utility_function(name)
         
-        metrics.append(MetricInfo(
+        activations.append(ActivationInfo(
             name=name,
             qualified_name=qualified_name,
             module=obj.__module__,
-            bases=bases,
             description=description,
             parameters=parameters,
-            is_base_class=is_base
+            is_utility=is_utility
         ))
     
     # Sort by name
-    metrics.sort(key=lambda x: x.name)
+    activations.sort(key=lambda x: x.name)
     
-    return metrics
+    return activations
 
 
 def generate_manifest():
-    """Generate the metrics manifest JSON file."""
-    print("Collecting metrics information...")
-    metrics = collect_metrics()
+    """Generate the activations manifest JSON file."""
+    print("Collecting activation functions information...")
+    activations = collect_activations()
     
-    print(f"\nFound {len(metrics)} metrics")
-    print(f"Base classes: {sum(1 for m in metrics if m.is_base_class)}")
-    print(f"Concrete metrics: {sum(1 for m in metrics if not m.is_base_class)}")
+    print(f"\nFound {len(activations)} activation functions")
+    print(f"Utility functions: {sum(1 for a in activations if a.is_utility)}")
+    print(f"Actual activations: {sum(1 for a in activations if not a.is_utility)}")
     
     # Convert to dict for JSON serialization
-    metrics_dict = [asdict(metric) for metric in metrics]
+    activations_dict = [asdict(activation) for activation in activations]
     
     # Create output structure
     output = {
         "tensorflow_version": tf.__version__,
-        "metrics": metrics_dict
+        "activations": activations_dict
     }
     
-    # Write to file in the same directory as this script
+    # Write to file in the manifests directory
     script_dir = Path(__file__).parent
-    output_path = script_dir / "metric_manifest.json"
+    manifests_dir = script_dir.parent / "manifests"
+    manifests_dir.mkdir(exist_ok=True)
+    output_path = manifests_dir / "activation_manifest.json"
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
     
     print(f"\n✓ Manifest written to {output_path}")
     
     # Print some statistics
-    print("\nSample metrics:")
-    for metric in metrics[:10]:
-        params_info = f"{len(metric.parameters)} params"
-        base_info = " (base)" if metric.is_base_class else ""
-        print(f"  - {metric.name}: {params_info}{base_info}")
+    print("\nSample activation functions:")
+    for activation in activations[:15]:
+        params_info = f"{len(activation.parameters)} params"
+        utility_info = " (utility)" if activation.is_utility else ""
+        print(f"  - {activation.name}: {params_info}{utility_info}")
 
 
 if __name__ == "__main__":

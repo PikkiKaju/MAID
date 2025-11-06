@@ -691,7 +691,11 @@ def main(argv: List[str]) -> int:
             sys.stderr.write("Error: --out requires a file path argument.\n")
             return 2
     else:
-        out_path = os.path.join(os.path.dirname(__file__), "loss_manifest.json")
+        # Write to manifests directory
+        script_dir = os.path.dirname(__file__)
+        manifests_dir = os.path.join(os.path.dirname(script_dir), "manifests")
+        os.makedirs(manifests_dir, exist_ok=True)
+        out_path = os.path.join(manifests_dir, "loss_manifest.json")
 
 
     manifest = build_loss_manifest()

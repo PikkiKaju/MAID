@@ -936,7 +936,11 @@ def regenerate_and_save_layer_manifest() -> bool:
     manifest = build_layer_manifest()
     data = json.dumps(manifest, indent=2, ensure_ascii=False)
 
-    out_path = os.path.join(os.path.dirname(__file__), "layer_manifest.json")
+    # Write to manifests directory
+    script_dir = os.path.dirname(__file__)
+    manifests_dir = os.path.join(os.path.dirname(script_dir), "manifests")
+    os.makedirs(manifests_dir, exist_ok=True)
+    out_path = os.path.join(manifests_dir, "layer_manifest.json")
 
     if out_path:
         try:
@@ -961,7 +965,11 @@ def main(argv: List[str]) -> int:
             sys.stderr.write("Error: --path requires a file path argument.\n")
             return 2
     else:
-        out_path = os.path.join(os.path.dirname(__file__), "layer_manifest.json")
+        # Write to manifests directory
+        script_dir = os.path.dirname(__file__)
+        manifests_dir = os.path.join(os.path.dirname(script_dir), "manifests")
+        os.makedirs(manifests_dir, exist_ok=True)
+        out_path = os.path.join(manifests_dir, "layer_manifest.json")
 
 
     manifest = build_layer_manifest()
