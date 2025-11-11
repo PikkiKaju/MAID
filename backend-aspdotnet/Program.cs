@@ -17,6 +17,7 @@ using MongoDB.Bson;
 using Microsoft.OpenApi.Models;
 using backend_aspdotnet.Helpers;
 using Microsoft.AspNetCore.Http.Features;
+using backend_aspdotnet;
 
 BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
 
@@ -73,7 +74,7 @@ builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<ElementDBConterxt>();
 builder.Services.AddSingleton<DatasetService>();
 builder.Services.AddSingleton<DatasetCsvParser>();
-
+builder.Services.AddScoped<FillDb>();
 builder.Services.AddSingleton<DatasetCsvParser>();
 
 builder.Services.AddCors(options =>
@@ -131,6 +132,18 @@ using (var scope = app.Services.CreateScope())
     var mongoContext = scope.ServiceProvider.GetRequiredService<ElementDBConterxt>();
 
     db.Database.EnsureCreated();
+    var fd = scope.ServiceProvider.GetRequiredService<FillDb>();
+    fd.FillDatabase();
+    // if (!db.Users.Any())
+    // {
+    //            var users = new List<User>
+    //     {
+         
+    //     };
+
+    //     db.Users.AddRange(users);
+    //     db.SaveChanges();
+    // }
 
     // if (!db.Users.Any())
     // {
