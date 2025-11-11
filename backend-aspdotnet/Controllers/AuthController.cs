@@ -50,7 +50,7 @@ namespace backend_aspdotnet.Controllers
         /// Registers a new user.
         /// </summary>
         /// <returns>
-        /// User JWT token and username if registration is successful, else an error message.
+        /// User JWT token and username  if registration is successful, else an error message.
         ///</returns>
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
@@ -59,12 +59,18 @@ namespace backend_aspdotnet.Controllers
             if (exists)
                 return BadRequest("User already exists.");
 
+            var count = _context.Avatars.Count();
+            var random = new Random();
+
+
             var user = new User
             {
                 Id = Guid.NewGuid(),
                 Username = dto.Username,
                 Email = dto.Email,
-                Password = _authService.HashPassword(dto.Password)
+                Password = _authService.HashPassword(dto.Password),
+                Avatar = _context.Avatars.Skip(random.Next(count)).First().Avatar,
+                Role = "User"
             };
 
             _context.Users.Add(user);

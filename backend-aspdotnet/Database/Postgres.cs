@@ -11,6 +11,7 @@ namespace backend_aspdotnet.Database
         public DbSet<Blocked> Blocked { get; set; }
         public DbSet<LikeProjects> LikesProjects { get; set; }
         public DbSet<LikeDatasets> LikesDatasets { get; set; }
+        public DbSet<Avatars> Avatars { get; set; }
 
 
 
