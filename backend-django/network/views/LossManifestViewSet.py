@@ -65,6 +65,7 @@ class LossManifestViewSet(viewsets.ViewSet):
                     "description": loss.get("description"),
                     "parameters": loss.get("parameters", []),
                     "is_function": loss.get("is_function", False),
+                    "alias_of": loss.get("alias_of"),
                 }
             )
         return Response({

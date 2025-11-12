@@ -79,6 +79,8 @@ class LossInfo:
     methods: Dict[str, MethodInfo]
     is_function: bool
     deprecated: bool
+    # If this item is a function alias of a class-based loss, this points to the class' qualified name
+    alias_of: Optional[str] = None
 
 
 def _safe_signature(obj: Any) -> Optional[str]:
@@ -542,6 +544,17 @@ def _is_deprecated(doc: str) -> bool:
     return "deprecated" in doc.lower() or "Deprecated" in doc
 
 
+def _normalize_loss_key(name: str) -> str:
+    """
+    Normalize a loss name to a comparison key so that e.g.
+    'BinaryCrossentropy' == 'binary_crossentropy', 'KLDivergence' == 'kl_divergence', 'CTC' == 'ctc'.
+    """
+    try:
+        return re.sub(r"[_\W]+", "", name).lower()
+    except Exception:
+        return name.lower()
+
+
 def _iter_losses_from_module(mod: types.ModuleType) -> Tuple[List[type], List[Any]]:
     """Iterate over all Loss subclasses and loss functions in the given module."""
     seen_classes: set[str] = set()
@@ -662,6 +675,17 @@ def build_loss_manifest() -> Dict[str, Any]:
         )
         loss_infos.append(info)
 
+    # Mark snake_case function losses as aliases of their CamelCase class counterparts when applicable
+    class_by_key: Dict[str, LossInfo] = {
+        _normalize_loss_key(info.name): info for info in loss_infos if not info.is_function
+    }
+    for info in loss_infos:
+        if info.is_function:
+            key = _normalize_loss_key(info.name)
+            cls_info = class_by_key.get(key)
+            if cls_info is not None:
+                info.alias_of = cls_info.qualified_name
+
     manifest: Dict[str, Any] = {
         "generated_at": datetime.utcnow().isoformat() + "Z",
         "tensorflow_version": getattr(tf, "__version__", None),
@@ -673,6 +697,8 @@ def build_loss_manifest() -> Dict[str, Any]:
             "Descriptions are derived from runtime docstrings and signatures. "
             "Loss functions (is_function=true) can be used directly, while loss classes "
             "(is_function=false) need to be instantiated with their parameters. "
+            "Function entries that duplicate a class-based loss are annotated with 'alias_of' "
+            "pointing to the canonical class, to enable frontend de-duplication. "
             "This manifest avoids instantiating losses to ensure safe, side-effect-free inspection."
         ),
     }

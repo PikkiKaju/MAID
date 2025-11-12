@@ -148,7 +148,7 @@ const networkGraphService = {
     throw new Error('Failed to fetch optimizers');
   },
 
-  getLossesList: async (): Promise<{ tensorflow_version?: string; loss_count?: number; losses: { name: string; description?: string }[] }> => {
+  getLossesList: async (): Promise<{ tensorflow_version?: string; loss_count?: number; losses: { name: string; description?: string; is_function?: boolean; alias_of?: string | null }[] }> => {
     const resp = await djangoClient.get('network/losses/');
     if (resp.status === 200) return resp.data;
     throw new Error('Failed to fetch losses');
