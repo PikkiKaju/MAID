@@ -1,4 +1,4 @@
-import { Calendar, User } from "lucide-react";
+import { Calendar, User, Mail } from "lucide-react";
 import { Card, CardContent } from "../../ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "../../ui/avatar";
 
@@ -7,6 +7,7 @@ type ProfileOverviewProps = {
   name: string;
   title: string;
   bio: string;
+  email: string;
   joined: string;
 };
 
@@ -15,6 +16,7 @@ export function ProfileOverview({
   name,
   title,
   bio,
+  email,
   joined,
 }: ProfileOverviewProps) {
   // Funkcja pomocnicza do sprawdzania, czy avatar to SVG
@@ -55,7 +57,13 @@ export function ProfileOverview({
           <p className="text-sm text-center">{bio}</p>
 
           <div className="flex flex-col w-full space-y-2">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            {email && (
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Mail className="h-4 w-4" />
+                <span>{email}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Calendar className="h-4 w-4" />
               <span>{joined}</span>
             </div>

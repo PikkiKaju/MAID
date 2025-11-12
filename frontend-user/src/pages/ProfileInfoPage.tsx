@@ -14,6 +14,7 @@ export function ProfileInfoPage() {
     surname: string;
     title: string;
     bio: string;
+    email: string;
     joined: string;
     stats: ProfileStats;
   } | null>(null);
@@ -44,6 +45,7 @@ export function ProfileInfoPage() {
         surname: data.surname,
         title: data.title || "",
         bio: data.bio || "",
+        email: data.email || "",
         joined: formattedJoined,
         stats: {
           totalProjects: data.totalProjects,
@@ -102,6 +104,7 @@ export function ProfileInfoPage() {
             name={profileData.name}
             title={profileData.title}
             bio={profileData.bio}
+            email={profileData.email}
             joined={profileData.joined}
           />
         </div>

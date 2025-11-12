@@ -6,6 +6,7 @@ export interface ProfileData {
   surname: string;
   title: string;
   bio: string;
+  email: string;
   joined: string;
   totalProjects: number;
   publicProjects: number;

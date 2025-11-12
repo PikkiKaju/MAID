@@ -43,7 +43,7 @@ export function ProfileSettingsPage() {
       setFormData({
         firstName: data.name || "",
         lastName: data.surname || "",
-        email: "", // Email nie jest zwracany w odpowiedzi API
+        email: data.email || "",
         title: data.title || "",
         bio: data.bio || "",
         currentPassword: "",
