@@ -44,6 +44,7 @@ namespace backend_aspdotnet.Controllers
                 Surname = user.Surname,
                 Title = user.Title,
                 Bio = user.Bio,
+                Email = user.Email,
                 Joined = user.CreatedAt,
                 TotalProjects = await _context.Projects.CountAsync(p => p.UserId == userId),
                 PublicProjects = await _context.Projects.CountAsync(p => p.UserId == userId && p.IsPublic),
@@ -185,6 +186,7 @@ namespace backend_aspdotnet.Controllers
         public string Surname { get; set; }
         public string Title { get; set; }
         public string Bio { get; set; }
+        public string Email { get; set; }
         public DateTime Joined { get; set; }
         public int TotalProjects { get; set; }
         public int PublicProjects { get; set; }

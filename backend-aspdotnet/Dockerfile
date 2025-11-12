@@ -6,6 +6,10 @@ WORKDIR /app
 COPY . .
 
 # Restore, build, and publish
+
+RUN mkdir -p /app/StartData/Avatars
+COPY StartData/Avatars /app/StartData/Avatars
+
 RUN dotnet restore
 RUN dotnet publish -c Release -o /app/publish
 
@@ -13,5 +17,7 @@ RUN dotnet publish -c Release -o /app/publish
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
+
+COPY --from=build /app/StartData/Avatars ./StartData/Avatars
 
 ENTRYPOINT ["dotnet", "backend-aspdotnet.dll"]

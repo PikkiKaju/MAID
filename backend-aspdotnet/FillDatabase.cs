@@ -23,24 +23,26 @@ namespace backend_aspdotnet
         {
             if (!_context.Avatars.Any())
             {
-                var avatars = new List<Avatars>
+                string avatarsPath = Path.Combine(Directory.GetCurrentDirectory(), "StartData", "Avatars");
+
+                if (!Directory.Exists(avatarsPath))
                 {
-                new Avatars { Avatar = @"<svg xmlns=""http://www.w3.org/2000/svg"" width=""128"" height=""128"">
-                    <rect width=""100%"" height=""100%"" fill=""#E3F2FD""/>
-                    <circle cx=""64"" cy=""48"" r=""28"" fill=""#42A5F5""/>
-                    <text x=""64"" y=""108"" font-size=""20"" text-anchor=""middle"" fill=""#0D47A1"">A</text>
-                    </svg>" },
-                new Avatars { Avatar = @"<svg xmlns=""http://www.w3.org/2000/svg"" width=""128"" height=""128"">
-                    <rect width=""100%"" height=""100%"" fill=""#FFF3E0""/>
-                    <circle cx=""64"" cy=""48"" r=""28"" fill=""#FB8C00""/>
-                    <text x=""64"" y=""108"" font-size=""20"" text-anchor=""middle"" fill=""#E65100"">B</text>
-                    </svg>" },
-                 new Avatars { Avatar = @"<svg xmlns=""http://www.w3.org/2000/svg"" width=""128"" height=""128"">
-                    <rect width=""100%"" height=""100%"" fill=""#F3E5F5""/>
-                    <circle cx=""64"" cy=""48"" r=""28"" fill=""#8E24AA""/>
-                    <text x=""64"" y=""108"" font-size=""20"" text-anchor=""middle"" fill=""#4A148C"">C</text>
-                    </svg>" }
-                };
+                    Console.WriteLine($"Avatars folder not found: {avatarsPath}");
+                    return;
+                }
+
+                var svgFiles = Directory.GetFiles(avatarsPath, "*.svg");
+                if (svgFiles.Length == 0)
+                {
+                    Console.WriteLine("No SVG files found in {path}", avatarsPath);
+                    return;
+                }
+
+                var avatars = svgFiles.Select(file => new Avatars
+                {
+                    Avatar = File.ReadAllText(file)
+                }).ToList();
+
 
                 _context.Avatars.AddRange(avatars);
                 _context.SaveChanges();
