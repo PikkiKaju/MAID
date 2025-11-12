@@ -78,25 +78,28 @@ def _train_worker(job_id: str) -> None:
             e.setdefault("source", e.get("source_id"))
             e.setdefault("target", e.get("target_id"))
 
-        # 2) Validate and build keras model
-        validate_graph_payload(nodes, edges)
-        model = build_keras_model(
-            structure=None,  # build_keras_model signature expects GraphStructure in older code; we rebuild from nodes/edges below
-            nodes=[],
-            edges=[],
-        )  # We'll rebuild properly below if signature requires; see below
-
-    except TypeError:
-        # Build via current builders API: validate -> structure -> model
-        from network.services.builders import build_graph_structure
+        # 2) Validate and build keras model using current builders API
         try:
-            structure = build_graph_structure(nodes, edges)
+            structure = validate_graph_payload(nodes, edges)
             model = build_keras_model(structure, nodes, edges)
-        except Exception as exc:  # rethrow to outer handler
+        except Exception as exc:
+            # Bubble up to the outer handler below for consistent job error handling
             raise exc
     except Exception as exc:
         job.status = TrainingStatus.FAILED
-        job.error = f"Model build failed: {exc}"
+        # Include structured validation details when available
+        try:
+            from network.services.types import GraphValidationError  # type: ignore
+        except Exception:  # pragma: no cover - defensive import
+            GraphValidationError = Exception  # type: ignore
+
+        if isinstance(exc, GraphValidationError):
+            try:
+                job.error = "Model build failed: " + json.dumps(getattr(exc, "detail", str(exc)))
+            except Exception:
+                job.error = f"Model build failed: {getattr(exc, 'detail', str(exc))}"
+        else:
+            job.error = f"Model build failed: {exc}"
         job.save(update_fields=["status", "error", "updated_at"])
         return
 
