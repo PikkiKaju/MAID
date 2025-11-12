@@ -104,16 +104,8 @@ def _train_worker(job_id: str) -> None:
         return
 
     try:
-        # 3) Compile model
+        # 3) Load params and dataset first (so we can validate compatibility before fitting)
         params = TrainParams.from_dict(job.params)
-        from keras import optimizers, losses, metrics as kmetrics
-        opt = optimizers.get(params.optimizer)
-        los = losses.get(params.loss)
-        mets = [kmetrics.get(m) for m in (params.metrics or [])] if params.metrics else []
-        model.compile(optimizer=opt, loss=los, metrics=mets)
-
-        job.progress = 0.05
-        job.save(update_fields=["progress", "updated_at"])
 
         # 4) Load dataset
         if not job.dataset_path or not os.path.exists(job.dataset_path):
@@ -126,6 +118,148 @@ def _train_worker(job_id: str) -> None:
             raise ValueError("Missing x_columns or y_column in params")
         X = df[x_cols].to_numpy(dtype=np.float32)
         y = df[y_col].to_numpy()
+
+        # Heuristics about target
+        def _is_integer_array(arr: np.ndarray) -> bool:
+            try:
+                return np.issubdtype(arr.dtype, np.integer) or np.all(np.equal(np.mod(arr, 1), 0))
+            except Exception:
+                return False
+
+        def _is_one_hot(arr: np.ndarray) -> bool:
+            if arr.ndim != 2 or arr.shape[1] < 2:
+                return False
+            vals = np.unique(arr)
+            if not np.all(np.isin(vals, [0, 1])):
+                return False
+            row_sums = arr.sum(axis=1)
+            # allow small numeric tolerance
+            return np.all(np.isclose(row_sums, 1.0, atol=1e-6))
+
+        # Infer task and classes
+        y_shape = y.shape
+        y_is_sparse_labels = (y.ndim == 1) and _is_integer_array(y)
+        y_is_one_hot = _is_one_hot(y)
+        n_classes = int(len(np.unique(y))) if y_is_sparse_labels else (int(y.shape[1]) if y_is_one_hot else None)
+
+        # 5) Build model to inspect output shape
+        from keras import optimizers, losses, metrics as kmetrics
+        try:
+            structure = validate_graph_payload(
+                list(job.graph.nodes.order_by("created_at").values("id", "type", "label", "params", "position", "notes")),
+                [
+                    dict(
+                        id=e["id"],
+                        source=e.get("source_id"),
+                        target=e.get("target_id"),
+                        meta=e.get("meta"),
+                    )
+                    for e in job.graph.edges.order_by("created_at").values("id", "source_id", "target_id", "meta")
+                ],
+            )
+        except Exception:
+            # already validated above; if it fails here, rethrow and let outer handler deal with it
+            structure = None  # type: ignore
+        model = build_keras_model(structure,  # type: ignore[arg-type]
+                                  list(job.graph.nodes.order_by("created_at").values("id", "type", "label", "params", "position", "notes")),
+                                  [
+                                      {
+                                          "id": e["id"],
+                                          "source": e.get("source_id"),
+                                          "target": e.get("target_id"),
+                                          "meta": e.get("meta"),
+                                      }
+                                      for e in job.graph.edges.order_by("created_at").values("id", "source_id", "target_id", "meta")
+                                  ])
+
+        # Inspect output units
+        out_shape = model.output_shape
+        if isinstance(out_shape, (list, tuple)) and out_shape and isinstance(out_shape[0], (list, tuple)):
+            oshape = out_shape[0]
+        else:
+            oshape = out_shape
+        try:
+            out_units = int(oshape[-1]) if isinstance(oshape, (list, tuple)) else int(getattr(oshape, "-1", 1))
+        except Exception:
+            out_units = None  # type: ignore
+
+        # Normalize/identify loss & metrics
+        los = losses.get(params.loss)
+        loss_name = getattr(los, "name", None) or str(los)
+        mets_raw = params.metrics or []
+
+        # Auto-normalize 'accuracy' when possible
+        normalized_metrics: List[Any] = []
+        for m in mets_raw:
+            m_low = str(m).lower()
+            if m_low in {"accuracy", "acc"}:
+                if "sparse_categorical_crossentropy" in loss_name:
+                    normalized_metrics.append(kmetrics.get("sparse_categorical_accuracy"))
+                elif "categorical_crossentropy" in loss_name:
+                    normalized_metrics.append(kmetrics.get("categorical_accuracy"))
+                elif "binary_crossentropy" in loss_name:
+                    normalized_metrics.append(kmetrics.get("binary_accuracy"))
+                else:
+                    # For regression, 'accuracy' is meaningless; skip it
+                    continue
+            else:
+                normalized_metrics.append(kmetrics.get(m))
+
+        # 6) Validate compatibility and provide actionable messages
+        errors: List[str] = []
+        suggestions: List[str] = []
+
+        # Classification vs regression heuristics
+        is_binary = (n_classes == 2)
+        is_multiclass = (n_classes is not None and n_classes > 2) or y_is_one_hot
+        is_regression_target = not (y_is_sparse_labels or y_is_one_hot)
+
+        def _require(cond: bool, msg: str):
+            if not cond:
+                errors.append(msg)
+
+        # Loss-based expectations
+        ln = loss_name.lower()
+        if "sparse_categorical_crossentropy" in ln:
+            _require(y_is_sparse_labels, "Loss 'sparse_categorical_crossentropy' expects integer class labels (e.g., 0..K-1) with shape [batch].")
+            if out_units is not None:
+                _require(out_units >= 2, f"Model output units should be the number of classes (>=2). Got {out_units}.")
+                if n_classes is not None:
+                    _require(out_units == n_classes, f"Model outputs {out_units} units but dataset has {n_classes} classes. Align final Dense units to number of classes.")
+            suggestions.append("Use a final Dense(num_classes, activation='softmax') layer for multiclass classification.")
+        elif "categorical_crossentropy" in ln:
+            _require(y_is_one_hot, "Loss 'categorical_crossentropy' expects one-hot encoded targets with shape [batch, num_classes]. Consider one-hot encoding your labels or use 'sparse_categorical_crossentropy'.")
+            if out_units is not None and y_is_one_hot:
+                _require(out_units == y.shape[1], f"Model outputs {out_units} units but target one-hot dimension is {y.shape[1]}.")
+            suggestions.append("Use a final Dense(num_classes, activation='softmax') layer for multiclass classification.")
+        elif "binary_crossentropy" in ln:
+            _require(is_binary or (y_is_one_hot and y.shape[1] == 1) or (y.ndim == 1), "'binary_crossentropy' expects binary targets (0/1).")
+            if out_units is not None:
+                _require(out_units == 1, f"Binary classification typically uses a single output unit with sigmoid. Got {out_units} units.")
+            suggestions.append("Use a final Dense(1, activation='sigmoid') for binary classification.")
+        else:
+            # Assume regression-style loss
+            if is_multiclass or (y_is_sparse_labels and (n_classes or 0) > 2):
+                errors.append("Regression loss selected but the target looks like classification labels. Consider using 'sparse_categorical_crossentropy' (integer labels) or 'categorical_crossentropy' (one-hot).")
+            if out_units is not None and y.ndim == 1:
+                _require(out_units == 1, f"Regression targets with shape [batch] expect a single output unit. Got {out_units} units.")
+
+        if errors:
+            # Aggregate a friendly message and stop early before compile/fit
+            message = (
+                "Training configuration is incompatible:\n- "
+                + "\n- ".join(errors)
+            )
+            if suggestions:
+                message += "\n\nHow to fix:\n- " + "\n- ".join(suggestions)
+            raise ValueError(message)
+
+        # 7) Compile model with normalized metrics
+        opt = optimizers.get(params.optimizer)
+        model.compile(optimizer=opt, loss=los, metrics=normalized_metrics)
+
+        job.progress = 0.05
+        job.save(update_fields=["progress", "updated_at"])
 
         # 5) Train/val/test split (simple random split)
         rng = np.random.default_rng(seed=42)
@@ -143,7 +277,7 @@ def _train_worker(job_id: str) -> None:
         X_val, y_val = X[val_idx], y[val_idx]
         X_test, y_test = X[test_idx], y[test_idx]
 
-        # 6) Fit
+        # 8) Fit
         history = model.fit(
             X_train,
             y_train,
@@ -156,18 +290,18 @@ def _train_worker(job_id: str) -> None:
         job.progress = 0.95
         job.save(update_fields=["progress", "updated_at"])
 
-        # 7) Evaluate
+        # 9) Evaluate
         eval_res = None
         if len(X_test) > 0:
             eval_res = model.evaluate(X_test, y_test, verbose=0)
             # Keras returns list if metrics set; map to names
-            names = ["loss"] + [m.name if hasattr(m, "name") else str(m) for m in (mets or [])]
+            names = ["loss"] + [m.name if hasattr(m, "name") else str(m) for m in (normalized_metrics or [])]
             if isinstance(eval_res, (list, tuple)):
                 eval_res = {k: float(v) for k, v in zip(names, eval_res)}
             else:
                 eval_res = {"loss": float(eval_res)}
 
-        # 8) Save artifact
+    # 10) Save artifact
         out_dir = _ensure_artifacts_dir()
         artifact = os.path.join(out_dir, f"{job.id}.keras")
         try:
@@ -177,7 +311,7 @@ def _train_worker(job_id: str) -> None:
             # Saving is optional in phase 1; continue even if save fails
             job.error = job.error + f"\nArtifact save warning: {exc}" if job.error else f"Artifact save warning: {exc}"
 
-        # 9) Persist results
+        # 11) Persist results
         job.result = {
             "history": {k: [float(x) for x in v] for k, v in (history.history or {}).items()},
             "evaluation": eval_res,
@@ -188,7 +322,13 @@ def _train_worker(job_id: str) -> None:
 
     except Exception as exc:
         job.status = TrainingStatus.FAILED
-        job.error = f"Training failed: {exc}"
+        # Improve common keras/tf messages with hints
+        msg = str(exc)
+        if "Arguments `target` and `output` must have the same rank" in msg:
+            msg += "\nHint: For multiclass classification use Dense(num_classes, softmax) with (sparse_)categorical_crossentropy. For regression use Dense(1) with MSE/MAE."
+        if "Incompatible shapes" in msg and ("[" in msg and "]" in msg):
+            msg += "\nHint: Check that your target shape matches model outputs. Integer labels require sparse_categorical_crossentropy; one-hot labels require categorical_crossentropy."
+        job.error = f"Training failed: {msg}"
         job.save(update_fields=["status", "error", "updated_at"])
 
 

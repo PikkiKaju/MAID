@@ -122,12 +122,26 @@ export default function TrainTab() {
 
     setIsStarting(true);
     try {
+      // Normalize metrics to match selected loss/label format
+      const metricsToSend = selectedMetrics.map((m) => {
+        const ml = m.toLowerCase();
+        const ll = (loss || '').toLowerCase();
+        if (ml === 'accuracy' || ml === 'acc') {
+          if (ll.includes('sparse_categorical_crossentropy')) return 'sparse_categorical_accuracy';
+          if (ll.includes('categorical_crossentropy')) return 'categorical_accuracy';
+          if (ll.includes('binary_crossentropy')) return 'binary_accuracy';
+          // For regression, drop plain accuracy
+          return '';
+        }
+        return m;
+      }).filter(Boolean) as string[];
+
       const job = await networkGraphService.startTraining(graphId, csvFile, {
         x_columns: xColumns,
         y_column: yColumn,
         optimizer,
         loss,
-        metrics: selectedMetrics,
+        metrics: metricsToSend,
         epochs,
         batch_size: batchSize,
         validation_split: computedSplits.validation,
