@@ -13,13 +13,17 @@ import { profileService } from "../../api/profileService";
 type PersonalInfoFormProps = {
   formData: PersonalInfo & { title?: string };
   onChange: (key: string, value: string) => void;
-  onAvatarSelect?: (avatarId: string) => void;
+  onAvatarSelect?: (avatarId: string, avatarSvg: string) => void;
+  selectedAvatarId?: string | null;
+  selectedAvatarSvg?: string | null;
 };
 
 export function PersonalInfoForm({
   formData,
   onChange,
   onAvatarSelect,
+  selectedAvatarId,
+  selectedAvatarSvg,
 }: PersonalInfoFormProps) {
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [currentAvatar, setCurrentAvatar] = useState<string>("");
@@ -28,24 +32,51 @@ export function PersonalInfoForm({
     loadCurrentAvatar();
   }, []);
 
+  // Aktualizuj wyświetlany avatar, gdy zmieni się wybrany avatar lub gdy załaduje się z serwera
+  useEffect(() => {
+    if (selectedAvatarSvg) {
+      setCurrentAvatar(selectedAvatarSvg);
+    }
+  }, [selectedAvatarSvg]);
+
   const loadCurrentAvatar = async () => {
     try {
       const data = await profileService.getProfile();
-      setCurrentAvatar(data.avatar);
+      setCurrentAvatar(data.avatar || "");
     } catch (err) {
       console.error("Error loading avatar:", err);
     }
   };
 
+  // Funkcja pomocnicza do sprawdzania, czy avatar to SVG
+  const isSvgAvatar = (avatar: string | null | undefined): boolean => {
+    if (!avatar) return false;
+    const trimmed = avatar.trim();
+    return (
+      trimmed.startsWith("<svg") ||
+      (trimmed.startsWith("<?xml") && trimmed.includes("<svg"))
+    );
+  };
+
   const handleAvatarSelect = async (avatarId: string) => {
     try {
-      await profileService.updateAvatar(avatarId);
-      await loadCurrentAvatar();
+      // Najpierw pobierz pełny obiekt avatara, aby uzyskać SVG string
+      const avatars = await profileService.getAvatars();
+      const selectedAvatar = avatars.find((a) => a.id === avatarId);
+
+      if (!selectedAvatar) {
+        throw new Error("Avatar not found");
+      }
+
+      // Tylko zaktualizuj lokalny stan - nie zapisuj do bazy
+      setCurrentAvatar(selectedAvatar.avatar);
+
+      // Przekaż informację o wybranym avatarze do rodzica
       if (onAvatarSelect) {
-        onAvatarSelect(avatarId);
+        onAvatarSelect(avatarId, selectedAvatar.avatar);
       }
     } catch (err) {
-      console.error("Error updating avatar:", err);
+      console.error("Error selecting avatar:", err);
     }
   };
 
@@ -59,15 +90,21 @@ export function PersonalInfoForm({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-4">
-          <div className="h-20 w-20 rounded-full overflow-hidden">
-            {currentAvatar && currentAvatar.startsWith("<svg") ? (
+          <div className="h-20 w-20 rounded-full overflow-hidden flex items-center justify-center bg-background relative">
+            {isSvgAvatar(currentAvatar) ? (
               <div
-                className="w-full h-full"
+                className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:object-contain"
                 dangerouslySetInnerHTML={{ __html: currentAvatar }}
               />
+            ) : currentAvatar ? (
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={currentAvatar} className="object-cover" />
+                <AvatarFallback>
+                  <User className="h-8 w-8" />
+                </AvatarFallback>
+              </Avatar>
             ) : (
               <Avatar className="h-20 w-20">
-                <AvatarImage src={currentAvatar} />
                 <AvatarFallback>
                   <User className="h-8 w-8" />
                 </AvatarFallback>

@@ -26,7 +26,10 @@ export function ProfileSettingsPage() {
     newPassword: "",
     confirmPassword: "",
   });
-  // Avatar jest zarządzany w PersonalInfoForm, więc nie potrzebujemy tutaj stanu
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
+  const [selectedAvatarSvg, setSelectedAvatarSvg] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     loadProfile();
@@ -59,6 +62,11 @@ export function ProfileSettingsPage() {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handleAvatarSelect = (avatarId: string, avatarSvg: string) => {
+    setSelectedAvatarId(avatarId);
+    setSelectedAvatarSvg(avatarSvg);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setError(null);
@@ -89,7 +97,15 @@ export function ProfileSettingsPage() {
         confirmPassword: formData.confirmPassword,
       });
 
-      // Avatar jest już aktualizowany w PersonalInfoForm, więc nie trzeba go tutaj aktualizować
+      // Zapisuj avatar do bazy danych tylko jeśli został wybrany
+      if (selectedAvatarId) {
+        await profileService.updateAvatar(selectedAvatarId);
+        // Wyślij event, aby zaktualizować avatar w headerze
+        window.dispatchEvent(new CustomEvent("avatarUpdated"));
+        // Wyczyść stan wybranego avatara po zapisaniu
+        setSelectedAvatarId(null);
+        setSelectedAvatarSvg(null);
+      }
 
       // Wyczyść pola haseł po udanym zapisie
       setFormData((prev) => ({
@@ -159,6 +175,9 @@ export function ProfileSettingsPage() {
           <PersonalInfoForm
             formData={formData}
             onChange={(key, value) => handleInputChange(key, value)}
+            onAvatarSelect={handleAvatarSelect}
+            selectedAvatarId={selectedAvatarId}
+            selectedAvatarSvg={selectedAvatarSvg}
           />
         </div>
 
@@ -177,7 +196,14 @@ export function ProfileSettingsPage() {
 
       {/* Save Button */}
       <div className="flex justify-end gap-3">
-        <Button variant="outline" onClick={loadProfile}>
+        <Button
+          variant="outline"
+          onClick={() => {
+            loadProfile();
+            setSelectedAvatarId(null);
+            setSelectedAvatarSvg(null);
+          }}
+        >
           Cancel
         </Button>
         <Button className="gap-2" onClick={handleSave} disabled={saving}>

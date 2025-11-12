@@ -17,19 +17,29 @@ export function ProfileOverview({
   bio,
   joined,
 }: ProfileOverviewProps) {
+  // Funkcja pomocnicza do sprawdzania, czy avatar to SVG
+  const isSvgAvatar = (avatar: string | null | undefined): boolean => {
+    if (!avatar) return false;
+    const trimmed = avatar.trim();
+    return (
+      trimmed.startsWith("<svg") ||
+      (trimmed.startsWith("<?xml") && trimmed.includes("<svg"))
+    );
+  };
+
   return (
     <Card>
       <CardContent className="pt-6">
         <div className="flex flex-col items-center text-center space-y-4">
-          <div className="h-24 w-24 rounded-full overflow-hidden">
-            {avatarUrl && avatarUrl.startsWith("<svg") ? (
+          <div className="h-24 w-24 rounded-full overflow-hidden flex items-center justify-center bg-background">
+            {isSvgAvatar(avatarUrl) ? (
               <div
-                className="w-full h-full"
+                className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:object-contain"
                 dangerouslySetInnerHTML={{ __html: avatarUrl }}
               />
             ) : (
               <Avatar className="h-24 w-24">
-                <AvatarImage src={avatarUrl} />
+                <AvatarImage src={avatarUrl} className="object-cover" />
                 <AvatarFallback>
                   <User className="h-8 w-8" />
                 </AvatarFallback>

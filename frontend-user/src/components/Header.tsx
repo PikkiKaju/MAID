@@ -55,6 +55,21 @@ export default function Header() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn]);
 
+  // Nasłuchuj zmian avatara
+  useEffect(() => {
+    const handleAvatarUpdate = () => {
+      if (isLoggedIn) {
+        loadProfileAvatar();
+      }
+    };
+
+    window.addEventListener("avatarUpdated", handleAvatarUpdate);
+    return () => {
+      window.removeEventListener("avatarUpdated", handleAvatarUpdate);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn]);
+
   const loadProfileAvatar = async () => {
     try {
       const data = await profileService.getProfile();
@@ -63,6 +78,16 @@ export default function Header() {
       console.error("Error loading profile avatar for header:", err);
       setProfileAvatar(null);
     }
+  };
+
+  // Funkcja pomocnicza do sprawdzania, czy avatar to SVG
+  const isSvgAvatar = (avatar: string | null): boolean => {
+    if (!avatar) return false;
+    const trimmed = avatar.trim();
+    return (
+      trimmed.startsWith("<svg") ||
+      (trimmed.startsWith("<?xml") && trimmed.includes("<svg"))
+    );
   };
 
   return (
@@ -129,10 +154,10 @@ export default function Header() {
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-3 hover:bg-accent px-3 py-2 rounded-lg transition-colors">
               <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0 bg-background flex items-center justify-center">
-                {profileAvatar && profileAvatar.startsWith("<svg") ? (
+                {isSvgAvatar(profileAvatar) ? (
                   <div
-                    className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:object-cover"
-                    dangerouslySetInnerHTML={{ __html: profileAvatar }}
+                    className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:object-contain"
+                    dangerouslySetInnerHTML={{ __html: profileAvatar || "" }}
                   />
                 ) : (
                   <Avatar className="h-8 w-8">

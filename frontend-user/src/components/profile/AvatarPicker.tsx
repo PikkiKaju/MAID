@@ -21,7 +21,6 @@ export function AvatarPicker({
   open,
   onOpenChange,
   onSelect,
-  currentAvatar,
 }: AvatarPickerProps) {
   const [avatars, setAvatars] = useState<AvatarOption[]>([]);
   const [loading, setLoading] = useState(false);
@@ -91,7 +90,7 @@ export function AvatarPicker({
                   }`}
                 >
                   <div
-                    className="w-full aspect-square"
+                    className="w-full aspect-square rounded-full overflow-hidden flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:object-contain"
                     dangerouslySetInnerHTML={{ __html: avatar.avatar }}
                   />
                   {selectedAvatarId === avatar.id && (
