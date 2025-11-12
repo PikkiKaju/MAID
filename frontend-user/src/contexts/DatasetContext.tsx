@@ -39,6 +39,8 @@ export interface DatasetPreprocessingConfig {
   
   // Target configuration
   targetColumn: string | null;
+  // When target is categorical, select how to encode it for training
+  targetEncoding: 'label' | 'one-hot';
   taskType: 'classification' | 'regression' | 'auto';
 }
 

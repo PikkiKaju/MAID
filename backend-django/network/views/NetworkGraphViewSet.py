@@ -335,6 +335,7 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
                 "batch_size": request.data.get("batch_size", 32),
                 "validation_split": request.data.get("validation_split", 0.1),
                 "test_split": request.data.get("test_split", 0.1),
+                "y_one_hot": request.data.get("y_one_hot", False),
             },
         )
 

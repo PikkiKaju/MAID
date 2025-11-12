@@ -60,6 +60,7 @@ export default function DatasetTab() {
         testSplit: 0.15,
         randomSeed: 42,
         targetColumn: null,
+        targetEncoding: 'label',
         taskType: 'auto',
       },
       datasetName: file.name.replace('.csv', ''),
@@ -111,6 +112,7 @@ export default function DatasetTab() {
           testSplit: 0.15,
           randomSeed: 42,
           targetColumn: null,
+          targetEncoding: 'label',
           taskType: 'auto',
         },
         datasetName: name,
@@ -472,6 +474,31 @@ export default function DatasetTab() {
                 </select>
               </div>
 
+              {/* Target Encoding (only for categorical targets) */}
+              {(() => {
+                const targetName = dataset.preprocessingConfig.targetColumn;
+                const targetMeta = targetName ? dataset.columns.find(c => c.name === targetName) : undefined;
+                if (!targetMeta || targetMeta.type === 'numeric') return null;
+                return (
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Target Encoding
+                    </label>
+                    <select
+                      value={dataset.preprocessingConfig.targetEncoding}
+                      onChange={(e) => updatePreprocessingConfig({ targetEncoding: e.target.value as 'label' | 'one-hot' })}
+                      className="w-full px-2 py-1 border rounded text-xs"
+                    >
+                      <option value="label">Label (integers 0..K-1)</option>
+                      <option value="one-hot">One-Hot (K columns in model)</option>
+                    </select>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Tip: One-hot pairs with CategoricalCrossentropy; Label pairs with SparseCategoricalCrossentropy.
+                    </p>
+                  </div>
+                );
+              })()}
+
               {/* Missing Values */}
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">
@@ -592,6 +619,9 @@ export default function DatasetTab() {
                       <div>• Features: {dataset.trainData.featureNames.length} ({dataset.trainData.featureNames.slice(0, 3).join(', ')}{dataset.trainData.featureNames.length > 3 ? '...' : ''})</div>
                       <div className="pt-1 border-t border-green-200 mt-1">
                         <div>• Encoding: {dataset.preprocessingConfig.categoricalEncoding === 'label' ? 'Label' : dataset.preprocessingConfig.categoricalEncoding === 'one-hot' ? 'One-Hot' : 'None'}</div>
+                        {dataset.preprocessingConfig.targetColumn && (dataset.columns.find(c => c.name === dataset.preprocessingConfig.targetColumn)?.type !== 'numeric') && (
+                          <div>• Target Encoding: {dataset.preprocessingConfig.targetEncoding === 'one-hot' ? 'One-Hot' : 'Label'}</div>
+                        )}
                         <div>• Normalization: {dataset.preprocessingConfig.normalizationMethod === 'standard' ? 'Z-Score' : dataset.preprocessingConfig.normalizationMethod === 'minmax' ? 'Min-Max [0,1]' : 'None'}</div>
                         <div>• Missing Values: {
                           dataset.preprocessingConfig.missingValueStrategy === 'remove-rows' ? 'Rows Removed' :

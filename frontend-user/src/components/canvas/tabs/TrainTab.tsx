@@ -209,7 +209,7 @@ export default function TrainTab() {
     pushSplit(dataset.validationData?.X, dataset.validationData?.y);
     pushSplit(dataset.testData?.X, dataset.testData?.y);
 
-    const headers = [...xColumns, yColumn];
+  const headers = [...xColumns, yColumn];
     const csvStr = arraysToCsv(headers, rows);
     const csvFile = new File([csvStr], 'dataset.csv', { type: 'text/csv' });
 
@@ -240,6 +240,7 @@ export default function TrainTab() {
         batch_size: batchSize,
         validation_split: computedSplits.validation,
         test_split: computedSplits.test,
+        y_one_hot: dataset.preprocessingConfig.targetEncoding === 'one-hot',
       });
       setJobId(job.id);
       setJobStatus(job.status || 'queued');

@@ -188,6 +188,7 @@ const networkGraphService = {
       batch_size?: number;
       validation_split?: number;
       test_split?: number;
+      y_one_hot?: boolean;
     }
   ) => {
     const form = new FormData();
@@ -201,6 +202,7 @@ const networkGraphService = {
     if (options.batch_size != null) form.append('batch_size', String(options.batch_size));
     if (options.validation_split != null) form.append('validation_split', String(options.validation_split));
     if (options.test_split != null) form.append('test_split', String(options.test_split));
+  if (options.y_one_hot != null) form.append('y_one_hot', String(!!options.y_one_hot));
 
     const resp = await djangoClient.post(`network/graphs/${graphId}/train/`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },

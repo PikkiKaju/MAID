@@ -29,6 +29,7 @@ class TrainParams:
     batch_size: int = 32
     validation_split: float = 0.1
     test_split: float = 0.1
+    y_one_hot: bool = False
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "TrainParams":
@@ -42,6 +43,7 @@ class TrainParams:
             batch_size=int(data.get("batch_size", 32)),
             validation_split=float(data.get("validation_split", 0.1)),
             test_split=float(data.get("test_split", 0.1)),
+            y_one_hot=bool(str(data.get("y_one_hot", "false")).lower() in {"1", "true", "yes", "on"}),
         )
 
 
@@ -136,7 +138,29 @@ def _train_worker(job_id: str) -> None:
             # allow small numeric tolerance
             return np.all(np.isclose(row_sums, 1.0, atol=1e-6))
 
-        # Infer task and classes
+        # Probe selected loss to decide on one-hot conversion
+        try:
+            from keras import losses as _k_losses
+            _probe_los = _k_losses.get(params.loss)
+            loss_name_probe = getattr(_probe_los, "name", None) or str(_probe_los)
+        except Exception:
+            loss_name_probe = str(params.loss)
+
+        def _coerce_one_hot_if_needed(arr: np.ndarray) -> np.ndarray:
+            if arr.ndim == 1 and _is_integer_array(arr):
+                classes = np.unique(arr)
+                class_to_idx = {c: i for i, c in enumerate(classes)}
+                idx = np.vectorize(lambda v: class_to_idx.get(v, 0))(arr)
+                oh = np.eye(len(classes), dtype=np.float32)[idx]
+                return oh
+            return arr
+
+        loss_lc = (loss_name_probe or str(params.loss)).lower()
+        if params.y_one_hot or ("categorical_crossentropy" in loss_lc and "sparse_categorical_crossentropy" not in loss_lc):
+            if y.ndim == 1 and _is_integer_array(y):
+                y = _coerce_one_hot_if_needed(y)
+
+        # Infer task and classes after potential conversion
         y_shape = y.shape
         y_is_sparse_labels = (y.ndim == 1) and _is_integer_array(y)
         y_is_one_hot = _is_one_hot(y)
