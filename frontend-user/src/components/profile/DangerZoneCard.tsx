@@ -1,7 +1,11 @@
 import { Card, CardContent } from "../../ui/card";
 import { Button } from "../../ui/button";
 
-export function DangerZoneCard() {
+type DangerZoneCardProps = {
+  onDelete: () => void;
+};
+
+export function DangerZoneCard({ onDelete }: DangerZoneCardProps) {
   return (
     <Card>
       <CardContent className="pt-6">
@@ -10,7 +14,12 @@ export function DangerZoneCard() {
           <p className="text-sm text-muted-foreground">
             Permanently delete your account and all associated data.
           </p>
-          <Button variant="destructive" size="sm" className="w-full">
+          <Button
+            variant="destructive"
+            size="sm"
+            className="w-full"
+            onClick={onDelete}
+          >
             Delete Account
           </Button>
         </div>

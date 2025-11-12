@@ -1,27 +1,14 @@
-import type { LucideIcon } from "lucide-react";
-
 export type Activity = {
   type: "project" | "dataset";
   title: string;
   date: string;
 };
 
-export type Skill = { name: string; level: number };
-
-export type Achievement = {
-  title: string;
-  description: string;
-  icon: LucideIcon;
-  color: string;
-};
-
 export type ProfileStats = {
   totalProjects: number;
   publicProjects: number;
   totalDatasets: number;
-  followers: number;
-  following: number;
-  contributions: number;
+  publicDatasets: number;
 };
 
 export type PersonalInfo = {
@@ -29,6 +16,20 @@ export type PersonalInfo = {
   lastName: string;
   email: string;
   bio: string;
+  title?: string;
+};
+
+export type ProfileData = {
+  avatar: string;
+  name: string;
+  surname: string;
+  title: string;
+  bio: string;
+  joined: string;
+  totalProjects: number;
+  publicProjects: number;
+  totalDatasets: number;
+  totalPublicDatasets: number;
 };
 
 export type SecurityData = {
@@ -37,25 +38,10 @@ export type SecurityData = {
   confirmPassword: string;
 };
 
-export type Notifications = {
-  emailUpdates: boolean;
-  projectActivity: boolean;
-  securityAlerts: boolean;
-  weeklyDigest: boolean;
-};
-
 export type FAQItem = {
   question: string;
   answer: string;
   category: string;
-};
-
-export type QuickAction = {
-  title: string;
-  description: string;
-  icon: LucideIcon;
-  href: string;
-  color: "blue" | "purple" | "green" | "orange";
 };
 
 

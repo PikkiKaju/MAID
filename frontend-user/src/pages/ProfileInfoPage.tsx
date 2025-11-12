@@ -1,85 +1,90 @@
-import { Star, Users, Trophy, Github } from "lucide-react";
+import { useEffect, useState } from "react";
 import { ProfileOverview } from "../components/profile/ProfileOverview";
 import { StatsGrid } from "../components/profile/StatsGrid";
-import { SkillsList } from "../components/profile/SkillsList";
-import { RecentActivity } from "../components/profile/RecentActivity";
-import { AchievementsGrid } from "../components/profile/AchievementsGrid";
-import type {
-  Activity,
-  Achievement,
-  Skill,
-  ProfileStats,
-} from "../models/profile";
+import type { ProfileStats } from "../models/profile";
+import { profileService } from "../api/profileService";
+import { Loader2 } from "lucide-react";
 
 export function ProfileInfoPage() {
-  const profileStats: ProfileStats = {
-    totalProjects: 12,
-    publicProjects: 8,
-    totalDatasets: 24,
-    followers: 128,
-    following: 45,
-    contributions: 156,
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [profileData, setProfileData] = useState<{
+    avatar: string;
+    name: string;
+    surname: string;
+    title: string;
+    bio: string;
+    joined: string;
+    stats: ProfileStats;
+  } | null>(null);
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const loadProfile = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await profileService.getProfile();
+      const fullName =
+        data.name && data.surname
+          ? `${data.name} ${data.surname}`
+          : data.name || data.surname || "User";
+
+      const joinedDate = new Date(data.joined);
+      const formattedJoined = `Joined ${joinedDate.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      })}`;
+
+      setProfileData({
+        avatar: data.avatar,
+        name: fullName,
+        surname: data.surname,
+        title: data.title || "",
+        bio: data.bio || "",
+        joined: formattedJoined,
+        stats: {
+          totalProjects: data.totalProjects,
+          publicProjects: data.publicProjects,
+          totalDatasets: data.totalDatasets,
+          publicDatasets: data.totalPublicDatasets,
+        },
+      });
+    } catch (err) {
+      setError("Failed to load profile data. Please try again.");
+      console.error("Error loading profile:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const recentActivity: Activity[] = [
-    {
-      type: "project",
-      title: "Updated Customer Sentiment Analysis",
-      date: "2 hours ago",
-    },
-    { type: "dataset", title: "Added sales_data_2024.xlsx", date: "1 day ago" },
-    {
-      type: "project",
-      title: "Created Medical Image Classification",
-      date: "3 days ago",
-    },
-    {
-      type: "dataset",
-      title: "Uploaded product_images.zip",
-      date: "5 days ago",
-    },
-    {
-      type: "project",
-      title: "Shared Real Estate Price Prediction",
-      date: "1 week ago",
-    },
-  ];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
-  const skills: Skill[] = [
-    { name: "Machine Learning", level: 90 },
-    { name: "Python", level: 95 },
-    { name: "Data Visualization", level: 85 },
-    { name: "Deep Learning", level: 80 },
-    { name: "SQL", level: 88 },
-    { name: "Statistics", level: 92 },
-  ];
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold">Profile Information</h1>
+          <p className="text-muted-foreground">
+            Your activity and contributions overview
+          </p>
+        </div>
+        <div className="text-destructive">{error}</div>
+      </div>
+    );
+  }
 
-  const achievements: Achievement[] = [
-    {
-      title: "Early Adopter",
-      description: "Joined in the first month",
-      icon: Trophy,
-      color: "text-yellow-600",
-    },
-    {
-      title: "Data Expert",
-      description: "Completed 10+ projects",
-      icon: Star,
-      color: "text-blue-600",
-    },
-    {
-      title: "Community Builder",
-      description: "Helped 50+ users",
-      icon: Users,
-      color: "text-green-600",
-    },
-    {
-      title: "Open Source",
-      description: "5 public projects",
-      icon: Github,
-      color: "text-purple-600",
-    },
-  ];
+  if (!profileData) {
+    return null;
+  }
 
   return (
     <div className="space-y-6">
@@ -93,23 +98,18 @@ export function ProfileInfoPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1">
           <ProfileOverview
-            avatarUrl="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=96&h=96&fit=crop&crop=face"
-            name="Alex Chen"
-            title="Data Scientist"
-            bio="Data scientist passionate about machine learning and AI applications. Building innovative solutions for real-world problems."
-            location="San Francisco, CA"
-            joined="Joined October 2024"
+            avatarUrl={profileData.avatar}
+            name={profileData.name}
+            title={profileData.title}
+            bio={profileData.bio}
+            joined={profileData.joined}
           />
         </div>
 
         <div className="lg:col-span-2 space-y-6">
-          <StatsGrid stats={profileStats} />
-          <SkillsList skills={skills} />
-          <RecentActivity activity={recentActivity} />
+          <StatsGrid stats={profileData.stats} />
         </div>
       </div>
-
-      <AchievementsGrid achievements={achievements} />
     </div>
   );
 }

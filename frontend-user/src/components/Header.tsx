@@ -25,6 +25,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { ThemeToggle } from "./theme/ThemeToggle";
 import { LanguageSwitcher } from "./language/LanguageSwitcher";
 import { cn } from "../utilis/tailwind";
+import { useEffect, useState } from "react";
+import { profileService } from "../api/profileService";
 
 export default function Header() {
   const { t } = useTranslation();
@@ -32,6 +34,7 @@ export default function Header() {
   const { isLoggedIn, displayName } = useAppSelector((state) => state.auth);
   const searchTerm = useAppSelector((state) => state.search.term);
   const { open, isMobile, openMobile } = useSidebar();
+  const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
 
   // Logo pokazuje się tylko gdy sidebar jest zamknięty
   const isSidebarOpen = isMobile ? openMobile : open;
@@ -41,6 +44,26 @@ export default function Header() {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     dispatch(setSearchTerm(e.target.value));
   const handleSearchClear = () => dispatch(clearSearchTerm());
+
+  // Pobierz avatar profilu gdy użytkownik jest zalogowany
+  useEffect(() => {
+    if (isLoggedIn) {
+      loadProfileAvatar();
+    } else {
+      setProfileAvatar(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn]);
+
+  const loadProfileAvatar = async () => {
+    try {
+      const data = await profileService.getProfile();
+      setProfileAvatar(data.avatar || null);
+    } catch (err) {
+      console.error("Error loading profile avatar for header:", err);
+      setProfileAvatar(null);
+    }
+  };
 
   return (
     <header className="h-16 shadow-md bg-sidebar-accent/70 dark:bg-sidebar-accent/30 px-6 flex items-center justify-between">
@@ -105,12 +128,24 @@ export default function Header() {
         ) : (
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-3 hover:bg-accent px-3 py-2 rounded-lg transition-colors">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face" />
-                <AvatarFallback>
-                  <User className="h-4 w-4" />
-                </AvatarFallback>
-              </Avatar>
+              <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0 bg-background flex items-center justify-center">
+                {profileAvatar && profileAvatar.startsWith("<svg") ? (
+                  <div
+                    className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:object-cover"
+                    dangerouslySetInnerHTML={{ __html: profileAvatar }}
+                  />
+                ) : (
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage
+                      src={profileAvatar || undefined}
+                      className="object-cover w-full h-full"
+                    />
+                    <AvatarFallback>
+                      <User className="h-4 w-4" />
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+              </div>
               <span className="font-medium hidden sm:inline">
                 {displayName || t("header.user")}
               </span>

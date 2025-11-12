@@ -66,12 +66,6 @@ export function SecurityForm({ data, onChange }: SecurityFormProps) {
             onChange={(e) => onChange("confirmPassword", e.target.value)}
           />
         </div>
-
-        <div className="pt-2">
-          <Button variant="outline" size="sm">
-            Enable Two-Factor Authentication
-          </Button>
-        </div>
       </CardContent>
     </Card>
   );

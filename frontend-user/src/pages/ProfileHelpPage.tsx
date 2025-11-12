@@ -1,14 +1,12 @@
 import { useState } from "react";
-import { Book, MessageCircle, Phone, Video } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { HelpSearchBar } from "../components/profile/Help/SearchBar";
-import { QuickActions } from "../components/profile/Help/QuickActions";
 import { FAQList } from "../components/profile/Help/FAQList";
 import {
   ContactTab,
   ResourcesTab,
 } from "../components/profile/Help/ContactAndResources";
-import type { FAQItem, QuickAction } from "../models/profile";
+import type { FAQItem } from "../models/profile";
 
 export function ProfileHelpPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -51,37 +49,6 @@ export function ProfileHelpPage() {
     },
   ];
 
-  const quickActions: QuickAction[] = [
-    {
-      title: "Documentation",
-      description: "Complete guides and API reference",
-      icon: Book,
-      href: "#",
-      color: "blue",
-    },
-    {
-      title: "Video Tutorials",
-      description: "Step-by-step video walkthroughs",
-      icon: Video,
-      href: "#",
-      color: "purple",
-    },
-    {
-      title: "Community Forum",
-      description: "Connect with other users",
-      icon: MessageCircle,
-      href: "#",
-      color: "green",
-    },
-    {
-      title: "Contact Support",
-      description: "Get help from our team",
-      icon: Phone,
-      href: "#",
-      color: "orange",
-    },
-  ];
-
   const filteredFAQ = faqItems.filter(
     (item) =>
       item.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -99,8 +66,6 @@ export function ProfileHelpPage() {
       </div>
 
       <HelpSearchBar value={searchTerm} onChange={setSearchTerm} />
-
-      <QuickActions items={quickActions} />
 
       <Tabs defaultValue="faq" className="w-full">
         <TabsList className="grid w-full grid-cols-3">

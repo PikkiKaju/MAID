@@ -1,36 +1,143 @@
-import { useState } from "react";
-import { Save } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Save, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { PersonalInfoForm } from "../components/profile/PersonalInfoForm";
 import { SecurityForm } from "../components/profile/SecurityForm";
-import { NotificationsCard } from "../components/profile/NotificationsCard";
 import { DangerZoneCard } from "../components/profile/DangerZoneCard";
+import { profileService } from "../api/profileService";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "../store/store";
+import { logout } from "../features/auth/authSlice";
+import { useNavigate } from "react-router-dom";
 
 export function ProfileSettingsPage() {
-  const [notifications, setNotifications] = useState({
-    emailUpdates: true,
-    projectActivity: true,
-    securityAlerts: true,
-    weeklyDigest: false,
-  });
-
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    firstName: "Alex",
-    lastName: "Chen",
-    email: "alex.chen@example.com",
-    bio: "Data scientist passionate about machine learning and AI applications.",
+    firstName: "",
+    lastName: "",
+    email: "",
+    title: "",
+    bio: "",
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
+  // Avatar jest zarządzany w PersonalInfoForm, więc nie potrzebujemy tutaj stanu
 
-  const handleNotificationChange = (key: string, value: boolean) => {
-    setNotifications((prev) => ({ ...prev, [key]: value }));
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const loadProfile = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await profileService.getProfile();
+      setFormData({
+        firstName: data.name || "",
+        lastName: data.surname || "",
+        email: "", // Email nie jest zwracany w odpowiedzi API
+        title: data.title || "",
+        bio: data.bio || "",
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    } catch (err) {
+      setError("Failed to load profile data. Please try again.");
+      console.error("Error loading profile:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleInputChange = (key: string, value: string) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+
+    // Walidacja haseł
+    if (formData.newPassword || formData.confirmPassword) {
+      if (formData.newPassword !== formData.confirmPassword) {
+        setError("New passwords do not match.");
+        setSaving(false);
+        return;
+      }
+      if (!formData.currentPassword) {
+        setError("Current password is required to change password.");
+        setSaving(false);
+        return;
+      }
+    }
+
+    try {
+      await profileService.updateProfile({
+        name: formData.firstName,
+        surname: formData.lastName,
+        title: formData.title,
+        bio: formData.bio,
+        email: formData.email,
+        currentPassword: formData.currentPassword,
+        newPassword: formData.newPassword,
+        confirmPassword: formData.confirmPassword,
+      });
+
+      // Avatar jest już aktualizowany w PersonalInfoForm, więc nie trzeba go tutaj aktualizować
+
+      // Wyczyść pola haseł po udanym zapisie
+      setFormData((prev) => ({
+        ...prev,
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      }));
+
+      // Można dodać toast notification tutaj
+      alert("Profile updated successfully!");
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message ||
+          "Failed to update profile. Please try again."
+      );
+      console.error("Error updating profile:", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (
+      !confirm(
+        "Are you sure you want to delete your account? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await profileService.deleteProfile();
+      dispatch(logout());
+      navigate("/login");
+    } catch (err) {
+      setError("Failed to delete account. Please try again.");
+      console.error("Error deleting account:", err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -41,12 +148,22 @@ export function ProfileSettingsPage() {
         </p>
       </div>
 
+      {error && (
+        <div className="p-4 text-sm text-destructive bg-destructive/10 rounded-lg">
+          {error}
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <PersonalInfoForm
             formData={formData}
             onChange={(key, value) => handleInputChange(key, value)}
           />
+        </div>
+
+        <div className="space-y-6">
+          <DangerZoneCard onDelete={handleDeleteAccount} />
           <SecurityForm
             data={{
               currentPassword: formData.currentPassword,
@@ -56,22 +173,25 @@ export function ProfileSettingsPage() {
             onChange={(key, value) => handleInputChange(key, value)}
           />
         </div>
-
-        <div className="space-y-6">
-          <NotificationsCard
-            notifications={notifications}
-            onChange={(key, value) => handleNotificationChange(key, value)}
-          />
-          <DangerZoneCard />
-        </div>
       </div>
 
       {/* Save Button */}
       <div className="flex justify-end gap-3">
-        <Button variant="outline">Cancel</Button>
-        <Button className="gap-2">
-          <Save className="h-4 w-4" />
-          Save Changes
+        <Button variant="outline" onClick={loadProfile}>
+          Cancel
+        </Button>
+        <Button className="gap-2" onClick={handleSave} disabled={saving}>
+          {saving ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4" />
+              Save Changes
+            </>
+          )}
         </Button>
       </div>
     </div>
