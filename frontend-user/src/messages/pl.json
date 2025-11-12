@@ -52,7 +52,8 @@
     "error": "Błąd",
     "loginError": "Błąd logowania",
     "registerError": "Błąd rejestracji",
-    "registrationSuccess": "Rejestracja zakończona sukcesem!"
+    "registrationSuccess": "Rejestracja zakończona sukcesem!",
+    "userAlreadyExists": "Użytkownik o tej nazwie już istnieje."
   },
   "home": {
     "recent": "Ostatnie",

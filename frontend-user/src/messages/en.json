@@ -52,7 +52,8 @@
     "error": "Error",
     "loginError": "Login error",
     "registerError": "Registration error",
-    "registrationSuccess": "Registration successful!"
+    "registrationSuccess": "Registration successful!",
+    "userAlreadyExists": "User with this name already exists."
   },
   "home": {
     "recent": "Recent",

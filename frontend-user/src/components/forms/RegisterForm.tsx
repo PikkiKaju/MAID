@@ -121,7 +121,9 @@ function RegisterForm({
 
           {error && (
             <p className="text-center text-red-600">
-              {t("common.error")}: {error}
+              {error === "USER_ALREADY_EXISTS"
+                ? t("auth.userAlreadyExists")
+                : `${t("common.error")}: ${error}`}
             </p>
           )}
 

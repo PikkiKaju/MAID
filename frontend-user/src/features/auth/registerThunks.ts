@@ -21,7 +21,18 @@ export const registerUser = createAsyncThunk<
       if (axios.isAxiosError(err)) {
         const axiosError = err as AxiosError;
         if (axiosError.response) {
-          errorMessage = (axiosError.response.data as { message: string }).message || 'Błąd serwera.';
+          // Backend zwraca string bezpośrednio
+          const message = typeof axiosError.response.data === 'string' 
+            ? axiosError.response.data 
+            : 'Błąd serwera.';
+          
+          // Sprawdź, czy komunikat zawiera "User already exists" (case-insensitive)
+          const messageLower = message.toLowerCase().trim();
+          if (messageLower.includes('user already exists')) {
+            errorMessage = 'USER_ALREADY_EXISTS';
+          } else {
+            errorMessage = message;
+          }
         } else if (axiosError.request) {
           errorMessage = 'Brak odpowiedzi od serwera.';
         } else {
