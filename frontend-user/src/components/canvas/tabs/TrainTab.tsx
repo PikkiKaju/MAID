@@ -93,6 +93,18 @@ export default function TrainTab() {
     return 'multiclass' as const;
   }, [dataset]);
 
+  // Recommend a loss based on target type and selected target encoding
+  const recommendedLoss = useMemo(() => {
+    const enc = dataset?.preprocessingConfig.targetEncoding;
+    if (!dataset?.preprocessingConfig.targetColumn) return null;
+    if (targetKind === 'regression') return 'MeanSquaredError';
+    if (targetKind === 'binary') {
+      return enc === 'one-hot' ? 'CategoricalCrossentropy' : 'BinaryCrossentropy';
+    }
+    // multiclass
+    return enc === 'one-hot' ? 'CategoricalCrossentropy' : 'SparseCategoricalCrossentropy';
+  }, [dataset, targetKind]);
+
   // Compute available metrics based on selected loss and target kind
   const availableMetrics = useMemo(() => {
     // Likely Keras metric class names from manifest
@@ -337,6 +349,21 @@ export default function TrainTab() {
                     return null;
                   })()}
                 </div>
+                {/* Recommendation based on target encoding */}
+                {recommendedLoss && recommendedLoss !== loss && (
+                  <div className="mt-1 text-xs text-slate-600">
+                    Recommended for your target ({dataset?.preprocessingConfig.targetEncoding}): <span className="font-medium">{recommendedLoss}</span>
+                    {losses.includes(recommendedLoss) && (
+                      <button
+                        type="button"
+                        className="ml-2 underline text-blue-600 hover:text-blue-700"
+                        onClick={() => setLoss(recommendedLoss)}
+                      >
+                        Apply
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
