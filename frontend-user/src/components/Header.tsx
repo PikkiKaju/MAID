@@ -8,7 +8,7 @@ import {
   UserPlus,
   XIcon,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { logout } from "../features/auth/authSlice";
@@ -31,6 +31,7 @@ import { profileService } from "../api/profileService";
 export default function Header() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { isLoggedIn, displayName } = useAppSelector((state) => state.auth);
   const searchTerm = useAppSelector((state) => state.search.term);
   const { open, isMobile, openMobile } = useSidebar();
@@ -40,7 +41,10 @@ export default function Header() {
   const isSidebarOpen = isMobile ? openMobile : open;
   const showLogo = !isSidebarOpen;
 
-  const handleLogout = () => dispatch(logout());
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate("/");
+  };
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     dispatch(setSearchTerm(e.target.value));
   const handleSearchClear = () => dispatch(clearSearchTerm());

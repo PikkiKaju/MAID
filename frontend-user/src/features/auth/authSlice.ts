@@ -30,6 +30,9 @@ const authSlice = createSlice({
       state.status = 'inactive';
       state.error = null;
 
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('displayName');
+      // Also remove from localStorage for backward compatibility
       localStorage.removeItem('token');
       localStorage.removeItem('displayName');
     },
@@ -37,14 +40,28 @@ const authSlice = createSlice({
         state.status = 'inactive';
         state.error = null;
     },
-    // when we refresh our app we dont lose a session
+    // when we refresh our app we dont lose a session (only for current tab)
     loginFromStorage: (state) => {
-      const token = localStorage.getItem('token');
-      const displayName = localStorage.getItem('displayName');
+      // Try sessionStorage first (current session)
+      let token = sessionStorage.getItem('token');
+      let displayName = sessionStorage.getItem('displayName');
+      
+      // Fallback to localStorage for backward compatibility
+      if (!token) {
+        token = localStorage.getItem('token');
+        displayName = localStorage.getItem('displayName');
+        // Migrate to sessionStorage if found in localStorage
+        if (token) {
+          sessionStorage.setItem('token', token);
+          if (displayName) {
+            sessionStorage.setItem('displayName', displayName);
+          }
+        }
+      }
       
       if (token) {
         state.token = token;
-        state.displayName = capitalizeFirstLetter(displayName);
+        state.displayName = capitalizeFirstLetter(displayName || '');
         state.isLoggedIn = true;
         state.status = 'succeeded';
         state.error = null;
@@ -64,8 +81,8 @@ const authSlice = createSlice({
         state.isLoggedIn = true;
         state.error = null;
 
-        localStorage.setItem('token', action.payload.token);
-        localStorage.setItem('displayName', action.payload.username); 
+        sessionStorage.setItem('token', action.payload.token);
+        sessionStorage.setItem('displayName', action.payload.username); 
       })
       .addCase(registerUser.rejected, (state, action: PayloadAction<string | undefined>) => {
         state.status = 'failed';
@@ -85,8 +102,8 @@ const authSlice = createSlice({
         state.isLoggedIn = true;
         state.error = null;
 
-        localStorage.setItem('token', action.payload.token);
-        localStorage.setItem('displayName', action.payload.username);
+        sessionStorage.setItem('token', action.payload.token);
+        sessionStorage.setItem('displayName', action.payload.username);
       })
       .addCase(loginUser.rejected, (state, action: PayloadAction<string | undefined>) => {
         state.status = 'failed';  

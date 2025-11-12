@@ -34,7 +34,8 @@ class ProfileService {
   private baseUrl = "/Profile";
 
   private getToken(): string | null {
-    return localStorage.getItem("token");
+    // Try sessionStorage first, fallback to localStorage for backward compatibility
+    return sessionStorage.getItem("token") || localStorage.getItem("token");
   }
 
   async getProfile(): Promise<ProfileData> {
