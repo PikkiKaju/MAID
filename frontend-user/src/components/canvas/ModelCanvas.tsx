@@ -22,6 +22,7 @@ import TopToolbar from './TopToolbar';
 import LayerPalette from './LayerPalette';
 import LayerInspector from './LayerInspector';
 import networkGraphService, { GraphNode, GraphEdge, NetworkGraphPayload } from '../../api/networkGraphService';
+import { useGraph } from '../../contexts/GraphContext';
 import RemovableEdge from './RemovableEdge';
 
 // Initial seed graph (can be removed when implementing full load-from-backend)
@@ -39,6 +40,7 @@ const initialEdges: Edge[] = [];
 
 export default function ModelCanvas() {
   const { nodes: storeNodes, edges: storeEdges, setGraph } = useModelCanvasStore();
+  const { setGraphId } = useGraph();
   const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes.length ? storeNodes : initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges.length ? storeEdges : initialEdges);
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
@@ -115,11 +117,12 @@ export default function ModelCanvas() {
     // Store the graph ID and name for future updates
     if (graph.id) {
       setPersistedGraphId(graph.id);
+      setGraphId(graph.id);
     }
     if (graph.name) {
       setModelName(graph.name);
     }
-  }, [setNodes, setEdges, setGraph]);
+  }, [setNodes, setEdges, setGraph, setGraphId]);
 
   const handlePersist = () => {
     setGraph(nodes, edges); // persist latest working copy
@@ -152,12 +155,14 @@ export default function ModelCanvas() {
           // Update existing graph
           const updated = await networkGraphService.updateGraph(persistedGraphId, payload);
           console.log('Graph updated:', updated);
+          setGraphId(persistedGraphId);
           alert('Graph updated successfully');
         } else {
           // Create new graph
           const created = await networkGraphService.createGraph(payload);
           console.log('Graph created:', created);
           setPersistedGraphId(created.id); // Store the ID for future updates
+          setGraphId(created.id);
           alert('Graph saved to backend');
         }
       } catch (err: unknown) {
