@@ -9,13 +9,14 @@ import { useDispatch } from "react-redux";
 import { AppDispatch } from "../store/store";
 import { logout } from "../features/auth/authSlice";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "../components/toast/ToastProvider";
 
 export function ProfileSettingsPage() {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -37,7 +38,6 @@ export function ProfileSettingsPage() {
 
   const loadProfile = async () => {
     setLoading(true);
-    setError(null);
     try {
       const data = await profileService.getProfile();
       setFormData({
@@ -51,7 +51,7 @@ export function ProfileSettingsPage() {
         confirmPassword: "",
       });
     } catch (err) {
-      setError("Failed to load profile data. Please try again.");
+      showError("Failed to load profile data. Please try again.");
       console.error("Error loading profile:", err);
     } finally {
       setLoading(false);
@@ -67,19 +67,40 @@ export function ProfileSettingsPage() {
     setSelectedAvatarSvg(avatarSvg);
   };
 
+  // Funkcja walidacji emaila
+  const validateEmail = (email: string): string | null => {
+    if (!email) {
+      return null; // Pusty email jest OK (opcjonalne pole)
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return "Please enter a valid email address";
+    }
+
+    return null;
+  };
+
   const handleSave = async () => {
     setSaving(true);
-    setError(null);
+
+    // Walidacja emaila
+    const emailValidationError = validateEmail(formData.email);
+    if (emailValidationError) {
+      showError(emailValidationError);
+      setSaving(false);
+      return;
+    }
 
     // Walidacja haseł
     if (formData.newPassword || formData.confirmPassword) {
       if (formData.newPassword !== formData.confirmPassword) {
-        setError("New passwords do not match.");
+        showError("New passwords do not match.");
         setSaving(false);
         return;
       }
       if (!formData.currentPassword) {
-        setError("Current password is required to change password.");
+        showError("Current password is required to change password.");
         setSaving(false);
         return;
       }
@@ -115,13 +136,13 @@ export function ProfileSettingsPage() {
         confirmPassword: "",
       }));
 
-      // Można dodać toast notification tutaj
-      alert("Profile updated successfully!");
+      // Pokaż toast sukcesu
+      showSuccess("Profile updated successfully!");
     } catch (err: any) {
-      setError(
+      const errorMessage =
         err.response?.data?.message ||
-          "Failed to update profile. Please try again."
-      );
+        "Failed to update profile. Please try again.";
+      showError(errorMessage);
       console.error("Error updating profile:", err);
     } finally {
       setSaving(false);
@@ -142,7 +163,7 @@ export function ProfileSettingsPage() {
       dispatch(logout());
       navigate("/login");
     } catch (err) {
-      setError("Failed to delete account. Please try again.");
+      showError("Failed to delete account. Please try again.");
       console.error("Error deleting account:", err);
     }
   };
@@ -163,12 +184,6 @@ export function ProfileSettingsPage() {
           Manage your account settings and preferences
         </p>
       </div>
-
-      {error && (
-        <div className="p-4 text-sm text-destructive bg-destructive/10 rounded-lg">
-          {error}
-        </div>
-      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">

@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import RegisterForm from "../components/forms/RegisterForm";
 import { RegisterUserForm } from "../models/auth";
 import { registerUser } from "../features/auth/registerThunks";
+import { useToast } from "../components/toast/ToastProvider";
 
 function RegisterPage() {
   const [userToRegister, setUserToRegister] = useState<RegisterUserForm>({
@@ -16,6 +17,7 @@ function RegisterPage() {
     confirmPassword: "",
   });
   const [passwordError, setPasswordError] = useState("");
+  const { showSuccess } = useToast();
 
   // Hooks Implementation
   const navigate = useNavigate();
@@ -29,13 +31,15 @@ function RegisterPage() {
   // Effect to inform about user action
   useEffect(() => {
     if (isLoggedIn && status === "succeeded") {
-      alert(t("auth.registrationSuccess"));
-      navigate("/");
-      dispatch(clearAuthStatus());
+      showSuccess(t("auth.registrationSuccess"));
+      setTimeout(() => {
+        navigate("/");
+        dispatch(clearAuthStatus());
+      }, 2000); // Czeka 2 sekundy przed przekierowaniem, aby użytkownik zobaczył toast
     }
     //  TODO
     //  inne informacje np o tym, że użytkownik się wylogował
-  }, [isLoggedIn, status, navigate, dispatch, t]);
+  }, [isLoggedIn, status, showSuccess, t, navigate, dispatch]);
 
   // Effect to to clear old status
   useEffect(() => {

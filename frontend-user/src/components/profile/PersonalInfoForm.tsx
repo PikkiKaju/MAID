@@ -27,6 +27,7 @@ export function PersonalInfoForm({
 }: PersonalInfoFormProps) {
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [currentAvatar, setCurrentAvatar] = useState<string>("");
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   useEffect(() => {
     loadCurrentAvatar();
@@ -56,6 +57,26 @@ export function PersonalInfoForm({
       trimmed.startsWith("<svg") ||
       (trimmed.startsWith("<?xml") && trimmed.includes("<svg"))
     );
+  };
+
+  // Funkcja walidacji emaila
+  const validateEmail = (email: string): string | null => {
+    if (!email) {
+      return null; // Pusty email jest OK (opcjonalne pole)
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return "Please enter a valid email address";
+    }
+
+    return null;
+  };
+
+  const handleEmailChange = (value: string) => {
+    onChange("email", value);
+    const error = validateEmail(value);
+    setEmailError(error);
   };
 
   const handleAvatarSelect = async (avatarId: string) => {
@@ -157,8 +178,17 @@ export function PersonalInfoForm({
             id="email"
             type="email"
             value={formData.email}
-            onChange={(e) => onChange("email", e.target.value)}
+            onChange={(e) => handleEmailChange(e.target.value)}
+            className={
+              emailError
+                ? "border-destructive border-2 focus-visible:border-destructive focus-visible:ring-destructive/50"
+                : ""
+            }
+            aria-invalid={!!emailError}
           />
+          {emailError && (
+            <p className="text-sm text-destructive mt-1">{emailError}</p>
+          )}
         </div>
 
         <div className="space-y-2">
