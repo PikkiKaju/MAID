@@ -5,6 +5,20 @@ import { useDataset } from '../../../contexts/DatasetContext';
 import { useGraph } from '../../../contexts/GraphContext';
 import networkGraphService from '../../../api/networkGraphService';
 
+type TrainingResult = {
+  live?: {
+    epoch?: number;
+    loss?: number;
+    val_loss?: number;
+    accuracy?: number;
+    sparse_categorical_accuracy?: number;
+    categorical_accuracy?: number;
+    binary_accuracy?: number;
+  };
+  history?: Record<string, number[]>;
+  evaluation?: Record<string, number> | null;
+};
+
 export default function TrainTab() {
   const { dataset } = useDataset();
   const { graphId } = useGraph();
@@ -29,7 +43,7 @@ export default function TrainTab() {
   const [jobStatus, setJobStatus] = useState<string | null>(null);
   const [jobProgress, setJobProgress] = useState<number | null>(null);
   const [jobError, setJobError] = useState<string | null>(null);
-  const [jobResult, setJobResult] = useState<unknown>(null);
+  const [jobResult, setJobResult] = useState<TrainingResult | null>(null);
 
   // Fetch catalogs on mount
   useEffect(() => {
@@ -264,6 +278,8 @@ export default function TrainTab() {
           const j = await networkGraphService.getTrainingJob(job.id);
           setJobStatus(j.status);
           if (typeof j.progress === 'number') setJobProgress(j.progress);
+          // Keep latest result snapshot (for live metrics while running)
+          if (j.result) setJobResult(j.result as TrainingResult);
           if (j.status === 'succeeded' || j.status === 'failed' || j.status === 'cancelled') {
             clearInterval(interval);
             if (j.status === 'succeeded') setJobResult(j.result);
@@ -445,6 +461,26 @@ export default function TrainTab() {
               <div className="text-sm text-slate-700">ID: <span className="font-mono">{jobId}</span></div>
               <div className="text-sm">Status: {jobStatus || '—'}{typeof jobProgress === 'number' ? ` · ${(jobProgress * 100).toFixed(0)}%` : ''}</div>
               {jobError && <div className="text-sm text-red-600">{jobError}</div>}
+              {/* Live metrics while running */}
+              {jobStatus === 'running' && jobResult?.live && (
+                <div className="text-sm text-slate-700 mt-2">
+                  <div className="font-medium">Live</div>
+                  <div className="text-xs text-slate-600">
+                    {(() => {
+                      const live = jobResult.live || {};
+                      const parts: string[] = [];
+                      if (typeof live.epoch === 'number') parts.push(`epoch ${live.epoch}`);
+                      if (typeof live.loss === 'number') parts.push(`loss ${live.loss.toFixed(4)}`);
+                      if (typeof live.val_loss === 'number') parts.push(`val_loss ${live.val_loss.toFixed(4)}`);
+                      if (typeof live.accuracy === 'number') parts.push(`accuracy ${live.accuracy.toFixed(4)}`);
+                      if (typeof live.sparse_categorical_accuracy === 'number') parts.push(`sparse_categorical_accuracy ${live.sparse_categorical_accuracy.toFixed(4)}`);
+                      if (typeof live.categorical_accuracy === 'number') parts.push(`categorical_accuracy ${live.categorical_accuracy.toFixed(4)}`);
+                      if (typeof live.binary_accuracy === 'number') parts.push(`binary_accuracy ${live.binary_accuracy.toFixed(4)}`);
+                      return parts.join(' · ');
+                    })()}
+                  </div>
+                </div>
+              )}
               {!!jobResult && (
                 <div className="text-sm text-slate-700 mt-2">
                   <div>Final metrics:</div>

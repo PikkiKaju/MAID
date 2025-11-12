@@ -302,6 +302,42 @@ def _train_worker(job_id: str) -> None:
         X_test, y_test = X[test_idx], y[test_idx]
 
         # 8) Fit
+        # Callback to push progress and live metrics after each epoch
+        from tensorflow.keras.callbacks import Callback  # type: ignore
+
+        class _JobProgressCallback(Callback):  # pragma: no cover - relies on Keras runtime
+            def __init__(self, jid: str, total_epochs: int):
+                super().__init__()
+                self.jid = jid
+                self.total = max(int(total_epochs), 1)
+
+            def on_epoch_end(self, epoch, logs=None):  # type: ignore[override]
+                try:
+                    logs = logs or {}
+                    frac = (epoch + 1) / float(self.total)
+                    prog = 0.05 + 0.9 * float(frac)
+                    # update live metrics snapshot
+                    job_live = {
+                        "epoch": int(epoch + 1),
+                        "loss": float(logs.get("loss", 0.0)),
+                    }
+                    # include common metrics if present
+                    for k in ("accuracy", "sparse_categorical_accuracy", "categorical_accuracy", "binary_accuracy", "val_loss"):
+                        if k in logs:
+                            job_live[k] = float(logs[k])
+                    # perform atomic update
+                    tj = TrainingJob.objects.filter(id=self.jid)
+                    # read current result to merge live key without dropping history/evaluation
+                    current = TrainingJob.objects.get(id=self.jid)
+                    res = dict(current.result or {})
+                    res["live"] = job_live
+                    tj.update(progress=prog, result=res)
+                except Exception:
+                    # best-effort; don't crash training on DB update issues
+                    pass
+
+        cb = _JobProgressCallback(str(job.id), params.epochs)
+
         history = model.fit(
             X_train,
             y_train,
@@ -309,6 +345,7 @@ def _train_worker(job_id: str) -> None:
             batch_size=params.batch_size,
             validation_data=(X_val, y_val) if len(X_val) > 0 else None,
             verbose=0,
+            callbacks=[cb],
         )
 
         job.progress = 0.95
