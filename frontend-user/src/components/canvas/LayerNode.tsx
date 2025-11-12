@@ -11,6 +11,7 @@ export default function LayerNode({ data, id, selected }: NodeProps) {
       onClick={(e) => { e.stopPropagation(); setSelected(id); }}
       className={`group relative px-3 py-2 rounded border shadow-sm bg-white text-xs min-w-40 cursor-pointer transition
         ${selected ? 'border-blue-600 ring-2 ring-blue-300' : 'hover:shadow-md'}
+        ${data?.hasError ? 'border-rose-500 ring-2 ring-rose-200' : ''}
       `}
     >
       {/* Remove button */}

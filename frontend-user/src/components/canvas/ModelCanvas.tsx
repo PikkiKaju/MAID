@@ -22,6 +22,7 @@ import TopToolbar from './TopToolbar';
 import LayerPalette from './LayerPalette';
 import LayerInspector from './LayerInspector';
 import networkGraphService, { GraphNode, GraphEdge, NetworkGraphPayload } from '../../api/networkGraphService';
+import axios from 'axios';
 import { useGraph } from '../../contexts/GraphContext';
 import RemovableEdge from './RemovableEdge';
 
@@ -46,10 +47,17 @@ export default function ModelCanvas() {
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const [persistedGraphId, setPersistedGraphId] = useState<string | null>(null);
   const [modelName, setModelName] = useState('Untitled graph');
+  const [saveErrors, setSaveErrors] = useState<string[] | null>(null);
+  const [errorItems, setErrorItems] = useState<Array<{ text: string; nodeId?: string; param?: string }> | null>(null);
+  const [errorNodeIds, setErrorNodeIds] = useState<Set<string>>(new Set());
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  // No raw/details to keep UI concise; we only show summarized messages.
   const flowWrapperRef = useRef<HTMLDivElement | null>(null);
   // Memoize these to avoid React Flow warning about re-creating nodeTypes/edgeTypes each render
   const nodeTypes = useMemo(() => ({ layerNode: LayerNode }), []);
   const edgeTypes = useMemo(() => ({ removable: RemovableEdge }), []);
+  const setSelected = useModelCanvasStore(s => s.setSelected);
+  const setHighlightedParam = useModelCanvasStore(s => s.setHighlightedParam);
 
   // Edge creation handler (adds edge with arrow marker)
   const onConnect = useCallback((connection: Edge | Connection) => {
@@ -72,6 +80,86 @@ export default function ModelCanvas() {
   useEffect(() => {
     setEdges(storeEdges);
   }, [storeEdges, setEdges]);
+
+  // (removed old string-only formatter in favor of structured items)
+
+  // Build structured error items with pointers to node and parameter when possible
+  const buildErrorItems = (raw: unknown): Array<{ text: string; nodeId?: string; param?: string }> => {
+    // Map node id to friendly label(layer)
+    const idToMeta = new Map<string, { label: string; layer: string }>();
+    nodes.forEach(n => {
+      const data = (n.data as unknown) as { label?: string; layer?: string } | undefined;
+      idToMeta.set(n.id, { label: (data?.label || '').trim(), layer: (data?.layer || '').trim() });
+    });
+
+    const items: Array<{ text: string; nodeId?: string; param?: string }> = [];
+    const walk = (v: unknown, path: string[] = []) => {
+      if (v === undefined || v === null) return;
+      if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+        // Detect node id and param from path like ["nodes", "<id>", "params", "units"]
+        let nodeId: string | undefined;
+        let param: string | undefined;
+        for (let i = 0; i < path.length; i++) {
+          if (path[i] === 'nodes' && i + 1 < path.length) {
+            nodeId = path[i + 1];
+          }
+          if (path[i] === 'params' && i + 1 < path.length) {
+            param = path[i + 1];
+          }
+        }
+        // Build pretty path replacing nodes.<id> with node "Label (Layer)"
+        let prettyPath = '';
+        if (path.length) {
+          const parts = [...path];
+          const idx = parts.findIndex(p => p === 'nodes' && parts.length >= 2);
+          if (idx !== -1 && parts[idx + 1]) {
+            const nid = parts[idx + 1];
+            const meta = idToMeta.get(nid);
+            let friendly = nid;
+            if (meta) {
+              if (meta.label && meta.layer && meta.label !== meta.layer) friendly = `${meta.label} (${meta.layer})`;
+              else friendly = meta.label || meta.layer || nid;
+            }
+            parts.splice(idx, 2, `node "${friendly}"`);
+          }
+          prettyPath = parts.join('.') + ': ';
+        }
+        const text = prettyPath + String(v);
+        items.push({ text: text.length > 300 ? text.slice(0, 300) + '…' : text, nodeId, param });
+        return;
+      }
+      if (Array.isArray(v)) { v.forEach(child => walk(child, path)); return; }
+      if (typeof v === 'object') {
+        for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+          walk(val, [...path, k]);
+        }
+      }
+    };
+    walk(raw);
+    // Cap for safety
+    return items.slice(0, 60);
+  };
+
+  // Extract node ids referenced in error payload under keys like nodes.<id>
+  const extractErrorNodeIds = (raw: unknown): Set<string> => {
+    const ids = new Set<string>();
+    const walk = (v: unknown, path: string[] = []) => {
+      if (v === undefined || v === null) return;
+      if (Array.isArray(v)) { v.forEach(child => walk(child, path)); return; }
+      if (typeof v === 'object') {
+        for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+          if (path[path.length - 1] === 'nodes') {
+            ids.add(k);
+          }
+          walk(val, [...path, k]);
+        }
+      }
+    };
+    walk(raw);
+    // Filter ids to only those present in current canvas
+    const validIds = new Set(nodes.map(n => n.id));
+    return new Set([...ids].filter(id => validIds.has(id)));
+  };
 
   const loadGraphFromPayload = useCallback((graph: NetworkGraphPayload) => {
     // Helper to convert backend position format to ReactFlow
@@ -126,6 +214,9 @@ export default function ModelCanvas() {
 
   const handlePersist = () => {
     setGraph(nodes, edges); // persist latest working copy
+    setSaveErrors(null);
+    setErrorItems(null);
+    setErrorNodeIds(new Set());
     // Attempt to persist to backend: use update if we have a graph ID, otherwise create new
     (async () => {
       try {
@@ -167,8 +258,28 @@ export default function ModelCanvas() {
         }
       } catch (err: unknown) {
         console.error('Failed to save graph', err);
-        const msg = err instanceof Error ? err.message : String(err);
-        alert('Failed to save graph to backend: ' + msg);
+        if (axios.isAxiosError(err) && err.response) {
+          const data = err.response.data as unknown;
+          // Detect and suppress raw HTML error bodies
+          const isHtml = typeof data === 'string' && /<\s*html[\s>]/i.test(data);
+          if (!isHtml) {
+            const items = buildErrorItems(data);
+            setErrorItems(items.length ? items : null);
+            setSaveErrors(items.length ? items.map(it => it.text) : [String(data) || 'Request failed']);
+            setErrorNodeIds(extractErrorNodeIds(data));
+          } else {
+            setErrorItems(null);
+            setSaveErrors(['Server returned an HTML error page (hidden).']);
+            setErrorNodeIds(new Set());
+          }
+          
+        } else {
+          const msg = err instanceof Error ? err.message : String(err);
+          setErrorItems(null);
+          setSaveErrors([msg || 'Failed to save graph']);
+          setErrorNodeIds(new Set());
+          
+        }
       }
     })();
   };
@@ -216,11 +327,69 @@ export default function ModelCanvas() {
 
   return (
     <div className='h-full flex flex-col border-t bg-white'>
+      {successMessage && (
+        <div className='mx-3 mt-3 mb-2 border border-emerald-200 bg-emerald-50 text-emerald-800 rounded p-2 text-sm'>
+          <div className='flex items-start justify-between'>
+            <div className='font-semibold mb-1'>{successMessage}</div>
+            <button onClick={() => setSuccessMessage(null)} className='text-emerald-800 hover:underline text-xs'>Dismiss</button>
+          </div>
+        </div>
+      )}
+      {(errorItems || saveErrors) && (
+        <div className='mx-3 mt-3 mb-3 border border-red-200 bg-red-50 text-red-700 rounded p-2 text-sm'>
+          <div className='flex items-start justify-between'>
+            <div className='font-semibold mb-1'>There were issues with your graph</div>
+            <button onClick={() => { setSaveErrors(null); setErrorItems(null); setErrorNodeIds(new Set()); }} className='text-red-700 hover:underline text-xs'>Dismiss</button>
+          </div>
+          <ul className='list-disc ml-5 space-y-1 max-h-40 overflow-auto pr-2'>
+            {(errorItems || []).map((item, i) => (
+              <li
+                key={`item-${i}`}
+                className={`break-all ${item.nodeId ? 'cursor-pointer hover:underline' : ''}`}
+                onClick={() => {
+                  if (!item.nodeId) return;
+                  // Center and select the node; highlight parameter if present
+                  const target = nodes.find(n => n.id === item.nodeId);
+                  if (target && rfInstance) {
+                    const { x, y } = target.position;
+                    const maybeInst = rfInstance as unknown as { setCenter?: (x: number, y: number, opt?: { zoom?: number; duration?: number }) => void };
+                    if (maybeInst && typeof maybeInst.setCenter === 'function') {
+                      maybeInst.setCenter(x, y, { zoom: 1.25, duration: 400 });
+                    }
+                  }
+                  setSelected(item.nodeId);
+                  if (item.param) setHighlightedParam(item.param);
+                }}
+                title={item.nodeId ? 'Click to focus this node' : undefined}
+              >
+                {item.text}
+              </li>
+            ))}
+            {!errorItems && saveErrors && saveErrors.map((e, i) => (
+              <li key={`msg-${i}`} className='break-all'>{e}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <TopToolbar 
         onSave={handlePersist} 
         onLoadGraph={loadGraphFromPayload}
         modelName={modelName}
         onModelNameChange={setModelName}
+        onShowErrors={(messages, raw) => {
+          if (messages && messages.length) setSuccessMessage(null);
+          if (raw !== undefined) {
+            const items = buildErrorItems(raw);
+            setErrorItems(items.length ? items : null);
+            setSaveErrors(items.length ? items.map(it => it.text) : null);
+            setErrorNodeIds(extractErrorNodeIds(raw));
+          } else {
+            setErrorItems(null);
+            setSaveErrors(messages && messages.length ? messages : null);
+            setErrorNodeIds(new Set());
+          }
+        }}
+        onShowSuccess={(msg) => { setSuccessMessage(msg); setSaveErrors(null); setErrorItems(null); setErrorNodeIds(new Set()); }}
       />
       <div className='flex flex-1 min-h-0'>
         <div className='w-56 border-r p-2 space-y-2 bg-slate-50 overflow-y-auto text-xs'>
@@ -229,7 +398,15 @@ export default function ModelCanvas() {
         </div>
         <div className='flex-1' ref={flowWrapperRef}>
           <ReactFlow
-            nodes={nodes}
+            nodes={useMemo(() => nodes.map(n => {
+              const data = (n.data as unknown) as Record<string, unknown> | undefined;
+              const hasError = errorNodeIds.has(n.id);
+              if (hasError) return { ...n, data: { ...(data || {}), hasError: true } };
+              if (data && Object.prototype.hasOwnProperty.call(data, 'hasError')) {
+                return { ...n, data: { ...data, hasError: false } };
+              }
+              return n;
+            }), [nodes, errorNodeIds])}
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}

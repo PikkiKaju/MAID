@@ -7,10 +7,12 @@ export interface ModelCanvasState {
   nodes: Node[];
   edges: Edge[];
   selectedNodeId?: string;
+  highlightedParamName?: string;
   // 'type' here is the API layer name; nodes always use React Flow type 'layerNode'
   addNode: (type: string, defaults: Record<string, unknown>) => void;
   setGraph: (nodes: Node[], edges: Edge[]) => void;
   setSelected: (id?: string) => void;
+  setHighlightedParam: (name?: string) => void;
   updateNodeData: (id: string, data: Partial<{ label: string; params: Record<string, unknown> }>) => void;
   removeNode: (id: string) => void;
   removeEdge: (id: string) => void;
@@ -35,6 +37,8 @@ export const useModelCanvasStore = create<ModelCanvasState>((set) => ({
   setGraph: (nodes, edges) => set({ nodes, edges }),
   // Marks one node as selected (UI selection)
   setSelected: (id) => set({ selectedNodeId: id }),
+  // Marks a specific parameter field to highlight in the inspector
+  setHighlightedParam: (name) => set({ highlightedParamName: name }),
   // Shallow merge of node.data – used when editing params in the inspector
   updateNodeData: (id, data) => set((state) => ({
     nodes: state.nodes.map(n => n.id === id ? { ...n, data: { ...n.data, ...data } } : n)

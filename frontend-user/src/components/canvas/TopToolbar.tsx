@@ -10,9 +10,11 @@ interface Props {
   onLoadGraph: (graph: NetworkGraphPayload) => void;
   modelName: string;
   onModelNameChange: (name: string) => void;
+  onShowErrors?: (messages: string[], raw?: unknown) => void;
+  onShowSuccess?: (message: string) => void;
 }
 
-export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelNameChange }: Props) {
+export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelNameChange, onShowErrors, onShowSuccess }: Props) {
   const setGraph = useModelCanvasStore(s => s.setGraph);
   const currentNodes = useModelCanvasStore(s => s.nodes);
   const currentEdges = useModelCanvasStore(s => s.edges);
@@ -52,10 +54,40 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
       // Compile from payload without saving
       const compiled = await networkGraphService.compileGraphFromPayload(nodes, edges);
       console.log('Compiled result:', compiled);
-      alert('Compile successful. See console for full result.');
+      // clear any previous errors on success and notify
+      onShowErrors?.([], undefined);
+      onShowSuccess?.('Compile successful');
     } catch (err: unknown) {
       console.error('Compile failed', err);
-      alert('Compile failed: ' + (err instanceof Error ? err.message : String(err)));
+      // Try to surface validation errors from backend
+      const collectMessages = (data: unknown): string[] => {
+        const messages: string[] = [];
+        const walk = (v: unknown, path: string[] = []) => {
+          if (v === undefined || v === null) return;
+          if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+            const prefix = path.length ? path.join('.') + ': ' : '';
+            const s = String(v);
+            messages.push(prefix + (s.length > 200 ? s.slice(0, 200) + '…' : s));
+            return;
+          }
+          if (Array.isArray(v)) {
+            v.forEach((child) => walk(child, path));
+            return;
+          }
+          if (typeof v === 'object') {
+            for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+              walk(val, [...path, k]);
+            }
+            return;
+          }
+        };
+        walk(data);
+        return messages.slice(0, 20);
+      };
+  const maybeAxios = err as { response?: { data?: unknown } ; message?: string };
+  const respData = maybeAxios?.response?.data ?? (maybeAxios?.message ?? String(err));
+  const msgs = collectMessages(respData);
+  onShowErrors?.(msgs.length ? msgs : ['Compile failed'], respData);
     } finally {
       setBusy(null);
     }
