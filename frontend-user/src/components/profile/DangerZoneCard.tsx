@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "../../ui/card";
 import { Button } from "../../ui/button";
 
@@ -6,13 +7,14 @@ type DangerZoneCardProps = {
 };
 
 export function DangerZoneCard({ onDelete }: DangerZoneCardProps) {
+  const { t } = useTranslation();
   return (
     <Card>
       <CardContent className="pt-6">
         <div className="space-y-2">
-          <h3 className="font-medium">Danger Zone</h3>
+          <h3 className="font-medium">{t("profile.dangerZoneTitle")}</h3>
           <p className="text-sm text-muted-foreground">
-            Permanently delete your account and all associated data.
+            {t("profile.deleteAccountDescription")}
           </p>
           <Button
             variant="destructive"
@@ -20,7 +22,7 @@ export function DangerZoneCard({ onDelete }: DangerZoneCardProps) {
             className="w-full"
             onClick={onDelete}
           >
-            Delete Account
+            {t("profile.deleteAccountButton")}
           </Button>
         </div>
       </CardContent>

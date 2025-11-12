@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ export function AvatarPicker({
   onOpenChange,
   onSelect,
 }: AvatarPickerProps) {
+  const { t } = useTranslation();
   const [avatars, setAvatars] = useState<AvatarOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +42,7 @@ export function AvatarPicker({
       const data = await profileService.getAvatars();
       setAvatars(data);
     } catch (err) {
-      setError("Failed to load avatars. Please try again.");
+      setError(t("profile.failedToLoadAvatars"));
       console.error("Error loading avatars:", err);
     } finally {
       setLoading(false);
@@ -62,9 +64,9 @@ export function AvatarPicker({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Choose Your Avatar</DialogTitle>
+          <DialogTitle>{t("profile.chooseAvatar")}</DialogTitle>
           <DialogDescription>
-            Select an avatar to represent your profile
+            {t("profile.selectAvatarDescription")}
           </DialogDescription>
         </DialogHeader>
 
@@ -115,10 +117,10 @@ export function AvatarPicker({
 
             <div className="flex justify-end gap-2 pt-4 border-t">
               <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button onClick={handleConfirm} disabled={!selectedAvatarId}>
-                Select Avatar
+                {t("profile.selectAvatar")}
               </Button>
             </div>
           </>

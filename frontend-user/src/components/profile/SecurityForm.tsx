@@ -1,4 +1,5 @@
 import { Lock, Eye, EyeOff } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
@@ -12,18 +13,21 @@ type SecurityFormProps = {
 };
 
 export function SecurityForm({ data, onChange }: SecurityFormProps) {
+  const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Lock className="h-5 w-5" />
-          Security
+          {t("profile.security")}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="currentPassword">Current Password</Label>
+          <Label htmlFor="currentPassword">
+            {t("profile.currentPassword")}
+          </Label>
           <div className="relative">
             <Input
               id="currentPassword"
@@ -48,7 +52,7 @@ export function SecurityForm({ data, onChange }: SecurityFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="newPassword">New Password</Label>
+          <Label htmlFor="newPassword">{t("profile.newPassword")}</Label>
           <Input
             id="newPassword"
             type={showPassword ? "text" : "password"}
@@ -58,7 +62,9 @@ export function SecurityForm({ data, onChange }: SecurityFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirm New Password</Label>
+          <Label htmlFor="confirmPassword">
+            {t("profile.confirmNewPassword")}
+          </Label>
           <Input
             id="confirmPassword"
             type={showPassword ? "text" : "password"}

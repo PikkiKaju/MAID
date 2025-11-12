@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "../../ui/card";
 import { FolderOpen, Database, Users, Star } from "lucide-react";
 import type { ProfileStats } from "../../models/profile";
@@ -5,6 +6,7 @@ import type { ProfileStats } from "../../models/profile";
 type StatsGridProps = { stats: ProfileStats };
 
 export function StatsGrid({ stats }: StatsGridProps) {
+  const { t } = useTranslation();
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <Card>
@@ -13,7 +15,9 @@ export function StatsGrid({ stats }: StatsGridProps) {
             <FolderOpen className="h-5 w-5 text-blue-600" />
             <div>
               <p className="text-2xl font-semibold">{stats.totalProjects}</p>
-              <p className="text-xs text-muted-foreground">Total Projects</p>
+              <p className="text-xs text-muted-foreground">
+                {t("projects.myProjects")}
+              </p>
             </div>
           </div>
         </CardContent>
@@ -25,7 +29,9 @@ export function StatsGrid({ stats }: StatsGridProps) {
             <Database className="h-5 w-5 text-green-600" />
             <div>
               <p className="text-2xl font-semibold">{stats.totalDatasets}</p>
-              <p className="text-xs text-muted-foreground">Total Datasets</p>
+              <p className="text-xs text-muted-foreground">
+                {t("datasets.myDatasets")}
+              </p>
             </div>
           </div>
         </CardContent>
@@ -37,7 +43,9 @@ export function StatsGrid({ stats }: StatsGridProps) {
             <Users className="h-5 w-5 text-purple-600" />
             <div>
               <p className="text-2xl font-semibold">{stats.publicDatasets}</p>
-              <p className="text-xs text-muted-foreground">Public Datasets</p>
+              <p className="text-xs text-muted-foreground">
+                {t("datasets.publicDatasets")}
+              </p>
             </div>
           </div>
         </CardContent>
@@ -49,7 +57,9 @@ export function StatsGrid({ stats }: StatsGridProps) {
             <Star className="h-5 w-5 text-yellow-600" />
             <div>
               <p className="text-2xl font-semibold">{stats.publicProjects}</p>
-              <p className="text-xs text-muted-foreground">Public Projects</p>
+              <p className="text-xs text-muted-foreground">
+                {t("projects.publicProjects")}
+              </p>
             </div>
           </div>
         </CardContent>

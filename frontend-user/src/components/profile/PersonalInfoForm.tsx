@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { User } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "../../ui/avatar";
@@ -25,6 +26,7 @@ export function PersonalInfoForm({
   selectedAvatarId,
   selectedAvatarSvg,
 }: PersonalInfoFormProps) {
+  const { t } = useTranslation();
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [currentAvatar, setCurrentAvatar] = useState<string>("");
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -67,7 +69,7 @@ export function PersonalInfoForm({
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return "Please enter a valid email address";
+      return t("profile.invalidEmail");
     }
 
     return null;
@@ -106,7 +108,7 @@ export function PersonalInfoForm({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <User className="h-5 w-5" />
-          Personal Information
+          {t("profile.personalInformation")}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -138,14 +140,14 @@ export function PersonalInfoForm({
               size="sm"
               onClick={() => setAvatarPickerOpen(true)}
             >
-              Change Photo
+              {t("profile.changePhoto")}
             </Button>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="firstName">First Name</Label>
+            <Label htmlFor="firstName">{t("profile.firstName")}</Label>
             <Input
               id="firstName"
               value={formData.firstName}
@@ -153,7 +155,7 @@ export function PersonalInfoForm({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lastName">Last Name</Label>
+            <Label htmlFor="lastName">{t("profile.lastName")}</Label>
             <Input
               id="lastName"
               value={formData.lastName}
@@ -163,17 +165,17 @@ export function PersonalInfoForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="title">Title</Label>
+          <Label htmlFor="title">{t("profile.title")}</Label>
           <Input
             id="title"
             value={formData.title || ""}
             onChange={(e) => onChange("title", e.target.value)}
-            placeholder="e.g., Data Scientist"
+            placeholder={t("profile.titlePlaceholder")}
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email">Email Address</Label>
+          <Label htmlFor="email">{t("profile.emailAddress")}</Label>
           <Input
             id="email"
             type="email"
@@ -192,12 +194,12 @@ export function PersonalInfoForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="bio">Bio</Label>
+          <Label htmlFor="bio">{t("profile.bio")}</Label>
           <Textarea
             id="bio"
             value={formData.bio}
             onChange={(e) => onChange("bio", e.target.value)}
-            placeholder="Tell us about yourself..."
+            placeholder={t("profile.bioPlaceholder")}
             rows={3}
           />
         </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Save, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "../ui/button";
 import { PersonalInfoForm } from "../components/profile/PersonalInfoForm";
 import { SecurityForm } from "../components/profile/SecurityForm";
@@ -12,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "../components/toast/ToastProvider";
 
 export function ProfileSettingsPage() {
+  const { t } = useTranslation();
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
@@ -51,7 +53,7 @@ export function ProfileSettingsPage() {
         confirmPassword: "",
       });
     } catch (err) {
-      showError("Failed to load profile data. Please try again.");
+      showError(t("profile.failedToLoadProfile"));
       console.error("Error loading profile:", err);
     } finally {
       setLoading(false);
@@ -75,7 +77,7 @@ export function ProfileSettingsPage() {
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return "Please enter a valid email address";
+      return t("profile.invalidEmail");
     }
 
     return null;
@@ -95,12 +97,12 @@ export function ProfileSettingsPage() {
     // Walidacja haseł
     if (formData.newPassword || formData.confirmPassword) {
       if (formData.newPassword !== formData.confirmPassword) {
-        showError("New passwords do not match.");
+        showError(t("profile.passwordsDoNotMatch"));
         setSaving(false);
         return;
       }
       if (!formData.currentPassword) {
-        showError("Current password is required to change password.");
+        showError(t("profile.currentPasswordRequired"));
         setSaving(false);
         return;
       }
@@ -137,11 +139,10 @@ export function ProfileSettingsPage() {
       }));
 
       // Pokaż toast sukcesu
-      showSuccess("Profile updated successfully!");
+      showSuccess(t("profile.profileUpdatedSuccess"));
     } catch (err: any) {
       const errorMessage =
-        err.response?.data?.message ||
-        "Failed to update profile. Please try again.";
+        err.response?.data?.message || t("profile.failedToUpdateProfile");
       showError(errorMessage);
       console.error("Error updating profile:", err);
     } finally {
@@ -150,11 +151,7 @@ export function ProfileSettingsPage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (
-      !confirm(
-        "Are you sure you want to delete your account? This action cannot be undone."
-      )
-    ) {
+    if (!confirm(t("profile.deleteAccountConfirm"))) {
       return;
     }
 
@@ -163,7 +160,7 @@ export function ProfileSettingsPage() {
       dispatch(logout());
       navigate("/login");
     } catch (err) {
-      showError("Failed to delete account. Please try again.");
+      showError(t("profile.failedToDeleteAccount"));
       console.error("Error deleting account:", err);
     }
   };
@@ -179,10 +176,10 @@ export function ProfileSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Profile Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your account settings and preferences
-        </p>
+        <h1 className="text-2xl font-semibold">
+          {t("profile.profileSettings")}
+        </h1>
+        <p className="text-muted-foreground">{t("profile.manageSettings")}</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -219,18 +216,18 @@ export function ProfileSettingsPage() {
             setSelectedAvatarSvg(null);
           }}
         >
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button className="gap-2" onClick={handleSave} disabled={saving}>
           {saving ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Saving...
+              {t("profile.saving")}
             </>
           ) : (
             <>
               <Save className="h-4 w-4" />
-              Save Changes
+              {t("profile.saveChanges")}
             </>
           )}
         </Button>
