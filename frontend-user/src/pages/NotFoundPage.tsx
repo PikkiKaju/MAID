@@ -16,7 +16,7 @@ function NotFoundPage() {
         </p>
         <Link
           to="/"
-          className="inline-flex items-center text-indigo-500 hover:text-indigo-300 font-semibold"
+          className="inline-flex items-center text-indigo-500 hover:text-indigo-300 font-semibold cursor-pointer"
         >
           <ChevronLeft className="size-5" />
           Back to home

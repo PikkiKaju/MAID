@@ -99,7 +99,7 @@ function LoginForm({
             {t("auth.noAccount")}{" "}
             <Link
               to="/register"
-              className="font-medium text-primary hover:text-primary/90"
+              className="font-medium text-primary hover:text-primary/90 cursor-pointer"
             >
               {t("auth.registerLink")}
             </Link>

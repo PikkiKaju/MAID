@@ -94,7 +94,7 @@ export default function Header() {
     <header className="h-16 shadow-md bg-sidebar-accent/70 dark:bg-sidebar-accent/30 px-6 flex items-center justify-between">
       {/* Logo and Sidebar Toggle */}
       <div className="flex items-center gap-3">
-        <SidebarTrigger className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors hover:bg-accent h-9 w-9 p-0">
+        <SidebarTrigger className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors hover:bg-accent h-9 w-9 p-0 cursor-pointer">
           <Menu className="h-4 w-4" />
         </SidebarTrigger>
 
@@ -122,7 +122,7 @@ export default function Header() {
         {searchTerm && (
           <button
             onClick={handleSearchClear}
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-800"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-800 cursor-pointer"
           >
             <XIcon className="h-4 w-4" />
           </button>
@@ -139,20 +139,20 @@ export default function Header() {
           <div className="flex gap-2">
             <Link
               to="/register"
-              className="flex items-center gap-1 border border-gray-400 text-sm px-3 py-2 rounded-full hover:bg-accent transition"
+              className="flex items-center gap-1 border border-gray-400 text-sm px-3 py-2 rounded-full hover:bg-accent transition cursor-pointer"
             >
               <UserPlus className="h-4 w-4" /> {t("header.register")}
             </Link>
             <Link
               to="/login"
-              className="flex items-center gap-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm px-3 py-2 rounded-full hover:opacity-90 transition"
+              className="flex items-center gap-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm px-3 py-2 rounded-full hover:opacity-90 transition cursor-pointer"
             >
               <LogIn className="h-4 w-4" /> {t("header.login")}
             </Link>
           </div>
         ) : (
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-3 hover:bg-accent px-3 py-2 rounded-lg transition-colors">
+            <DropdownMenuTrigger className="flex items-center gap-3 hover:bg-accent px-3 py-2 rounded-lg transition-colors cursor-pointer">
               <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0 bg-background flex items-center justify-center">
                 {isSvgAvatar(profileAvatar) ? (
                   <div

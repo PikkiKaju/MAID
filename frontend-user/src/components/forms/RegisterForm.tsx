@@ -140,7 +140,7 @@ function RegisterForm({
           {t("auth.hasAccount")}{" "}
           <Link
             to="/login"
-            className="font-medium text-indigo-600 hover:text-indigo-500"
+            className="font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer"
           >
             {t("auth.loginLink")}
           </Link>

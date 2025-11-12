@@ -83,7 +83,7 @@ export function AvatarPicker({
                 <button
                   key={avatar.id}
                   onClick={() => handleSelect(avatar.id)}
-                  className={`relative p-2 rounded-lg border-2 transition-all hover:scale-105 ${
+                  className={`relative p-2 rounded-lg border-2 transition-all hover:scale-105 cursor-pointer ${
                     selectedAvatarId === avatar.id
                       ? "border-primary ring-2 ring-primary ring-offset-2"
                       : "border-border hover:border-primary/50"
