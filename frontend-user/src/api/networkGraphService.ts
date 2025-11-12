@@ -141,6 +141,25 @@ const networkGraphService = {
     throw new Error('Failed to fetch layers specs');
   },
 
+  // Optimizers/Losses/Metrics catalogs
+  getOptimizersList: async (): Promise<{ tensorflow_version?: string; optimizer_count?: number; optimizers: { name: string; description?: string }[] }> => {
+    const resp = await djangoClient.get('network/optimizers/');
+    if (resp.status === 200) return resp.data;
+    throw new Error('Failed to fetch optimizers');
+  },
+
+  getLossesList: async (): Promise<{ tensorflow_version?: string; loss_count?: number; losses: { name: string; description?: string }[] }> => {
+    const resp = await djangoClient.get('network/losses/');
+    if (resp.status === 200) return resp.data;
+    throw new Error('Failed to fetch losses');
+  },
+
+  getMetricsList: async (): Promise<{ tensorflow_version?: string; metric_count?: number; metrics: { name: string; description?: string }[] }> => {
+    const resp = await djangoClient.get('network/metrics/');
+    if (resp.status === 200) return resp.data;
+    throw new Error('Failed to fetch metrics');
+  },
+
   /**
    * Import a Keras model JSON string and persist as a graph.
    * Backend route: POST /network/graphs/import-keras-json
