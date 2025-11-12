@@ -43,6 +43,7 @@ export default function ModelCanvas() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges.length ? storeEdges : initialEdges);
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const [persistedGraphId, setPersistedGraphId] = useState<string | null>(null);
+  const [modelName, setModelName] = useState('Untitled graph');
   const flowWrapperRef = useRef<HTMLDivElement | null>(null);
   // Memoize these to avoid React Flow warning about re-creating nodeTypes/edgeTypes each render
   const nodeTypes = useMemo(() => ({ layerNode: LayerNode }), []);
@@ -111,9 +112,12 @@ export default function ModelCanvas() {
     setEdges(loadedEdges);
     setGraph(loadedNodes, loadedEdges);
     
-    // Store the graph ID for future updates
+    // Store the graph ID and name for future updates
     if (graph.id) {
       setPersistedGraphId(graph.id);
+    }
+    if (graph.name) {
+      setModelName(graph.name);
     }
   }, [setNodes, setEdges, setGraph]);
 
@@ -142,7 +146,7 @@ export default function ModelCanvas() {
           meta: ((e as unknown) as { meta?: Record<string, unknown> }).meta || {},
         }));
 
-        const payload = { name: 'Untitled graph', nodes: nodesPayload, edges: edgesPayload };
+        const payload = { name: modelName, nodes: nodesPayload, edges: edgesPayload };
         
         if (persistedGraphId) {
           // Update existing graph
@@ -207,7 +211,12 @@ export default function ModelCanvas() {
 
   return (
     <div className='h-full flex flex-col border-t bg-white'>
-      <TopToolbar onSave={handlePersist} onLoadGraph={loadGraphFromPayload} />
+      <TopToolbar 
+        onSave={handlePersist} 
+        onLoadGraph={loadGraphFromPayload}
+        modelName={modelName}
+        onModelNameChange={setModelName}
+      />
       <div className='flex flex-1 min-h-0'>
         <div className='w-56 border-r p-2 space-y-2 bg-slate-50 overflow-y-auto text-xs'>
           <h3 className='font-semibold text-slate-600 text-sm'>Layers</h3>

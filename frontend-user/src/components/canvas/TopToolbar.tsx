@@ -8,9 +8,11 @@ import { Edge as RFEdge, Node as RFNode } from 'reactflow';
 interface Props { 
   onSave: () => void;
   onLoadGraph: (graph: NetworkGraphPayload) => void;
+  modelName: string;
+  onModelNameChange: (name: string) => void;
 }
 
-export default function TopToolbar({ onSave, onLoadGraph }: Props) {
+export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelNameChange }: Props) {
   const setGraph = useModelCanvasStore(s => s.setGraph);
   const currentNodes = useModelCanvasStore(s => s.nodes);
   const currentEdges = useModelCanvasStore(s => s.edges);
@@ -158,6 +160,15 @@ export default function TopToolbar({ onSave, onLoadGraph }: Props) {
         onLoad={onLoadGraph} 
       />
       <div className='flex items-center gap-2 border-b px-3 py-2 bg-slate-100 text-xs'>
+        {/* Model Name Input */}
+        <input
+          type="text"
+          value={modelName}
+          onChange={(e) => onModelNameChange(e.target.value)}
+          placeholder="Model name..."
+          className="px-3 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+        />
+
         {/* Save current canvas (delegates to parent) */}
         <button onClick={onSave} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60'>
           <Save size={14}/> Save

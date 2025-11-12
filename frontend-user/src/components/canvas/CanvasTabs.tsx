@@ -6,13 +6,15 @@ import DatasetTab from './tabs/DatasetTab';
 import TrainTab from './tabs/TrainTab';
 import MetricsTab from './tabs/MetricsTab';
 import ModelSummaryTab from './tabs/ModelSummaryTab';
+import { DatasetProvider } from '../../contexts/DatasetContext';
 
 export default function CanvasTabs() {
   const [activeTab, setActiveTab] = useState('canvas');
 
   return (
-    <div className="h-full flex flex-col">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+    <DatasetProvider>
+      <div className="h-full flex flex-col">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
         {/* Tab Headers */}
         <div className="border-b bg-white px-4 py-2">
           <TabsList className="w-full justify-start">
@@ -63,5 +65,6 @@ export default function CanvasTabs() {
         </div>
       </Tabs>
     </div>
+    </DatasetProvider>
   );
 }
