@@ -117,7 +117,11 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
     let cleanedRows = rows.map(r => ({...r}));
 
     // Helper to detect missing according to config
-    const isMissing = (val: any) => val === null || val === undefined || String(val).trim() === '';
+    const isMissing = (val: unknown) => {
+      if (val === null || val === undefined) return true;
+      const s = typeof val === 'string' ? val : String(val);
+      return s.trim() === '';
+    };
 
     // 3) Handle remove-rows policy early if requested
     if (cfg.missingValueStrategy === 'remove-rows') {
@@ -341,6 +345,7 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useDataset() {
   const context = useContext(DatasetContext);
   if (context === undefined) {
