@@ -388,8 +388,11 @@ export default function TrainTab() {
         </Button>
       </div>
 
-      <div className="flex-1 overflow-auto">
-        <div className="bg-white border rounded-lg p-6 space-y-6">
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Left column: all inputs */}
+          <div className="h-full overflow-auto">
+            <div className="bg-white border rounded-lg p-6 space-y-6">
           {/* Compilation Settings */}
           <div>
             <div className="flex items-center gap-2 mb-4">
@@ -668,43 +671,53 @@ export default function TrainTab() {
             </div>
           </div>
 
-          {/* Job status */}
-          {jobId && (
-            <div className="mt-4 border-t pt-4">
-              <h4 className="font-semibold text-slate-700 mb-2">Training Job</h4>
-              <div className="text-sm text-slate-700">ID: <span className="font-mono">{jobId}</span></div>
-              <div className="text-sm">Status: {jobStatus || '—'}{typeof jobProgress === 'number' ? ` · ${(jobProgress * 100).toFixed(0)}%` : ''}</div>
-              {jobError && <div className="text-sm text-red-600">{jobError}</div>}
-              {/* Live metrics while running */}
-              {jobStatus === 'running' && jobResult?.live && (
-                <div className="text-sm text-slate-700 mt-2">
-                  <div className="font-medium">Live</div>
-                  <div className="text-xs text-slate-600">
-                    {(() => {
-                      const live = jobResult.live || {};
-                      const parts: string[] = [];
-                      if (typeof live.epoch === 'number') parts.push(`epoch ${live.epoch}`);
-                      if (typeof live.loss === 'number') parts.push(`loss ${live.loss.toFixed(4)}`);
-                      if (typeof live.val_loss === 'number') parts.push(`val_loss ${live.val_loss.toFixed(4)}`);
-                      if (typeof live.accuracy === 'number') parts.push(`accuracy ${live.accuracy.toFixed(4)}`);
-                      if (typeof live.sparse_categorical_accuracy === 'number') parts.push(`sparse_categorical_accuracy ${live.sparse_categorical_accuracy.toFixed(4)}`);
-                      if (typeof live.categorical_accuracy === 'number') parts.push(`categorical_accuracy ${live.categorical_accuracy.toFixed(4)}`);
-                      if (typeof live.binary_accuracy === 'number') parts.push(`binary_accuracy ${live.binary_accuracy.toFixed(4)}`);
-                      return parts.join(' · ');
-                    })()}
-                  </div>
+            </div>
+          </div>
+
+          {/* Right column: training job status */}
+          <div className="h-full overflow-auto">
+            <div className="bg-white border rounded-lg p-6 space-y-4">
+              <h3 className="font-semibold text-slate-700">Training Job</h3>
+              {!jobId ? (
+                <div className="text-sm text-slate-600">
+                  No job yet. Configure parameters on the left and click "Start Training" to begin.
                 </div>
-              )}
-              {!!jobResult && (
-                <div className="text-sm text-slate-700 mt-2">
-                  <div>Final metrics:</div>
-                  <pre className="bg-slate-50 p-2 rounded border overflow-auto max-h-60 text-xs">{JSON.stringify(jobResult, null, 2)}</pre>
+              ) : (
+                <div className="space-y-2">
+                  <div className="text-sm text-slate-700">ID: <span className="font-mono">{jobId}</span></div>
+                  <div className="text-sm">Status: {jobStatus || '—'}{typeof jobProgress === 'number' ? ` · ${(jobProgress * 100).toFixed(0)}%` : ''}</div>
+                  {jobError && <div className="text-sm text-red-600">{jobError}</div>}
+                  {jobStatus === 'running' && jobResult?.live && (
+                    <div className="text-sm text-slate-700 mt-2">
+                      <div className="font-medium">Live</div>
+                      <div className="text-xs text-slate-600">
+                        {(() => {
+                          const live = jobResult.live || {};
+                          const parts: string[] = [];
+                          if (typeof live.epoch === 'number') parts.push(`epoch ${live.epoch}`);
+                          if (typeof live.loss === 'number') parts.push(`loss ${live.loss.toFixed(4)}`);
+                          if (typeof live.val_loss === 'number') parts.push(`val_loss ${live.val_loss.toFixed(4)}`);
+                          if (typeof live.accuracy === 'number') parts.push(`accuracy ${live.accuracy.toFixed(4)}`);
+                          if (typeof live.sparse_categorical_accuracy === 'number') parts.push(`sparse_categorical_accuracy ${live.sparse_categorical_accuracy.toFixed(4)}`);
+                          if (typeof live.categorical_accuracy === 'number') parts.push(`categorical_accuracy ${live.categorical_accuracy.toFixed(4)}`);
+                          if (typeof live.binary_accuracy === 'number') parts.push(`binary_accuracy ${live.binary_accuracy.toFixed(4)}`);
+                          return parts.join(' · ');
+                        })()}
+                      </div>
+                    </div>
+                  )}
+                  {!!jobResult && (
+                    <div className="text-sm text-slate-700 mt-2">
+                      <div>Final metrics:</div>
+                      <pre className="bg-slate-50 p-2 rounded border overflow-auto max-h-80 text-xs">{JSON.stringify(jobResult, null, 2)}</pre>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
           </div>
         </div>
+      </div>
     </div>
   );
 }
