@@ -5,6 +5,7 @@ import { useDataset } from '../../../contexts/DatasetContext';
 import { useGraph } from '../../../contexts/GraphContext';
 import networkGraphService from '../../../api/networkGraphService';
 import { useTrainingConfig } from '../../../contexts/useTrainingConfig';
+import MiniLineChart from '../../canvas/MiniLineChart';
 
 type TrainingResult = {
   live?: {
@@ -69,6 +70,16 @@ export default function TrainTab() {
     jobResult: TrainingResult | null; setJobResult: (v: TrainingResult | null) => void;
   };
   const pollerRef = useRef<number | null>(null);
+  const lastEpochRef = useRef<number>(0);
+  const [liveLoss, setLiveLoss] = useState<number[]>([]);
+  const [liveValLoss, setLiveValLoss] = useState<number[]>([]);
+
+  // Reset live series when a new job starts or when jobId changes
+  useEffect(() => {
+    lastEpochRef.current = 0;
+    setLiveLoss([]);
+    setLiveValLoss([]);
+  }, [jobId]);
 
   // Fetch catalogs on mount
   useEffect(() => {
@@ -324,6 +335,17 @@ export default function TrainTab() {
           if (typeof j.progress === 'number') setJobProgress(j.progress);
           // Keep latest result snapshot (for live metrics while running)
           if (j.result) setJobResult(j.result as TrainingResult);
+          // Accumulate live series for charting while running
+          if (j.status === 'running' && j.result?.live) {
+            const epoch = Number(j.result.live.epoch || 0);
+            if (epoch > lastEpochRef.current) {
+              lastEpochRef.current = epoch;
+              const l = typeof j.result.live.loss === 'number' ? j.result.live.loss : null;
+              const vl = typeof j.result.live.val_loss === 'number' ? j.result.live.val_loss : null;
+              if (l != null) setLiveLoss(prev => [...prev, l]);
+              if (vl != null) setLiveValLoss(prev => [...prev, vl]);
+            }
+          }
           if (j.status === 'succeeded' || j.status === 'failed' || j.status === 'cancelled') {
             clearInterval(interval);
               if (j.status === 'succeeded') {
@@ -362,6 +384,16 @@ export default function TrainTab() {
         setJobStatus(j.status);
         if (typeof j.progress === 'number') setJobProgress(j.progress);
         if (j.result) setJobResult(j.result as TrainingResult);
+        if (j.status === 'running' && j.result?.live) {
+          const epoch = Number(j.result.live.epoch || 0);
+          if (epoch > lastEpochRef.current) {
+            lastEpochRef.current = epoch;
+            const l = typeof j.result.live.loss === 'number' ? j.result.live.loss : null;
+            const vl = typeof j.result.live.val_loss === 'number' ? j.result.live.val_loss : null;
+            if (l != null) setLiveLoss(prev => [...prev, l]);
+            if (vl != null) setLiveValLoss(prev => [...prev, vl]);
+          }
+        }
         const final = j.status === 'succeeded' || j.status === 'failed' || j.status === 'cancelled';
         if (final) {
           clearInterval(interval);
@@ -739,12 +771,67 @@ export default function TrainTab() {
                       </div>
                     </div>
                   )}
+                  {/* Loss chart above final metrics */}
+                  {(() => {
+                    type HistoryMap = Record<string, number[]>;
+                    const hist = (jobResult?.history || null) as HistoryMap | null;
+                    const histLoss = hist?.loss;
+                    const histValLoss = hist?.val_loss;
+                    const hasHistory = Array.isArray(histLoss) && histLoss.length > 0;
+                    const hasLive = liveLoss.length > 0 || liveValLoss.length > 0;
+                    if (!hasHistory && !hasLive) return null;
+                    const series = hasHistory
+                      ? [
+                          { label: 'loss', color: '#2563eb', data: histLoss || [] },
+                          ...(Array.isArray(histValLoss) && histValLoss.length ? [{ label: 'val_loss', color: '#7c3aed', data: histValLoss }] : []),
+                        ]
+                      : [
+                          { label: 'loss', color: '#2563eb', data: liveLoss },
+                          ...(liveValLoss.length ? [{ label: 'val_loss', color: '#7c3aed', data: liveValLoss }] : []),
+                        ];
+                    return (
+                      <div className="mt-3">
+                        <div className="text-xs text-slate-500 mb-1">Loss over epochs</div>
+                        <MiniLineChart
+                          series={series}
+                          height={180}
+                          xMin={1}
+                          xMax={hasHistory ? (histLoss?.length || undefined) : (lastEpochRef.current || undefined)}
+                        />
+                      </div>
+                    );
+                  })()}
                   {!!jobResult && (
                     <div className="text-sm text-slate-700 mt-2">
                       <div>Final metrics:</div>
                       <pre className="bg-slate-50 p-2 rounded border overflow-auto max-h-80 text-xs">{JSON.stringify(jobResult, null, 2)}</pre>
                     </div>
                   )}
+                  {/* Loss chart */}
+                  {(() => {
+                    type HistoryMap = Record<string, number[]>;
+                    const hist = (jobResult?.history || null) as HistoryMap | null;
+                    const histLoss = hist?.loss;
+                    const histValLoss = hist?.val_loss;
+                    const hasHistory = Array.isArray(histLoss) && histLoss.length > 0;
+                    const hasLive = liveLoss.length > 0 || liveValLoss.length > 0;
+                    if (!hasHistory && !hasLive) return null;
+                    const series = hasHistory
+                      ? [
+                          { label: 'loss', color: '#2563eb', data: histLoss || [] },
+                          ...(Array.isArray(histValLoss) && histValLoss.length ? [{ label: 'val_loss', color: '#7c3aed', data: histValLoss }] : []),
+                        ]
+                      : [
+                          { label: 'loss', color: '#2563eb', data: liveLoss },
+                          ...(liveValLoss.length ? [{ label: 'val_loss', color: '#7c3aed', data: liveValLoss }] : []),
+                        ];
+                    return (
+                      <div className="mt-3">
+                        <div className="text-xs text-slate-500 mb-1">Loss over epochs</div>
+                        <MiniLineChart series={series} height={180} />
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
