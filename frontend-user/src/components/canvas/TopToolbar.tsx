@@ -116,10 +116,11 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
         id: String(e.id), source: String(e.source), target: String(e.target)
       }));
       setGraph(nodes, edges);
-      alert('Keras model imported onto canvas');
+      onShowSuccess?.('Keras model imported onto canvas');
     } catch (err: unknown) {
       console.error('Import Keras failed', err);
-      alert('Import Keras failed: ' + (err instanceof Error ? err.message : String(err)));
+      const msg = 'Import Keras failed: ' + (err instanceof Error ? err.message : String(err));
+      onShowErrors?.([msg]);
     } finally {
       setBusy(null);
       if (fileKerasRef.current) fileKerasRef.current.value = '';
@@ -150,10 +151,11 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
         id: String(e.id), source: String(e.source), target: String(e.target)
       }));
       setGraph(nodes, edges);
-      alert('Graph model imported onto canvas');
+      onShowSuccess?.('Graph model imported onto canvas');
     } catch (err: unknown) {
       console.error('Import graph failed', err);
-      alert('Import graph failed: ' + (err instanceof Error ? err.message : String(err)));
+      const msg = 'Import graph failed: ' + (err instanceof Error ? err.message : String(err));
+      onShowErrors?.([msg]);
     } finally {
       setBusy(null);
       if (fileGraphRef.current) fileGraphRef.current.value = '';
@@ -178,7 +180,8 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
       URL.revokeObjectURL(url);
     } catch (err: unknown) {
       console.error('Export python failed', err);
-      alert('Export python failed: ' + (err instanceof Error ? err.message : String(err)));
+      const msg = 'Export python failed: ' + (err instanceof Error ? err.message : String(err));
+      onShowErrors?.([msg]);
     } finally {
       setBusy(null);
     }

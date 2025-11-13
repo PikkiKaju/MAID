@@ -172,12 +172,15 @@ export default function ModelCanvas() {
       return { x: 100, y: 100 };
     };
 
-    // Helper to extract node ID from backend edge format
-    // Backend returns edges with source/target like "Dense (node-id)" instead of just "node-id"
+    // Helper to get raw node ID from various formats
     const extractNodeId = (nodeRef: string): string => {
-      // Try to extract ID from format "LayerName (id)"
+      // If format is "LayerName (id)", extract id within parentheses
       const match = nodeRef.match(/\(([^)]+)\)$/);
-      return match ? match[1] : nodeRef;
+      const raw = match ? match[1] : nodeRef;
+      // Strip graph-scoped prefix if present ("<graphId>:<id>")
+      const prefix = graph.id ? String(graph.id) + ':' : '';
+      if (prefix && raw.startsWith(prefix)) return raw.slice(prefix.length);
+      return raw;
     };
 
     // Convert nodes
@@ -242,19 +245,19 @@ export default function ModelCanvas() {
 
         const payload = { name: modelName, nodes: nodesPayload, edges: edgesPayload };
         
-        if (persistedGraphId) {
+  if (persistedGraphId) {
           // Update existing graph
           const updated = await networkGraphService.updateGraph(persistedGraphId, payload);
           console.log('Graph updated:', updated);
           setGraphId(persistedGraphId);
-          alert('Graph updated successfully');
+          setSuccessMessage('Graph updated successfully');
         } else {
           // Create new graph
           const created = await networkGraphService.createGraph(payload);
           console.log('Graph created:', created);
           setPersistedGraphId(created.id); // Store the ID for future updates
           setGraphId(created.id);
-          alert('Graph saved to backend');
+          setSuccessMessage('Graph saved to backend');
         }
       } catch (err: unknown) {
         console.error('Failed to save graph', err);
