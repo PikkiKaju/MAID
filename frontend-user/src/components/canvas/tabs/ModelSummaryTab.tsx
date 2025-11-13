@@ -45,19 +45,12 @@ export default function ModelSummaryTab() {
 
       // Compile graph to get model summary
       const result = await networkGraphService.compileGraphFromPayload(nodesPayload, edgesPayload);
-      
-      // Extract summary from compilation result
-      if (result.summary) {
-        // Parse the summary (adjust based on actual backend response structure)
-        const layers: LayerSummary[] = result.layers?.map((layer: Record<string, unknown>) => ({
-          name: (layer.name as string) || (layer.type as string),
-          type: layer.type as string,
-          outputShape: (layer.output_shape as string) || 'N/A',
-          params: (layer.params as number) || 0,
-        })) || [];
 
+      // Parse Keras text summary into structured data
+      if (result.summary && typeof result.summary === 'string') {
+        const layers = parseSummaryText(result.summary);
         setSummary(layers);
-        setTotalParams((result.total_params as number) || layers.reduce((sum, l) => sum + l.params, 0));
+        setTotalParams((result.parameter_count as number) || layers.reduce((sum, l) => sum + l.params, 0));
       } else {
         throw new Error('No summary data in compilation result');
       }
@@ -68,6 +61,61 @@ export default function ModelSummaryTab() {
       setLoading(false);
     }
   };
+
+  /**
+   * Parse Keras model.summary() text output into structured layer data.
+   * Example input:
+   * ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓
+   * ┃ Layer (type)                    ┃ Output Shape           ┃       Param # ┃
+   * ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩
+   * │ input_layer (InputLayer)        │ (None, 10)             │             0 │
+   * │ dense (Dense)                   │ (None, 64)             │           704 │
+   * └─────────────────────────────────┴────────────────────────┴───────────────┘
+   */
+  function parseSummaryText(text: string): LayerSummary[] {
+    const lines = text.split('\n');
+    const layers: LayerSummary[] = [];
+
+    for (const line of lines) {
+      // Skip header/separator lines (containing ━, ┃, ┏, etc.)
+      if (line.includes('━') || line.includes('┏') || line.includes('┗') || line.includes('┡')) continue;
+
+      // Look for layer data lines (start with │ or ┃)
+      if (!line.includes('│') && !line.includes('┃')) continue;
+
+      // Skip the header row itself
+      if (line.includes('Layer (type)') || line.includes('Output Shape') || line.includes('Param #')) continue;
+
+      // Split by │ or ┃ and trim
+      const parts = line.split(/[│┃]/).map(s => s.trim()).filter(Boolean);
+
+      if (parts.length >= 3) {
+        const layerCol = parts[0]; // e.g., "input_layer (InputLayer)"
+        const outputShape = parts[1]; // e.g., "(None, 10)"
+        const paramStr = parts[2]; // e.g., "704" or "704 (1.0 KB)"
+
+        // Extract layer name and type from "name (Type)" format
+        const match = layerCol.match(/^(.+?)\s*\((.+?)\)$/);
+        if (match) {
+          const name = match[1].trim();
+          const type = match[2].trim();
+
+          // Parse param count (may include commas or size annotations)
+          const paramMatch = paramStr.match(/[\d,]+/);
+          const params = paramMatch ? parseInt(paramMatch[0].replace(/,/g, '')) : 0;
+
+          layers.push({
+            name,
+            type,
+            outputShape,
+            params,
+          });
+        }
+      }
+    }
+
+    return layers;
+  }
 
   return (
     <div className="h-full flex flex-col p-4 bg-slate-50">

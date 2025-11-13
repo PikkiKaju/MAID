@@ -538,6 +538,9 @@ export default function TrainTab() {
   // RENDER
   // ============================================================
 
+  // Check if training can start (graph compiled and dataset ready)
+  const canStartTraining = graphId && dataset?.isProcessed && dataset.trainData;
+
   return (
     <div className="h-full flex flex-col p-4 bg-slate-50">
       <div className="mb-4 flex items-center justify-between">
@@ -548,12 +551,25 @@ export default function TrainTab() {
             {isStopping ? 'Stopping…' : 'Stop Training'}
           </Button>
         ) : (
-          <Button onClick={handleStartTraining} disabled={isStarting || !graphId}>
+          <Button onClick={handleStartTraining} disabled={isStarting || !canStartTraining}>
             <Play size={16} className="mr-2" />
             {isStarting ? 'Starting…' : 'Start Training'}
           </Button>
         )}
       </div>
+
+      {/* Hint when training is blocked */}
+      {!canStartTraining && (
+        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+          <div className="font-medium mb-1">Cannot start training:</div>
+          <ul className="list-disc list-inside space-y-1 text-xs">
+            {!graphId && <li>Model graph is not compiled. Go to the Canvas tab and compile your model.</li>}
+            {graphId && (!dataset?.isProcessed || !dataset.trainData) && (
+              <li>Dataset is not prepared. Go to the Dataset tab and load/preprocess your data.</li>
+            )}
+          </ul>
+        </div>
+      )}
 
       <div className="flex-1 overflow-hidden">
         <div className="h-full grid grid-cols-1 lg:grid-cols-2 gap-4">
