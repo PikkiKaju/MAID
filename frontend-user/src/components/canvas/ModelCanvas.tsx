@@ -204,7 +204,7 @@ export default function ModelCanvas() {
     setNodes(loadedNodes);
     setEdges(loadedEdges);
     setGraph(loadedNodes, loadedEdges);
-    
+
     // Store the graph ID and name for future updates
     if (graph.id) {
       setPersistedGraphId(graph.id);
@@ -244,8 +244,8 @@ export default function ModelCanvas() {
         }));
 
         const payload = { name: modelName, nodes: nodesPayload, edges: edgesPayload };
-        
-  if (persistedGraphId) {
+
+        if (persistedGraphId) {
           // Update existing graph
           const updated = await networkGraphService.updateGraph(persistedGraphId, payload);
           console.log('Graph updated:', updated);
@@ -275,13 +275,13 @@ export default function ModelCanvas() {
             setSaveErrors(['Server returned an HTML error page (hidden).']);
             setErrorNodeIds(new Set());
           }
-          
+
         } else {
           const msg = err instanceof Error ? err.message : String(err);
           setErrorItems(null);
           setSaveErrors([msg || 'Failed to save graph']);
           setErrorNodeIds(new Set());
-          
+
         }
       }
     })();
@@ -298,8 +298,8 @@ export default function ModelCanvas() {
     event.preventDefault();
     if (!rfInstance) return;
 
-  const type = event.dataTransfer.getData('application/myapp-layer'); // API layer name
-  if (!type) return;
+    const type = event.dataTransfer.getData('application/myapp-layer'); // API layer name
+    if (!type) return;
     const rawParams = event.dataTransfer.getData('application/myapp-layer-config');
     const label = event.dataTransfer.getData('application/myapp-layer-label') || type;
     let params: Record<string, unknown> = {};
@@ -307,7 +307,7 @@ export default function ModelCanvas() {
 
     // ReactFlow v11: use screenToFlowPosition if available, else fallback to project()
     let position;
-  const maybeInst = rfInstance as unknown as { screenToFlowPosition?: (pos: {x:number;y:number}) => {x:number;y:number} };
+    const maybeInst = rfInstance as unknown as { screenToFlowPosition?: (pos: { x: number; y: number }) => { x: number; y: number } };
     if (maybeInst && typeof maybeInst.screenToFlowPosition === 'function') {
       position = maybeInst.screenToFlowPosition({ x: event.clientX, y: event.clientY });
     } else {
@@ -329,7 +329,7 @@ export default function ModelCanvas() {
   }, [rfInstance, setNodes, setGraph, nodes, edges]);
 
   return (
-    <div className='h-full flex flex-col  bg-white'>
+    <div className='h-full flex flex-col bg-white border border-slate-300 rounded-lg shadow-sm mx-3 my-2'>
       {successMessage && (
         <div className='mx-3 mt-3 mb-2 border border-emerald-200 bg-emerald-50 text-emerald-800 rounded p-2 text-sm'>
           <div className='flex items-start justify-between'>
@@ -374,8 +374,8 @@ export default function ModelCanvas() {
           </ul>
         </div>
       )}
-      <TopToolbar 
-        onSave={handlePersist} 
+      <TopToolbar
+        onSave={handlePersist}
         onLoadGraph={loadGraphFromPayload}
         modelName={modelName}
         onModelNameChange={setModelName}
@@ -395,7 +395,7 @@ export default function ModelCanvas() {
         onShowSuccess={(msg) => { setSuccessMessage(msg); setSaveErrors(null); setErrorItems(null); setErrorNodeIds(new Set()); }}
       />
       <div className='flex flex-1 min-h-0'>
-        <div className='w-56 border-r p-2 space-y-2 overflow-y-auto text-xs'>
+        <div className='w-56 border-r border-slate-200 p-2 space-y-2 overflow-y-auto text-xs'>
           <h3 className='font-semibold text-slate-600 text-sm'>Layers</h3>
           <LayerPalette />
         </div>
@@ -428,7 +428,7 @@ export default function ModelCanvas() {
             <Controls />
           </ReactFlow>
         </div>
-        <div className='w-70 border-l p-3 overflow-y-auto'>
+        <div className='w-70 border-l border-slate-200 p-3 overflow-y-auto'>
           <LayerInspector />
         </div>
       </div>

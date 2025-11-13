@@ -194,7 +194,7 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
         onOpenChange={setShowLoadModal}
         onLoad={onLoadGraph}
       />
-      <div className='flex items-center gap-2 px-3 py-2 bg-white text-xs shadow-sm'>
+      <div className='flex items-center gap-2 px-3 py-2 bg-white text-xs border-b border-slate-200 rounded-t-lg'>
         {/* Model Name Input */}
         <input
           type="text"
