@@ -28,12 +28,12 @@ export default function MiniLineChart({ series, height = 160, strokeWidth = 2, c
   const innerW = width - padding.left - padding.right;
   const innerH = height - padding.top - padding.bottom;
 
-  const yMinRaw = allValues.length ? Math.min(...allValues) : 0;
   const yMaxRaw = allValues.length ? Math.max(...allValues) : 1;
-  // Add 10% padding to y-domain
-  const pad = (yMaxRaw - yMinRaw) * 0.1 || 0.1;
-  const yMin = yMinRaw - pad;
-  const yMax = yMaxRaw + pad;
+  // Force baseline to zero as requested
+  const yMin = 0;
+  // Add 10% headroom above the observed max
+  let yMax = yMaxRaw + (yMaxRaw * 0.1 || 0.1);
+  if (!(yMax > 0)) yMax = 1; // safe fallback
 
   const toX = (i: number, n: number) => {
     if (n <= 1) return padding.left + innerW; // single point at right edge

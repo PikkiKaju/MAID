@@ -352,6 +352,10 @@ def _train_worker(job_id: str) -> None:
                 super().__init__()
                 self.jid = jid
                 self.total = max(int(total_epochs), 1)
+                self.current_epoch = 0
+
+            def on_epoch_begin(self, epoch, logs=None):  # type: ignore[override]
+                self.current_epoch = int(epoch)
 
             def on_epoch_end(self, epoch, logs=None):  # type: ignore[override]
                 try:
@@ -383,6 +387,48 @@ def _train_worker(job_id: str) -> None:
                             pass
                 except Exception:
                     # best-effort; don't crash training on DB update issues
+                    pass
+
+            def on_train_batch_end(self, batch, logs=None):  # type: ignore[override]
+                """Stream more frequent updates within an epoch to reduce UI jumps."""
+                try:
+                    logs = logs or {}
+                    # steps per epoch from Keras runtime params
+                    steps = int(self.params.get("steps") or self.params.get("steps_per_epoch") or 1)  # type: ignore[attr-defined]
+                    steps = max(steps, 1)
+                    frac_epoch = (int(batch) + 1) / float(steps)
+                    overall = (self.current_epoch + frac_epoch) / float(self.total)
+                    prog = 0.05 + 0.9 * float(overall)
+
+                    job_live = {
+                        "epoch": int(self.current_epoch + 1),  # human-friendly epoch index
+                        "loss": float(logs.get("loss", 0.0)),
+                    }
+                    for k in ("accuracy", "sparse_categorical_accuracy", "categorical_accuracy", "binary_accuracy"):
+                        if k in logs:
+                            job_live[k] = float(logs[k])
+
+                    # atomic update
+                    tj = TrainingJob.objects.filter(id=self.jid)
+                    current = TrainingJob.objects.get(id=self.jid)
+                    res = dict(current.result or {})
+                    # Preserve last known values for metrics not available at batch granularity (e.g., val_loss)
+                    prev_live = dict((res.get("live") or {}))
+                    for k in ("val_loss", "accuracy", "sparse_categorical_accuracy", "categorical_accuracy", "binary_accuracy"):
+                        if k not in job_live and k in prev_live:
+                            try:
+                                job_live[k] = float(prev_live[k])
+                            except Exception:
+                                job_live[k] = prev_live[k]
+                    res["live"] = job_live
+                    tj.update(progress=prog, result=res)
+
+                    if current.status == TrainingStatus.CANCELLED:
+                        try:
+                            self.model.stop_training = True  # type: ignore[attr-defined]
+                        except Exception:
+                            pass
+                except Exception:
                     pass
 
         cb = _JobProgressCallback(str(job.id), params.epochs)

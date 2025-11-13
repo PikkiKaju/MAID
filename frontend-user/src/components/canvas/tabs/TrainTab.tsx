@@ -328,7 +328,7 @@ export default function TrainTab() {
 
       // Poll for job updates (store interval id in ref to avoid duplicates across remounts)
       if (pollerRef.current) window.clearInterval(pollerRef.current);
-      const interval = window.setInterval(async () => {
+  const interval = window.setInterval(async () => {
         try {
           const j = await networkGraphService.getTrainingJob(job.id);
           setJobStatus(j.status);
@@ -362,7 +362,7 @@ export default function TrainTab() {
           setJobError('Failed to poll job status');
           pollerRef.current = null;
         }
-      }, 1500);
+  }, 200);
       pollerRef.current = interval;
     } catch (e: unknown) {
       console.error(e);
@@ -378,7 +378,7 @@ export default function TrainTab() {
     const isFinal = jobStatus === 'succeeded' || jobStatus === 'failed' || jobStatus === 'cancelled';
     if (!jobId || isFinal) return;
     if (pollerRef.current) return; // already polling
-    const interval = window.setInterval(async () => {
+  const interval = window.setInterval(async () => {
       try {
         const j = await networkGraphService.getTrainingJob(jobId);
         setJobStatus(j.status);
@@ -411,7 +411,7 @@ export default function TrainTab() {
         setJobError('Failed to poll job status');
         pollerRef.current = null;
       }
-    }, 1500);
+  }, 500);
     pollerRef.current = interval;
     return () => {
       if (pollerRef.current) {
