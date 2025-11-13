@@ -5,7 +5,7 @@ import networkGraphService, { GraphEdge, GraphNode, NetworkGraphPayload } from '
 import { useRef, useState } from 'react';
 import { Edge as RFEdge, Node as RFNode } from 'reactflow';
 
-interface Props { 
+interface Props {
   onSave: () => void;
   onLoadGraph: (graph: NetworkGraphPayload) => void;
   modelName: string;
@@ -84,10 +84,10 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
         walk(data);
         return messages.slice(0, 20);
       };
-  const maybeAxios = err as { response?: { data?: unknown } ; message?: string };
-  const respData = maybeAxios?.response?.data ?? (maybeAxios?.message ?? String(err));
-  const msgs = collectMessages(respData);
-  onShowErrors?.(msgs.length ? msgs : ['Compile failed'], respData);
+      const maybeAxios = err as { response?: { data?: unknown }; message?: string };
+      const respData = maybeAxios?.response?.data ?? (maybeAxios?.message ?? String(err));
+      const msgs = collectMessages(respData);
+      onShowErrors?.(msgs.length ? msgs : ['Compile failed'], respData);
     } finally {
       setBusy(null);
     }
@@ -189,60 +189,60 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
 
   return (
     <>
-      <LoadGraphModal 
-        open={showLoadModal} 
-        onOpenChange={setShowLoadModal} 
-        onLoad={onLoadGraph} 
+      <LoadGraphModal
+        open={showLoadModal}
+        onOpenChange={setShowLoadModal}
+        onLoad={onLoadGraph}
       />
-      <div className='flex items-center gap-2 border-b px-3 py-2 bg-slate-100 text-xs'>
+      <div className='flex items-center gap-2 px-3 py-2 bg-white text-xs shadow-sm'>
         {/* Model Name Input */}
         <input
           type="text"
           value={modelName}
           onChange={(e) => onModelNameChange(e.target.value)}
           placeholder="Model name..."
-          className="px-3 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+          className="px-3 py-1 text-sm rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-input-background min-w-[200px]"
         />
 
         {/* Save current canvas (delegates to parent) */}
         <button onClick={onSave} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60'>
-          <Save size={14}/> Save
+          <Save size={14} /> Save
         </button>
 
         {/* Load saved graph */}
         <button onClick={() => setShowLoadModal(true)} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-60'>
-          <FolderOpen size={14}/> Load
+          <FolderOpen size={14} /> Load
         </button>
 
         {/* Compile on backend */}
-      <button onClick={compileGraph} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-60'>
-        <Play size={14}/> Compile
-      </button>
+        <button onClick={compileGraph} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-60'>
+          <Play size={14} /> Compile
+        </button>
 
-      {/* Import Keras model (JSON) */}
-      <input ref={fileKerasRef} type='file' accept='.json,application/json' className='hidden' onChange={(e) => {
-        const f = e.target.files?.[0]; if (f) importKeras(f);
-      }}/>
-      <button onClick={() => fileKerasRef.current?.click()} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-60'>
-        <Upload size={14}/> Import Keras
-      </button>
+        {/* Import Keras model (JSON) */}
+        <input ref={fileKerasRef} type='file' accept='.json,application/json' className='hidden' onChange={(e) => {
+          const f = e.target.files?.[0]; if (f) importKeras(f);
+        }} />
+        <button onClick={() => fileKerasRef.current?.click()} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-60'>
+          <Upload size={14} /> Import Keras
+        </button>
 
-      {/* Import Graph model (JSON shaped like /network/graphs/) */}
-      <input ref={fileGraphRef} type='file' accept='.json,application/json' className='hidden' onChange={(e) => {
-        const f = e.target.files?.[0]; if (f) importGraph(f);
-      }}/>
-      <button onClick={() => fileGraphRef.current?.click()} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-violet-600 text-white rounded hover:bg-violet-700 disabled:opacity-60'>
-        <Upload size={14}/> Import Graph
-      </button>
+        {/* Import Graph model (JSON shaped like /network/graphs/) */}
+        <input ref={fileGraphRef} type='file' accept='.json,application/json' className='hidden' onChange={(e) => {
+          const f = e.target.files?.[0]; if (f) importGraph(f);
+        }} />
+        <button onClick={() => fileGraphRef.current?.click()} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-violet-600 text-white rounded hover:bg-violet-700 disabled:opacity-60'>
+          <Upload size={14} /> Import Graph
+        </button>
 
-      {/* Export Python */}
-      <button onClick={exportPython} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-60'>
-        <FileDown size={14}/> Export Python
-      </button>
+        {/* Export Python */}
+        <button onClick={exportPython} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-60'>
+          <FileDown size={14} /> Export Python
+        </button>
 
         {/* Clear canvas */}
         <button onClick={clearAll} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-rose-600 text-white rounded hover:bg-rose-700 disabled:opacity-60 ml-auto'>
-          <Trash2 size={14}/> Clear
+          <Trash2 size={14} /> Clear
         </button>
       </div>
     </>

@@ -329,7 +329,7 @@ export default function ModelCanvas() {
   }, [rfInstance, setNodes, setGraph, nodes, edges]);
 
   return (
-    <div className='h-full flex flex-col border-t bg-white'>
+    <div className='h-full flex flex-col  bg-white'>
       {successMessage && (
         <div className='mx-3 mt-3 mb-2 border border-emerald-200 bg-emerald-50 text-emerald-800 rounded p-2 text-sm'>
           <div className='flex items-start justify-between'>
@@ -395,7 +395,7 @@ export default function ModelCanvas() {
         onShowSuccess={(msg) => { setSuccessMessage(msg); setSaveErrors(null); setErrorItems(null); setErrorNodeIds(new Set()); }}
       />
       <div className='flex flex-1 min-h-0'>
-        <div className='w-56 border-r p-2 space-y-2 bg-slate-50 overflow-y-auto text-xs'>
+        <div className='w-56 border-r p-2 space-y-2 overflow-y-auto text-xs'>
           <h3 className='font-semibold text-slate-600 text-sm'>Layers</h3>
           <LayerPalette />
         </div>
@@ -428,7 +428,7 @@ export default function ModelCanvas() {
             <Controls />
           </ReactFlow>
         </div>
-        <div className='w-70 border-l p-3 bg-slate-50 overflow-y-auto'>
+        <div className='w-70 border-l p-3 overflow-y-auto'>
           <LayerInspector />
         </div>
       </div>
