@@ -10,6 +10,8 @@ export default function LayerInspector() {
   const selectedNodeId = useModelCanvasStore((s: ModelCanvasState) => s.selectedNodeId);
   const updateNodeData = useModelCanvasStore((s: ModelCanvasState) => s.updateNodeData);
   const nodes = useModelCanvasStore((s: ModelCanvasState) => s.nodes);
+  const highlightedParamName = useModelCanvasStore((s: ModelCanvasState) => s.highlightedParamName);
+  const setHighlightedParam = useModelCanvasStore((s: ModelCanvasState) => s.setHighlightedParam);
   const node = nodes.find((n: Node) => n.id === selectedNodeId);
 
   type NodeData = { label?: string; layer?: string; params?: Record<string, unknown> };
@@ -75,8 +77,21 @@ export default function LayerInspector() {
 
   const currentParams: Record<string, unknown> = useMemo(() => (nodeData?.params || {}), [nodeData]);
 
+  // When a parameter is requested to be highlighted, scroll it into view and auto-clear highlight after a short delay
+  useEffect(() => {
+    if (!highlightedParamName) return;
+    const el = document.getElementById(`param-field-${highlightedParamName}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    const t = setTimeout(() => setHighlightedParam(undefined), 2200);
+    return () => clearTimeout(t);
+  }, [highlightedParamName, setHighlightedParam]);
+
   const coerce = (raw: string, t?: string): string | number | boolean => {
     const type = (t || '').toLowerCase();
+    // If the input is emptied, preserve it as an empty string (required validation will surface separately)
+    if (typeof raw === 'string' && raw.trim() === '') return '';
     if (type.includes('bool')) return raw === 'true' || raw === 'on';
     if (type.includes('int')) return Number.isNaN(Number(raw)) ? raw : Number.parseInt(raw, 10);
     if (type.includes('float') || type.includes('double') || type.includes('number'))
@@ -105,8 +120,13 @@ export default function LayerInspector() {
           const v = currentParams[p.name] ?? p.default ?? '';
           const typeHint = p.param_type || p.kind || '';
           const isBool = (p.enum === null || p.enum === undefined) && /bool/i.test(typeHint);
+          const isEmptyRequired = !!p.required && (v === '' || v === null || v === undefined);
           return (
-            <label key={p.name} className='block text-xs mb-2'>
+            <label
+              key={p.name}
+              id={`param-field-${p.name}`}
+              className={`block text-xs mb-2 rounded ${highlightedParamName === p.name ? 'ring-2 ring-amber-400 border-amber-400 bg-amber-50 animate-pulse' : ''}`}
+            >
               <span className='font-medium inline-flex items-center gap-1'>
                 {p.name}
                 {p.required && <span className='text-rose-500'>*</span>}
@@ -114,7 +134,7 @@ export default function LayerInspector() {
               </span>
               {p.enum && p.enum.length > 0 ? (
                 <select
-                  className='mt-1 w-full border rounded px-2 py-1 text-xs bg-white'
+                  className={`mt-1 w-full border rounded px-2 py-1 text-xs bg-white ${isEmptyRequired ? 'border-rose-400 ring-1 ring-rose-200' : ''}`}
                   value={String(v)}
                   onChange={(e) => handleParamChange(p.name, e.target.value, typeHint)}
                 >
@@ -136,10 +156,14 @@ export default function LayerInspector() {
                 </div>
               ) : (
                 <input
-                  className='mt-1 w-full border rounded px-2 py-1 text-xs'
+                  className={`mt-1 w-full border rounded px-2 py-1 text-xs ${isEmptyRequired ? 'border-rose-400 ring-1 ring-rose-200 placeholder:text-rose-400' : ''}`}
                   value={String(v)}
                   onChange={e => handleParamChange(p.name, e.target.value, typeHint)}
+                  placeholder={isEmptyRequired ? 'Required' : undefined}
                 />
+              )}
+              {isEmptyRequired && (
+                <div className='text-[10px] text-rose-600 mt-1'>This field is required.</div>
               )}
             </label>
           );

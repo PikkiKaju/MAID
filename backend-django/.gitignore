@@ -6,6 +6,9 @@ __pycache__
 db.sqlite3
 media
 
+# Local Tensorflow/Keras manifest files
+network/tensorflow_data/manifests/*.json
+
 # Backup files # 
 *.bak 
 
@@ -22,6 +25,9 @@ media
 
 # Generated files
 .idea/**/contentModel.xml
+
+# Generated model files
+artifacts
 
 # Sensitive or high-churn files
 .idea/**/dataSources/

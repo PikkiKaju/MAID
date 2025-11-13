@@ -13,7 +13,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 ENV DJANGO_SETTINGS_MODULE=config.settings
+ENV NETWORK_GENERATE_TF_MANIFESTS=true
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+CMD ["sh", "-c", "python manage.py migrate && python manage.py loadmanifests && python manage.py runserver 0.0.0.0:8000"]

@@ -24,7 +24,7 @@ class NetworkGraph(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=120)
     task = models.CharField(max_length=60, blank=True, default="")
-    framework = models.CharField(max_length=60, blank=True, default="tf-keras") # TODO: Revise if needed
+    framework = models.CharField(max_length=60, blank=True, default="tf-keras")
     framework_version = models.CharField(max_length=60, blank=True, default="")
     status = models.CharField(
         max_length=16,
@@ -116,4 +116,52 @@ class GraphSnapshot(TimeStampedModel):
 
     def __str__(self) -> str:  # pragma: no cover
         return f"Snapshot {self.id} for {self.graph_id}"
+
+
+# Training job model to execute Keras training asynchronously
+class TrainingStatus(models.TextChoices):
+    QUEUED = "queued", "Queued"
+    RUNNING = "running", "Running"
+    SUCCEEDED = "succeeded", "Succeeded"
+    FAILED = "failed", "Failed"
+    CANCELLED = "cancelled", "Cancelled"
+
+
+class TrainingJob(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    graph = models.ForeignKey(
+        NetworkGraph,
+        on_delete=models.CASCADE,
+        related_name="training_jobs",
+    )
+
+    status = models.CharField(
+        max_length=16,
+        choices=TrainingStatus.choices,
+        default=TrainingStatus.QUEUED,
+    )
+
+    # Raw parameters passed by client: optimizer/loss/metrics, fit params, columns, split ratios, etc.
+    params = models.JSONField(blank=True, default=dict)
+
+    # Result payload: history (loss/metrics per epoch), evaluation, model summary, etc.
+    result = models.JSONField(blank=True, default=dict)
+
+    # Where temporary CSV was stored for this job (inside container)
+    dataset_path = models.CharField(max_length=512, blank=True, default="")
+
+    # Saved model artifact path (e.g., /app/artifacts/<job_id>.keras)
+    artifact_path = models.CharField(max_length=512, blank=True, default="")
+
+    # Progress [0..1] for simple polling UIs
+    progress = models.FloatField(default=0.0)
+
+    # Error message when FAILED
+    error = models.TextField(blank=True, default="")
+
+    class Meta(TimeStampedModel.Meta):
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"TrainJob {self.id} [{self.status}] for {self.graph_id}"
     

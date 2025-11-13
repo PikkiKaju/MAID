@@ -22,50 +22,86 @@ Notes:
 
 import json
 import os
+import logging
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 # --------------------------------------------------------------------------------------
 # Manifest loading and lookup
 # --------------------------------------------------------------------------------------
 
+_MANIFEST: Optional[Dict[str, Any]] = None
+
+
 def _candidate_manifest_paths() -> List[str]:
     """Return likely paths to the layer manifest relative to this file."""
     here = os.path.dirname(__file__)
-    # Typical path when generator was executed from backend-django folder
-    p1 = os.path.abspath(os.path.join(here, "..", "layer_manifest.json"))
-    # Fallback: older location under network/tensorflow-data
-    p2 = os.path.abspath(os.path.join(here, "tensorflow-data", "layer_manifest.json"))
-    return [p1, p2]
+    # Primary path under network/tensorflow_data/manifests (go up one level from network/manifests/)
+    p1 = os.path.abspath(os.path.join(here, "..", "tensorflow_data", "manifests", "layer_manifest.json"))
+    # Legacy fallback paths
+    p2 = os.path.abspath(os.path.join(here, "..", "..", "layer_manifest.json"))
+    p3 = os.path.abspath(os.path.join(here, "..", "tensorflow_data", "layer_manifest.json"))
+    return [p1, p2, p3]
+
+
+def regenerate_manifest() -> bool:
+    """Regenerate and refresh the manifest."""
+    try:
+        from ..tensorflow_data.generators.generate_layer_manifest import regenerate_and_save_layer_manifest
+    except Exception as exc:  # pragma: no cover - env issue
+        raise ImportError(
+            "Layer manifest generator is required. Ensure network/tensorflow_data/generators/generate_layer_manifest.py is present."
+        ) from exc
+
+    try:
+        success = regenerate_and_save_layer_manifest()
+        if success:
+            success = refresh_manifest()
+            logger.info("Layer manifest regenerated and refreshed, available=%s", manifest_available())
+        return success
+    except Exception as exc:
+        raise RuntimeError("Failed to regenerate layer manifest") from exc
 
 
 def _load_manifest() -> Optional[Dict[str, Any]]:
+    """Load the manifest from disk."""
     for path in _candidate_manifest_paths():
         try:
             with open(path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             continue
-    return None
+    raise FileNotFoundError("Layer manifest not found in candidate paths.")
 
 
-_MANIFEST: Optional[Dict[str, Any]] = _load_manifest()
-
-
-def refresh_manifest() -> None:
+def refresh_manifest() -> bool:
     """Reload the manifest from disk (useful after regenerating it)."""
     global _MANIFEST
-    _MANIFEST = _load_manifest()
-
+    try:
+        _MANIFEST = _load_manifest()
+    except Exception:
+        _MANIFEST = None
+        raise RuntimeError("Failed to refresh layer manifest")
+    return _MANIFEST is not None
+        
 
 def manifest_available() -> bool:
+    """Return True if the manifest is loaded and available."""
     return _MANIFEST is not None
 
 
 def get_manifest() -> Dict[str, Any]:
+    """Return the loaded manifest, or raise if not available."""
+    global _MANIFEST
     if _MANIFEST is None:
-        raise RuntimeError("Layer manifest not found. Generate it first with generate_layer_manifest.py")
+        # Try to load from disk first before failing
+        try:
+            _MANIFEST = _load_manifest()
+        except Exception:
+            raise RuntimeError("Layer manifest not found. Generate it first with generate_layer_manifest.py or call the regenerate API endpoint.")
     return _MANIFEST
 
 
@@ -124,10 +160,65 @@ def normalize_params_for_layer(layer_name: str, raw_params: Dict[str, Any]) -> D
     - Parameters with value None or empty string are omitted to let Keras defaults apply.
     - Required parameters must be present (after omission of None/empty) or an error is raised.
     """
+    def _coerce_manifest_string(val: str) -> Any:
+        """Best-effort cleanup for manifest-derived string defaults.
+
+        - Drop textual nulls ("none", "null", "undefined").
+        - Strip surrounding single/double quotes around literal strings (e.g., "'glorot_uniform'" -> "glorot_uniform").
+        - Coerce booleans "true"/"false" to Python bool.
+        """
+        s = val.strip()
+        ls = s.lower()
+        if ls in ("none", "null", "undefined"):
+            return None
+        if ls == "true":
+            return True
+        if ls == "false":
+            return False
+        if (s.startswith("'") and s.endswith("'")) or (s.startswith('"') and s.endswith('"')):
+            return s[1:-1]
+        return val
+
+    def _parse_tuple_string(val: str) -> Any:
+        """Parse string representations of tuples/lists into Python tuples.
+        
+        Examples:
+          "(2, 2)" -> (2, 2)
+          "[3, 3]" -> (3, 3)
+          "(1, 1)" -> (1, 1)
+        
+        Returns the original value if parsing fails.
+        """
+        s = val.strip()
+        # Remove parentheses or brackets
+        if (s.startswith('(') and s.endswith(')')) or (s.startswith('[') and s.endswith(']')):
+            s = s[1:-1]
+        else:
+            return val  # Not a tuple/list string
+        
+        # Split by comma and try to parse each element
+        try:
+            parts = [x.strip() for x in s.split(',') if x.strip()]
+            if not parts:
+                return val
+            # Try to convert to integers
+            parsed = []
+            for p in parts:
+                if p.lower() == 'none':
+                    parsed.append(None)
+                else:
+                    parsed.append(int(p))
+            return tuple(parsed)
+        except (ValueError, AttributeError):
+            return val  # Parsing failed, return original
+
     entry = get_layer_entry(layer_name)
     declared_params = [p for p in entry.get("parameters", []) if p.get("name")]
     declared_names = {p["name"] for p in declared_params}
     required_names = {p["name"] for p in declared_params if p.get("required")}
+    
+    # Build a quick lookup for param metadata
+    param_meta = {p["name"]: p for p in declared_params}
 
     cleaned: Dict[str, Any] = {}
 
@@ -136,9 +227,39 @@ def normalize_params_for_layer(layer_name: str, raw_params: Dict[str, Any]) -> D
         if k not in declared_names:
             continue
 
-        # Treat empty string as omission (let default apply)
+        # Treat empty string, None, or string "None" as omission (let default apply)
         if v == "" or v is None:
             continue
+        if isinstance(v, str):
+            coerced = _coerce_manifest_string(v)
+            if coerced is None:
+                continue
+            v = coerced
+            
+            # Try to parse tuple-like strings for common shape/size parameters
+            if k in ('kernel_size', 'strides', 'pool_size', 'size', 'dilation_rate', 
+                     'shape', 'batch_shape', 'input_shape', 'output_shape', 'target_shape'):
+                parsed = _parse_tuple_string(v)
+                if parsed != v:  # Parsing succeeded
+                    v = parsed
+            
+            # Type coercion based on param_type from manifest
+            elif isinstance(v, str):
+                pmeta = param_meta.get(k, {})
+                ptype = pmeta.get("param_type")
+                if ptype == "int":
+                    try:
+                        v = int(v)
+                    except (ValueError, TypeError):
+                        pass  # Leave as string, Keras will complain
+                elif ptype == "float":
+                    try:
+                        v = float(v)
+                    except (ValueError, TypeError):
+                        pass
+                elif ptype == "bool":
+                    # Already handled by _coerce_manifest_string for "true"/"false"
+                    pass
 
         spec = get_param_choices(layer_name, k)
         if spec and isinstance(v, str):
