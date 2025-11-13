@@ -251,6 +251,28 @@ const networkGraphService = {
     throw new Error('Failed to cancel training job');
   },
 
+  // Inference endpoints
+  predictWithJson: async (
+    jobId: string,
+    payload:
+      | { instances: Array<Array<number>> }
+      | { records: Array<Record<string, number>> }
+  ): Promise<{ predictions: unknown }> => {
+    const resp = await djangoClient.post(`network/training-jobs/${jobId}/predict/`, payload);
+    if (resp.status === 200) return resp.data;
+    throw new Error('Prediction failed');
+  },
+
+  predictWithCsv: async (jobId: string, file: File): Promise<{ predictions: unknown }> => {
+    const form = new FormData();
+    form.append('file', file);
+    const resp = await djangoClient.post(`network/training-jobs/${jobId}/predict/`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    if (resp.status === 200) return resp.data;
+    throw new Error('Prediction failed');
+  },
+
   downloadArtifact: async (jobId: string): Promise<Blob> => {
     const resp = await djangoClient.get(`network/training-jobs/${jobId}/artifact/`, { responseType: 'blob' });
     if (resp.status === 200) return resp.data as Blob;

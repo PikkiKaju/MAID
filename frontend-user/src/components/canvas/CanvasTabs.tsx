@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../ui/tabs';
-import { Pencil, Database, Zap, BarChart3, List } from 'lucide-react';
+import { Pencil, Database, Zap, BarChart3, List, Cpu } from 'lucide-react';
 import ModelCanvas from './ModelCanvas';
 import DatasetTab from './tabs/DatasetTab';
 import TrainTab from './tabs/TrainTab';
 import MetricsTab from './tabs/MetricsTab';
+import InferenceTab from './tabs/InferenceTab';
 import ModelSummaryTab from './tabs/ModelSummaryTab';
 import { DatasetProvider } from '../../contexts/DatasetContext';
 import { GraphProvider } from '../../contexts/GraphContext';
@@ -44,6 +45,10 @@ export default function CanvasTabs() {
                       <BarChart3 size={16} />
                       Metrics
                     </TabsTrigger>
+                    <TabsTrigger value="inference" className="flex items-center gap-2">
+                      <Cpu size={16} />
+                      Inference
+                    </TabsTrigger>
                   </TabsList>
                 </div>
 
@@ -67,6 +72,10 @@ export default function CanvasTabs() {
 
                   <TabsContent value="summary" className="h-full m-0">
                     <ModelSummaryTab />
+                  </TabsContent>
+
+                  <TabsContent value="inference" className="h-full m-0">
+                    <InferenceTab />
                   </TabsContent>
                 </div>
               </Tabs>
