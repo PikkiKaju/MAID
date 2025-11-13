@@ -3,6 +3,7 @@ import { Layers, RefreshCw, AlertCircle } from 'lucide-react';
 import { Button } from '../../../ui/button';
 import { useModelCanvasStore } from '../../../store/modelCanvasStore';
 import networkGraphService, { GraphNode, GraphEdge } from '../../../api/networkGraphService';
+import { useModelSummary } from '../../../contexts/ModelSummaryContext';
 
 type LayerSummary = {
   name: string;
@@ -13,8 +14,7 @@ type LayerSummary = {
 
 export default function ModelSummaryTab() {
   const { nodes: storeNodes, edges: storeEdges } = useModelCanvasStore();
-  const [summary, setSummary] = useState<LayerSummary[] | null>(null);
-  const [totalParams, setTotalParams] = useState(0);
+  const { summary, setSummary, totalParams, setTotalParams } = useModelSummary();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
