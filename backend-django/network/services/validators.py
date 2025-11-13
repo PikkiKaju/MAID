@@ -18,10 +18,12 @@ def _ensure_known_layers(nodes: Sequence[Dict[str, Any]]) -> None:
     Accepts Keras layer class names.
     """
     known = set(list_layers(include_deprecated=False))
-    unknown = [node["type"] for node in nodes if node.get("type") not in known]
+    # Treat 'Input' as a supported pseudo-layer even if not in manifest
+    known_with_alias = set(known) | {"Input", "InputLayer"}
+    unknown = [node["type"] for node in nodes if node.get("type") not in known_with_alias]
     for node in nodes:
         ntype = node.get("type")
-        if ntype not in known:
+        if ntype not in known_with_alias:
             logger.info(f"Unknown layer type in graph validation: {ntype}")
             logger.info(f"Node details: {node}")
     if unknown:
@@ -60,6 +62,9 @@ def validate_graph_payload(
     for node in structure.ordered_nodes:
         ntype = node.get("type")
         params = node.get("data", {}).get("params") or node.get("params", {})
+        # Skip manifest normalization for Input/InputLayer; they are handled specially when building the model
+        if ntype in ("Input", "InputLayer"):
+            continue
         try:
             normalize_params_for_layer(ntype, params)
         except Exception as exc:

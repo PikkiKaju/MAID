@@ -28,29 +28,61 @@ from network.manifests.layers import (
 
 
 def import_keras_json_to_graph(model_json: str) -> Dict[str, Any]:
-    """Convert a Keras model.to_json() payload into the graph payload.
+    """Convert a Keras model.to_json() payload into our graph payload.
 
-    Currently supports Sequential models. Builds nodes/edges generically using
-    Keras layer configs and the manifest (no hardcoded per-layer branches).
-    Returns a dict with keys: name, framework, nodes, edges.
+    Robust to Keras 3 vs tf.keras differences by preferring parsing the JSON dict
+    directly (class_name/config format). Falls back to keras.models.model_from_json
+    only when needed.
     """
+    parsed: Dict[str, Any] | None = None
+    # 1) Try to parse as plain JSON (Keras 3 style serialization)
     try:
-        from keras.models import model_from_json
-    except Exception as exc:  # pragma: no cover
-        raise GraphValidationError({"detail": f"Keras not available: {exc}"})
+        import json as _json
+        maybe = _json.loads(model_json)
+        if isinstance(maybe, dict) and maybe.get("class_name"):
+            parsed = maybe
+    except Exception:
+        parsed = None
 
-    # Build model to read configs robustly
-    model = model_from_json(model_json)
-    mconf = model.get_config() if hasattr(model, "get_config") else {}
-    model_name = mconf.get("name") or getattr(model, "name", "imported_model")
+    layers_list: List[Dict[str, Any]] = []
+    model_name: str = "imported_model"
+    is_sequential = False
 
-    # Simple Sequential import path only for now
-    is_sequential = model.__class__.__name__.lower() == "sequential"
-    if not is_sequential:
-        # Limited functional support can be added later
-        raise GraphValidationError({
-            "model": ["Only Sequential models are supported for import in this version."]
-        })
+    if parsed is not None:
+        cls = str(parsed.get("class_name", "")).lower()
+        is_sequential = (cls == "sequential")
+        model_name = parsed.get("config", {}).get("name") or model_name
+        if is_sequential:
+            # Keras 3 JSON has layers at config.layers as a list of {class_name, config, ...}
+            layers_list = list(parsed.get("config", {}).get("layers", []) or [])
+        else:
+            # Not Sequential – bail out with the same message as before
+            raise GraphValidationError({
+                "model": ["Only Sequential models are supported for import in this version."]
+            })
+    else:
+        # 2) Fallback: use model_from_json (older tf.keras formats)
+        try:
+            from keras.models import model_from_json
+        except Exception as exc:  # pragma: no cover
+            raise GraphValidationError({"detail": f"Keras not available: {exc}"})
+
+        model = model_from_json(model_json)
+        mconf = model.get_config() if hasattr(model, "get_config") else {}
+        model_name = mconf.get("name") or getattr(model, "name", "imported_model")
+        is_sequential = model.__class__.__name__.lower() == "sequential"
+        if not is_sequential:
+            raise GraphValidationError({
+                "model": ["Only Sequential models are supported for import in this version."]
+            })
+        # Derive layers list from the live model
+        # We will map them to a list of dicts with class_name/config to reuse the same logic below
+        layers_list = []
+        for l in list(getattr(model, "layers", []) or []):
+            layers_list.append({
+                "class_name": l.__class__.__name__,
+                "config": (l.get_config() if hasattr(l, "get_config") else {}),
+            })
 
     nodes: List[Dict[str, Any]] = []
     edges: List[Dict[str, Any]] = []
@@ -67,8 +99,7 @@ def import_keras_json_to_graph(model_json: str) -> Dict[str, Any]:
         edges.append({"id": eid, "source": src, "target": tgt, "meta": {}})
 
     last_node_id: str | None = None
-    # Keras Sequential exposes .layers in execution order (InputLayer may be included)
-    layers_list = list(model.layers)
+    # layers_list is a list of dicts: {class_name, config, ...}
     last_index = len(layers_list) - 1 if layers_list else -1
 
     def _infer_input_from_model_or_first_layer() -> Dict[str, Any] | None:
@@ -127,7 +158,7 @@ def import_keras_json_to_graph(model_json: str) -> Dict[str, Any]:
             in_id = next_id("input")
             return {
                 "id": in_id,
-                "type": "Input",
+                "type": "InputLayer",
                 "label": "Input",
                 "params": {"shape": tuple(norm_shape), "dtype": dtype, "name": None},
                 "position": {},
@@ -136,7 +167,7 @@ def import_keras_json_to_graph(model_json: str) -> Dict[str, Any]:
         return None
 
     # If there is no explicit InputLayer, synthesize one using inferred shape
-    has_explicit_input = any(l.__class__.__name__ == "InputLayer" for l in layers_list)
+    has_explicit_input = any(str((l or {}).get("class_name", "")) == "InputLayer" for l in layers_list)
     if not has_explicit_input:
         maybe_input = _infer_input_from_model_or_first_layer()
         if maybe_input:
@@ -146,8 +177,8 @@ def import_keras_json_to_graph(model_json: str) -> Dict[str, Any]:
     known = set(list_layers(include_deprecated=False))
 
     for idx, layer in enumerate(layers_list):
-        lclass = layer.__class__.__name__
-        cfg = layer.get_config() if hasattr(layer, "get_config") else {}
+        lclass = str((layer or {}).get("class_name", ""))
+        cfg = (layer or {}).get("config") or {}
 
         # Explicit InputLayer becomes a dedicated Input node
         if lclass == "InputLayer":
@@ -175,7 +206,7 @@ def import_keras_json_to_graph(model_json: str) -> Dict[str, Any]:
             nodes.append(
                 {
                     "id": nid,
-                    "type": "Input",
+                    "type": "InputLayer",
                     "label": cfg.get("name") or "Input",
                     "params": {"shape": shape, "dtype": dtype, "name": cfg.get("name")},
                     "position": {},

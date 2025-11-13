@@ -190,19 +190,41 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
         model_json: str | None = None
         graph_name: str | None = None
 
-        # Try reading raw body first (safe if stream not consumed).
-        try:
-            raw = request.body
-            if raw:
-                model_json = raw.decode("utf-8")
-                logger.info("Read raw request body for model_json import")
-        except Exception as exc:  # pragma: no cover - defensive: body may already be consumed
-            logger.debug("Could not read raw request.body (it may have been consumed): %s", exc)
+        # Prefer parsed data if available and contains 'model_json'
+        if isinstance(request.data, dict) and request.data:
+            candidate = request.data.get("model_json")
+            if isinstance(candidate, str) and candidate.strip():
+                model_json = candidate
+                graph_name = request.data.get("name")
 
-        # If no raw body content, try parsers / form data (request.data)
-        if not model_json and isinstance(request.data, dict) and request.data:
-            model_json = request.data.get("model_json")
-            graph_name = request.data.get("name")
+        # Fallback to raw body only if model_json not provided explicitly
+        if not model_json:
+            try:
+                raw = request.body
+                if raw:
+                    decoded = raw.decode("utf-8")
+                    # If raw is a JSON wrapper like {"model_json": "..."}, try to extract
+                    import json as _json
+                    try:
+                        parsed = _json.loads(decoded)
+                        if isinstance(parsed, dict) and isinstance(parsed.get("model_json"), str):
+                            model_json = parsed.get("model_json")
+                            graph_name = parsed.get("name") or graph_name
+                        elif isinstance(parsed, str):
+                            # Body was a JSON string literal of the model JSON
+                            model_json = parsed
+                        else:
+                            # If it looks like a Keras model JSON directly, accept decoded
+                            if decoded.strip().startswith("{") and '"class_name"' in decoded:
+                                model_json = decoded
+                    except Exception:
+                        # Not JSON – assume plain text model JSON
+                        if decoded.strip():
+                            model_json = decoded
+                if model_json:
+                    logger.info("Resolved model_json from raw request body")
+            except Exception as exc:  # pragma: no cover - defensive: body may already be consumed
+                logger.debug("Could not read raw request.body (it may have been consumed): %s", exc)
 
         if not model_json:
             return Response(

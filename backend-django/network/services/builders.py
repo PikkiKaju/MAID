@@ -208,11 +208,8 @@ def build_keras_model(
         params = node_data.get("params") or node.get("params", {})
         inbound_tensors = [tensors[parent_id] for parent_id in inbound_map[node["id"]]]
 
-        # If the manifest includes a dedicated input layer name (e.g. "Input" or "InputLayer")
-        known = set(list_layers(include_deprecated=False))
-        input_names_in_manifest = {n for n in ("Input", "InputLayer") if n in known}
-
-        if ntype in input_names_in_manifest:
+        # Treat Input nodes specially regardless of manifest listing
+        if ntype in ("Input", "InputLayer"):
             # Construct an Input tensor using provided params
             from keras import Input  # lazy import
             kwargs = _normalize_input_params(params)
