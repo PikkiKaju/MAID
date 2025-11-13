@@ -197,35 +197,46 @@ class NetworkGraphSerializer(serializers.ModelSerializer):
             graph (NetworkGraph): The graph instance to sync nodes for.
             nodes_data (List[Dict[str, Any]]): The list of node data to sync.
         """
-        existing_ids = set(graph.nodes.values_list("id", flat=True))
-        incoming_ids = {node["id"] for node in nodes_data}
+        # Namespace node primary keys by graph to avoid cross-graph collisions
+        def _db_node_id(raw_id: str) -> str:
+            return f"{graph.id}:{raw_id}"
 
-        # Remove nodes that are no longer present
-        graph.nodes.filter(id__in=existing_ids - incoming_ids).delete()
+        existing_ids = set(graph.nodes.values_list("id", flat=True))
+        incoming_db_ids = {_db_node_id(node["id"]) for node in nodes_data}
+
+        # Remove nodes that are no longer present in this graph
+        stale = existing_ids - incoming_db_ids
+        if stale:
+            graph.nodes.filter(id__in=stale).delete()
 
         for node in nodes_data:
-            node_id = node["id"]
-            # Check if this node exists in THIS graph
-            existing_node = graph.nodes.filter(id=node_id).first()
-            
+            raw_id = node["id"]
+            db_id = _db_node_id(raw_id)
+            # Check if this node exists in THIS graph (by namespaced id)
+            existing_node = graph.nodes.filter(id=db_id).first()
+
+            payload_params = node.get("params") or node.get("data", {}).get("params", {})
+            payload_position = node.get("position") or node.get("data", {}).get("position", {})
+            payload_notes = node.get("notes", {})
+
             if existing_node:
                 # Update existing node
                 existing_node.type = node.get("type")
                 existing_node.label = node.get("label", "")
-                existing_node.params = node.get("params") or node.get("data", {}).get("params", {})
-                existing_node.position = node.get("position") or node.get("data", {}).get("position", {})
-                existing_node.notes = node.get("notes", {})
+                existing_node.params = payload_params
+                existing_node.position = payload_position
+                existing_node.notes = payload_notes
                 existing_node.save()
             else:
-                # Create new node for this graph
+                # Create new node for this graph with namespaced PK
                 LayerNode.objects.create(
-                    id=node_id,
+                    id=db_id,
                     graph=graph,
                     type=node.get("type"),
                     label=node.get("label", ""),
-                    params=node.get("params") or node.get("data", {}).get("params", {}),
-                    position=node.get("position") or node.get("data", {}).get("position", {}),
-                    notes=node.get("notes", {}),
+                    params=payload_params,
+                    position=payload_position,
+                    notes=payload_notes,
                 )
 
     def _sync_edges(self, graph: NetworkGraph, edges_data: List[Dict[str, Any]]) -> None:
@@ -236,31 +247,77 @@ class NetworkGraphSerializer(serializers.ModelSerializer):
             graph (NetworkGraph): The graph instance to sync edges for.
             edges_data (List[Dict[str, Any]]): The list of edge data to sync.
         """
-        existing_ids = set(graph.edges.values_list("id", flat=True))
-        incoming_ids = {edge["id"] for edge in edges_data}
+        # Namespace IDs similarly for edges and their endpoints
+        def _db_node_id(raw_id: str) -> str:
+            return f"{graph.id}:{raw_id}"
 
-        graph.edges.filter(id__in=existing_ids - incoming_ids).delete()
+        def _db_edge_id(raw_id: str) -> str:
+            return f"{graph.id}:{raw_id}"
+
+        existing_ids = set(graph.edges.values_list("id", flat=True))
+        incoming_db_ids = {_db_edge_id(edge["id"]) for edge in edges_data}
+
+        stale = existing_ids - incoming_db_ids
+        if stale:
+            graph.edges.filter(id__in=stale).delete()
 
         for edge in edges_data:
-            edge_id = edge["id"]
-            # Check if this edge exists in THIS graph
-            existing_edge = graph.edges.filter(id=edge_id).first()
-            
+            raw_edge_id = edge["id"]
+            db_edge_id = _db_edge_id(raw_edge_id)
+            db_source = _db_node_id(edge.get("source"))
+            db_target = _db_node_id(edge.get("target"))
+
+            # Check if this edge exists in THIS graph (by namespaced id)
+            existing_edge = graph.edges.filter(id=db_edge_id).first()
+
             if existing_edge:
                 # Update existing edge
-                existing_edge.source_id = edge.get("source")
-                existing_edge.target_id = edge.get("target")
+                existing_edge.source_id = db_source
+                existing_edge.target_id = db_target
                 existing_edge.meta = edge.get("meta", {})
                 existing_edge.save()
             else:
                 # Create new edge for this graph
                 Edge.objects.create(
-                    id=edge_id,
+                    id=db_edge_id,
                     graph=graph,
-                    source_id=edge.get("source"),
-                    target_id=edge.get("target"),
+                    source_id=db_source,
+                    target_id=db_target,
                     meta=edge.get("meta", {}),
                 )
+
+    def to_representation(self, instance: NetworkGraph) -> Dict[str, Any]:
+        """Strip graph-scoped prefixes from node/edge IDs for API responses.
+
+        Internally we store primary keys as f"{graph.id}:{raw_id}" to guarantee global
+        uniqueness across graphs. This method converts them back to the caller-facing
+        raw IDs to keep the API stable.
+        """
+        data = super().to_representation(instance)
+        prefix = f"{instance.id}:"
+
+        def _strip(val: str | None) -> str | None:
+            if isinstance(val, str) and val.startswith(prefix):
+                return val[len(prefix):]
+            return val
+
+        # Normalize nodes
+        nodes = data.get("nodes") or []
+        for n in nodes:
+            n["id"] = _strip(n.get("id"))
+
+        # Normalize edges using DB IDs (avoid stringified related object like "Dense (id)")
+        normalized_edges: list[dict[str, Any]] = []
+        for e in instance.edges.order_by("created_at").values("id", "source_id", "target_id", "meta"):
+            normalized_edges.append({
+                "id": _strip(e.get("id")),
+                "source": _strip(e.get("source_id")),
+                "target": _strip(e.get("target_id")),
+                "meta": e.get("meta") or {},
+            })
+        data["edges"] = normalized_edges
+
+        return data
 
 
 class GraphPresetSerializer(serializers.ModelSerializer):
