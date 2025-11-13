@@ -30,6 +30,22 @@ class TrainParams:
     validation_split: float = 0.1
     test_split: float = 0.1
     y_one_hot: bool = False
+    learning_rate: float | None = None
+    shuffle: bool = True
+    validation_batch_size: int | None = None
+    # EarlyStopping
+    early_stopping: bool = False
+    es_monitor: str = "val_loss"
+    es_mode: str = "auto"
+    es_patience: int = 5
+    es_min_delta: float = 0.0
+    es_restore_best_weights: bool = True
+    # ReduceLROnPlateau
+    reduce_lr: bool = False
+    rlrop_monitor: str = "val_loss"
+    rlrop_factor: float = 0.1
+    rlrop_patience: int = 3
+    rlrop_min_lr: float = 1e-6
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "TrainParams":
@@ -44,6 +60,20 @@ class TrainParams:
             validation_split=float(data.get("validation_split", 0.1)),
             test_split=float(data.get("test_split", 0.1)),
             y_one_hot=bool(str(data.get("y_one_hot", "false")).lower() in {"1", "true", "yes", "on"}),
+            learning_rate=(float(data["learning_rate"]) if data.get("learning_rate") not in (None, "") else None),
+            shuffle=bool(str(data.get("shuffle", "true")).lower() in {"1", "true", "yes", "on"}),
+            validation_batch_size=(int(data["validation_batch_size"]) if data.get("validation_batch_size") not in (None, "") else None),
+            early_stopping=bool(str(data.get("early_stopping", "false")).lower() in {"1", "true", "yes", "on"}),
+            es_monitor=str(data.get("es_monitor", "val_loss")),
+            es_mode=str(data.get("es_mode", "auto")),
+            es_patience=int(data.get("es_patience", 5)),
+            es_min_delta=float(data.get("es_min_delta", 0.0)),
+            es_restore_best_weights=bool(str(data.get("es_restore_best_weights", "true")).lower() in {"1", "true", "yes", "on"}),
+            reduce_lr=bool(str(data.get("reduce_lr", "false")).lower() in {"1", "true", "yes", "on"}),
+            rlrop_monitor=str(data.get("rlrop_monitor", "val_loss")),
+            rlrop_factor=float(data.get("rlrop_factor", 0.1)),
+            rlrop_patience=int(data.get("rlrop_patience", 3)),
+            rlrop_min_lr=float(data.get("rlrop_min_lr", 1e-6)),
         )
 
 
@@ -280,6 +310,13 @@ def _train_worker(job_id: str) -> None:
 
         # 7) Compile model with normalized metrics
         opt = optimizers.get(params.optimizer)
+        # Apply learning rate override if provided
+        try:
+            if params.learning_rate is not None and hasattr(opt, "learning_rate"):
+                # Some optimizers expose a tf.Variable; assign via attribute works in Keras 3
+                opt.learning_rate = params.learning_rate  # type: ignore[attr-defined]
+        except Exception:
+            pass
         model.compile(optimizer=opt, loss=los, metrics=normalized_metrics)
 
         job.progress = 0.05
@@ -304,6 +341,7 @@ def _train_worker(job_id: str) -> None:
         # 8) Fit
         # Callback to push progress and live metrics after each epoch
         from tensorflow.keras.callbacks import Callback  # type: ignore
+        from keras.callbacks import EarlyStopping, ReduceLROnPlateau  # type: ignore
 
         class _JobProgressCallback(Callback):  # pragma: no cover - relies on Keras runtime
             def __init__(self, jid: str, total_epochs: int):
@@ -337,6 +375,35 @@ def _train_worker(job_id: str) -> None:
                     pass
 
         cb = _JobProgressCallback(str(job.id), params.epochs)
+        # Add optional callbacks
+        callbacks_list: List[Any] = [cb]
+        if params.early_stopping:
+            try:
+                callbacks_list.append(
+                    EarlyStopping(
+                        monitor=params.es_monitor,
+                        mode=params.es_mode,
+                        patience=int(params.es_patience),
+                        min_delta=float(params.es_min_delta),
+                        restore_best_weights=bool(params.es_restore_best_weights),
+                        verbose=0,
+                    )
+                )
+            except Exception:
+                pass
+        if params.reduce_lr:
+            try:
+                callbacks_list.append(
+                    ReduceLROnPlateau(
+                        monitor=params.rlrop_monitor,
+                        factor=float(params.rlrop_factor),
+                        patience=int(params.rlrop_patience),
+                        min_lr=float(params.rlrop_min_lr),
+                        verbose=0,
+                    )
+                )
+            except Exception:
+                pass
 
         history = model.fit(
             X_train,
@@ -344,8 +411,10 @@ def _train_worker(job_id: str) -> None:
             epochs=params.epochs,
             batch_size=params.batch_size,
             validation_data=(X_val, y_val) if len(X_val) > 0 else None,
+            validation_batch_size=(params.validation_batch_size or None),
             verbose=0,
-            callbacks=[cb],
+            callbacks=callbacks_list,
+            shuffle=bool(params.shuffle),
         )
 
         job.progress = 0.95
@@ -362,7 +431,7 @@ def _train_worker(job_id: str) -> None:
             else:
                 eval_res = {"loss": float(eval_res)}
 
-    # 10) Save artifact
+        # 10) Save artifact
         out_dir = _ensure_artifacts_dir()
         artifact = os.path.join(out_dir, f"{job.id}.keras")
         try:

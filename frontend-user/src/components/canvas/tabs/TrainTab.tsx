@@ -36,6 +36,22 @@ export default function TrainTab() {
   // Train options
   const [epochs, setEpochs] = useState<number>(10);
   const [batchSize, setBatchSize] = useState<number>(32);
+  const [learningRate, setLearningRate] = useState<number | ''>('');
+  const [shuffle, setShuffle] = useState<boolean>(true);
+  const [valBatchSize, setValBatchSize] = useState<number | ''>('');
+  // EarlyStopping
+  const [useEarlyStopping, setUseEarlyStopping] = useState<boolean>(false);
+  const [esMonitor, setEsMonitor] = useState<string>('val_loss');
+  const [esMode, setEsMode] = useState<'auto' | 'min' | 'max'>('auto');
+  const [esPatience, setEsPatience] = useState<number>(5);
+  const [esMinDelta, setEsMinDelta] = useState<number>(0);
+  const [esRestoreBest, setEsRestoreBest] = useState<boolean>(true);
+  // ReduceLROnPlateau
+  const [useReduceLR, setUseReduceLR] = useState<boolean>(false);
+  const [rlrMonitor, setRlrMonitor] = useState<string>('val_loss');
+  const [rlrFactor, setRlrFactor] = useState<number>(0.1);
+  const [rlrPatience, setRlrPatience] = useState<number>(3);
+  const [rlrMinLR, setRlrMinLR] = useState<number>(1e-6);
 
   // Job state
   const [isStarting, setIsStarting] = useState(false);
@@ -267,6 +283,20 @@ export default function TrainTab() {
         validation_split: computedSplits.validation,
         test_split: computedSplits.test,
         y_one_hot: dataset.preprocessingConfig.targetEncoding === 'one-hot',
+        learning_rate: typeof learningRate === 'number' ? learningRate : undefined,
+        shuffle,
+        validation_batch_size: typeof valBatchSize === 'number' ? valBatchSize : undefined,
+        early_stopping: useEarlyStopping,
+        es_monitor: esMonitor,
+        es_mode: esMode,
+        es_patience: esPatience,
+        es_min_delta: esMinDelta,
+        es_restore_best_weights: esRestoreBest,
+        reduce_lr: useReduceLR,
+        rlrop_monitor: rlrMonitor,
+        rlrop_factor: rlrFactor,
+        rlrop_patience: rlrPatience,
+        rlrop_min_lr: rlrMinLR,
       });
       setJobId(job.id);
       setJobStatus(job.status || 'queued');
@@ -332,6 +362,7 @@ export default function TrainTab() {
                     <option key={name} value={name}>{name}</option>
                   ))}
                 </select>
+                <p className="mt-1 text-xs text-slate-500">Controls how weights update during training. Adam is a solid default; SGD can work well with momentum for large datasets.</p>
               </div>
 
               <div>
@@ -347,6 +378,7 @@ export default function TrainTab() {
                     <option key={name} value={name}>{name}</option>
                   ))}
                 </select>
+                <p className="mt-1 text-xs text-slate-500">Must match your problem and label format: regression (MSE/MAE), binary (BinaryCrossentropy), multiclass (Categorical or SparseCategorical Crossentropy).</p>
                 {/* Hint if selected loss seems mismatched with inferred target kind */}
                 <div className="mt-1 text-xs">
                   {(() => {
@@ -401,6 +433,7 @@ export default function TrainTab() {
                   onChange={(e) => setEpochs(parseInt(e.target.value) || 1)}
                   className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                <p className="mt-1 text-xs text-slate-500">One epoch = one full pass over the training data. More epochs can improve fit but risk overfitting. Use EarlyStopping to stop automatically.</p>
               </div>
 
               <div>
@@ -415,10 +448,142 @@ export default function TrainTab() {
                   onChange={(e) => setBatchSize(parseInt(e.target.value) || 1)}
                   className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                <p className="mt-1 text-xs text-slate-500">Samples per gradient step. Larger batches are faster but may generalize worse; smaller batches add noise that can help generalization.</p>
               </div>
               {/* No manual Validation Split; it's derived from Dataset tab */}
               <div className="col-span-2 text-xs text-slate-500">
                 Using dataset splits: val={computedSplits.validation}, test={computedSplits.test}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Learning rate (optional)</label>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  value={learningRate === '' ? '' : learningRate}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setLearningRate(v === '' ? '' : Number(v));
+                  }}
+                  placeholder="e.g. 0.001"
+                  className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="mt-1 text-xs text-slate-500">Step size for weight updates. Too high can diverge; too low can be slow. Typical values: 1e-3 to 1e-4 for Adam.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Validation batch size (optional)</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={valBatchSize === '' ? '' : valBatchSize}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setValBatchSize(v === '' ? '' : Math.max(1, Number(v)));
+                  }}
+                  placeholder="leave empty to match batch size"
+                  className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="mt-1 text-xs text-slate-500">If empty, uses the training batch size. Only affects validation throughput, not training dynamics.</p>
+              </div>
+              <div className="col-span-2 flex items-center gap-3">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={shuffle} onChange={(e) => setShuffle(e.target.checked)} />
+                  Shuffle training data each epoch
+                </label>
+                <span className="text-xs text-slate-500">Recommended. Prevents learning spurious order; disable only for sequence-sensitive data already batched in order.</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Callbacks */}
+          <div>
+            <h3 className="font-semibold text-slate-700 mb-3">Callbacks</h3>
+            <div className="space-y-4">
+              <div className="border rounded p-3">
+                <label className="flex items-center gap-2 text-sm mb-2">
+                  <input type="checkbox" checked={useEarlyStopping} onChange={(e) => setUseEarlyStopping(e.target.checked)} />
+                  EarlyStopping
+                </label>
+                <p className="-mt-1 mb-2 text-xs text-slate-500">Stop training when a monitored metric stops improving. Helps avoid overfitting and saves time.</p>
+                {useEarlyStopping && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-slate-600 mb-1">Monitor</label>
+                      <select value={esMonitor} onChange={(e) => setEsMonitor(e.target.value)} className="w-full px-2 py-2 border rounded text-sm">
+                        <option value="val_loss">val_loss</option>
+                        <option value="loss">loss</option>
+                        <option value="accuracy">accuracy</option>
+                        <option value="sparse_categorical_accuracy">sparse_categorical_accuracy</option>
+                        <option value="categorical_accuracy">categorical_accuracy</option>
+                        <option value="binary_accuracy">binary_accuracy</option>
+                      </select>
+                      <p className="mt-1 text-xs text-slate-500">Which metric to watch. For classification, prefer a relevant accuracy; for regression, use val_loss/loss.</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-600 mb-1">Mode</label>
+                      <select value={esMode} onChange={(e) => setEsMode(e.target.value as 'auto' | 'min' | 'max')} className="w-full px-2 py-2 border rounded text-sm">
+                        <option value="auto">auto</option>
+                        <option value="min">min</option>
+                        <option value="max">max</option>
+                      </select>
+                      <p className="mt-1 text-xs text-slate-500">Choose "min" for losses (lower is better) and "max" for accuracies (higher is better). "auto" infers it.</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-600 mb-1">Patience</label>
+                      <input type="number" min="0" value={esPatience} onChange={(e) => setEsPatience(Math.max(0, Number(e.target.value)||0))} className="w-full px-2 py-2 border rounded text-sm" />
+                      <p className="mt-1 text-xs text-slate-500">How many epochs with no improvement before stopping.</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-600 mb-1">Min delta</label>
+                      <input type="number" step="any" value={esMinDelta} onChange={(e) => setEsMinDelta(Number(e.target.value)||0)} className="w-full px-2 py-2 border rounded text-sm" />
+                      <p className="mt-1 text-xs text-slate-500">Minimum change to qualify as an improvement (helps ignore tiny fluctuations).</p>
+                    </div>
+                    <div className="col-span-2 flex items-center gap-2">
+                      <input type="checkbox" checked={esRestoreBest} onChange={(e) => setEsRestoreBest(e.target.checked)} />
+                      <span className="text-sm">Restore best weights</span>
+                      <span className="text-xs text-slate-500">After stopping, roll back to the best-performing epoch.</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="border rounded p-3">
+                <label className="flex items-center gap-2 text-sm mb-2">
+                  <input type="checkbox" checked={useReduceLR} onChange={(e) => setUseReduceLR(e.target.checked)} />
+                  ReduceLROnPlateau
+                </label>
+                <p className="-mt-1 mb-2 text-xs text-slate-500">Reduce the learning rate when a metric has stopped improving to fine-tune training.</p>
+                {useReduceLR && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-slate-600 mb-1">Monitor</label>
+                      <select value={rlrMonitor} onChange={(e) => setRlrMonitor(e.target.value)} className="w-full px-2 py-2 border rounded text-sm">
+                        <option value="val_loss">val_loss</option>
+                        <option value="loss">loss</option>
+                        <option value="accuracy">accuracy</option>
+                        <option value="sparse_categorical_accuracy">sparse_categorical_accuracy</option>
+                        <option value="categorical_accuracy">categorical_accuracy</option>
+                        <option value="binary_accuracy">binary_accuracy</option>
+                      </select>
+                      <p className="mt-1 text-xs text-slate-500">Metric used to decide when to reduce the learning rate.</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-600 mb-1">Factor</label>
+                      <input type="number" step="any" min="0" max="1" value={rlrFactor} onChange={(e) => setRlrFactor(Number(e.target.value)||0.1)} className="w-full px-2 py-2 border rounded text-sm" />
+                      <p className="mt-1 text-xs text-slate-500">Multiplicative drop. Example: 0.1 will change 1e-3 to 1e-4.</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-600 mb-1">Patience</label>
+                      <input type="number" min="0" value={rlrPatience} onChange={(e) => setRlrPatience(Math.max(0, Number(e.target.value)||0))} className="w-full px-2 py-2 border rounded text-sm" />
+                      <p className="mt-1 text-xs text-slate-500">How many epochs with no improvement before reducing the learning rate.</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-600 mb-1">Min LR</label>
+                      <input type="number" step="any" min="0" value={rlrMinLR} onChange={(e) => setRlrMinLR(Math.max(0, Number(e.target.value)||0))} className="w-full px-2 py-2 border rounded text-sm" />
+                      <p className="mt-1 text-xs text-slate-500">Lower bound to stop decreasing LR. Typical: 1e-6 to 1e-7.</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

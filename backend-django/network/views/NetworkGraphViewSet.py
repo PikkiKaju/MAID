@@ -358,6 +358,23 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
                 "validation_split": request.data.get("validation_split", 0.1),
                 "test_split": request.data.get("test_split", 0.1),
                 "y_one_hot": request.data.get("y_one_hot", False),
+                # New optional hyperparameters
+                "learning_rate": request.data.get("learning_rate"),
+                "shuffle": request.data.get("shuffle", True),
+                "validation_batch_size": request.data.get("validation_batch_size"),
+                # EarlyStopping
+                "early_stopping": request.data.get("early_stopping", False),
+                "es_monitor": request.data.get("es_monitor", "val_loss"),
+                "es_mode": request.data.get("es_mode", "auto"),
+                "es_patience": request.data.get("es_patience", 5),
+                "es_min_delta": request.data.get("es_min_delta", 0.0),
+                "es_restore_best_weights": request.data.get("es_restore_best_weights", True),
+                # ReduceLROnPlateau
+                "reduce_lr": request.data.get("reduce_lr", False),
+                "rlrop_monitor": request.data.get("rlrop_monitor", "val_loss"),
+                "rlrop_factor": request.data.get("rlrop_factor", 0.1),
+                "rlrop_patience": request.data.get("rlrop_patience", 3),
+                "rlrop_min_lr": request.data.get("rlrop_min_lr", 1e-6),
             },
         )
 

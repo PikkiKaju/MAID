@@ -189,6 +189,20 @@ const networkGraphService = {
       validation_split?: number;
       test_split?: number;
       y_one_hot?: boolean;
+      learning_rate?: number;
+      shuffle?: boolean;
+      validation_batch_size?: number;
+      early_stopping?: boolean;
+      es_monitor?: string;
+      es_mode?: 'auto' | 'min' | 'max' | string;
+      es_patience?: number;
+      es_min_delta?: number;
+      es_restore_best_weights?: boolean;
+      reduce_lr?: boolean;
+      rlrop_monitor?: string;
+      rlrop_factor?: number;
+      rlrop_patience?: number;
+      rlrop_min_lr?: number;
     }
   ) => {
     const form = new FormData();
@@ -203,6 +217,20 @@ const networkGraphService = {
     if (options.validation_split != null) form.append('validation_split', String(options.validation_split));
     if (options.test_split != null) form.append('test_split', String(options.test_split));
   if (options.y_one_hot != null) form.append('y_one_hot', String(!!options.y_one_hot));
+    if (options.learning_rate != null) form.append('learning_rate', String(options.learning_rate));
+    if (options.shuffle != null) form.append('shuffle', String(!!options.shuffle));
+    if (options.validation_batch_size != null) form.append('validation_batch_size', String(options.validation_batch_size));
+    if (options.early_stopping != null) form.append('early_stopping', String(!!options.early_stopping));
+    if (options.es_monitor) form.append('es_monitor', options.es_monitor);
+    if (options.es_mode) form.append('es_mode', String(options.es_mode));
+    if (options.es_patience != null) form.append('es_patience', String(options.es_patience));
+    if (options.es_min_delta != null) form.append('es_min_delta', String(options.es_min_delta));
+    if (options.es_restore_best_weights != null) form.append('es_restore_best_weights', String(!!options.es_restore_best_weights));
+    if (options.reduce_lr != null) form.append('reduce_lr', String(!!options.reduce_lr));
+    if (options.rlrop_monitor) form.append('rlrop_monitor', options.rlrop_monitor);
+    if (options.rlrop_factor != null) form.append('rlrop_factor', String(options.rlrop_factor));
+    if (options.rlrop_patience != null) form.append('rlrop_patience', String(options.rlrop_patience));
+    if (options.rlrop_min_lr != null) form.append('rlrop_min_lr', String(options.rlrop_min_lr));
 
     const resp = await djangoClient.post(`network/graphs/${graphId}/train/`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
