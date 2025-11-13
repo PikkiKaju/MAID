@@ -98,6 +98,10 @@ def _train_worker(job_id: str) -> None:
         return
 
     try:
+        # If cancellation was requested before the worker started, respect it
+        if job.status == TrainingStatus.CANCELLED:
+            return
+
         job.status = TrainingStatus.RUNNING
         job.progress = 0.01
         job.save(update_fields=["status", "progress", "updated_at"])
@@ -370,6 +374,13 @@ def _train_worker(job_id: str) -> None:
                     res = dict(current.result or {})
                     res["live"] = job_live
                     tj.update(progress=prog, result=res)
+
+                    # Check for cancellation request and stop training early
+                    if current.status == TrainingStatus.CANCELLED:
+                        try:
+                            self.model.stop_training = True  # type: ignore[attr-defined]
+                        except Exception:
+                            pass
                 except Exception:
                     # best-effort; don't crash training on DB update issues
                     pass
@@ -417,6 +428,18 @@ def _train_worker(job_id: str) -> None:
             shuffle=bool(params.shuffle),
         )
 
+        # Refresh job to observe cancellation state set by API during training
+        job.refresh_from_db()
+        if job.status == TrainingStatus.CANCELLED:
+            # Preserve partial history; skip evaluation/artifact
+            job.result = {
+                "history": {k: [float(x) for x in v] for k, v in (history.history or {}).items()},
+                "evaluation": None,
+            }
+            # Progress was updated incrementally during training; keep as-is
+            job.save(update_fields=["result", "updated_at"])
+            return
+
         job.progress = 0.95
         job.save(update_fields=["progress", "updated_at"])
 
@@ -451,6 +474,11 @@ def _train_worker(job_id: str) -> None:
         job.save(update_fields=["status", "result", "artifact_path", "progress", "error", "updated_at"])
 
     except Exception as exc:
+        # If cancellation was requested, do not override with FAILED
+        job.refresh_from_db()
+        if job.status == TrainingStatus.CANCELLED:
+            # Keep whatever was persisted already
+            return
         job.status = TrainingStatus.FAILED
         # Improve common keras/tf messages with hints
         msg = str(exc)

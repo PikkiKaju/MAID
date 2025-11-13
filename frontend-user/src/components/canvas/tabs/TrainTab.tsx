@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Play, Settings } from 'lucide-react';
+import { Play, Settings, Square } from 'lucide-react';
 import { Button } from '../../../ui/button';
 import { useDataset } from '../../../contexts/DatasetContext';
 import { useGraph } from '../../../contexts/GraphContext';
@@ -54,6 +54,7 @@ export default function TrainTab() {
 
   // Job state (persisted in context) and local start flag
   const [isStarting, setIsStarting] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
   const {
     jobId, setJobId,
     jobStatus, setJobStatus,
@@ -325,8 +326,13 @@ export default function TrainTab() {
           if (j.result) setJobResult(j.result as TrainingResult);
           if (j.status === 'succeeded' || j.status === 'failed' || j.status === 'cancelled') {
             clearInterval(interval);
-            if (j.status === 'succeeded') setJobResult(j.result);
-            if (j.status !== 'succeeded') setJobError(j.error || 'Training failed');
+              if (j.status === 'succeeded') {
+                setJobResult(j.result);
+              } else if (j.status === 'failed') {
+                setJobError(j.error || 'Training failed');
+              } else {
+                setJobError(null); // cancelled or other final states
+              }
             pollerRef.current = null;
           }
         } catch {
@@ -359,8 +365,13 @@ export default function TrainTab() {
         const final = j.status === 'succeeded' || j.status === 'failed' || j.status === 'cancelled';
         if (final) {
           clearInterval(interval);
-          if (j.status === 'succeeded') setJobResult(j.result);
-          if (j.status !== 'succeeded') setJobError(j.error || 'Training failed');
+            if (j.status === 'succeeded') {
+              setJobResult(j.result);
+            } else if (j.status === 'failed') {
+              setJobError(j.error || 'Training failed');
+            } else {
+              setJobError(null); // cancelled or other final states
+            }
           pollerRef.current = null;
         }
       } catch {
@@ -378,14 +389,36 @@ export default function TrainTab() {
     };
   }, [jobId, jobStatus, setJobError, setJobProgress, setJobResult, setJobStatus]);
 
+  async function handleCancelTraining() {
+    if (!jobId) return;
+    try {
+      setIsStopping(true);
+      await networkGraphService.cancelTraining(jobId);
+      // Do not optimistically flip status to 'cancelled' to keep polling until backend finalizes partial results
+    } catch (e) {
+      console.error(e);
+      const msg = e instanceof Error ? e.message : String(e);
+      setJobError(msg || 'Failed to cancel training job');
+    } finally {
+      setIsStopping(false);
+    }
+  }
+
   return (
     <div className="h-full flex flex-col p-4 bg-slate-50">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-slate-800">Training Configuration</h2>
-        <Button onClick={handleStartTraining} disabled={isStarting || !graphId}>
-          <Play size={16} className="mr-2" />
-          {isStarting ? 'Starting…' : 'Start Training'}
-        </Button>
+        {jobId && (jobStatus === 'running' || jobStatus === 'queued') ? (
+          <Button onClick={handleCancelTraining} disabled={isStopping} variant="destructive">
+            <Square size={16} className="mr-2" />
+            {isStopping ? 'Stopping…' : 'Stop Training'}
+          </Button>
+        ) : (
+          <Button onClick={handleStartTraining} disabled={isStarting || !graphId}>
+            <Play size={16} className="mr-2" />
+            {isStarting ? 'Starting…' : 'Start Training'}
+          </Button>
+        )}
       </div>
 
       <div className="flex-1 overflow-hidden">

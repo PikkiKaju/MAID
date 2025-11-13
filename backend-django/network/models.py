@@ -124,6 +124,7 @@ class TrainingStatus(models.TextChoices):
     RUNNING = "running", "Running"
     SUCCEEDED = "succeeded", "Succeeded"
     FAILED = "failed", "Failed"
+    CANCELLED = "cancelled", "Cancelled"
 
 
 class TrainingJob(TimeStampedModel):

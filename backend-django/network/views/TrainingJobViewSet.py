@@ -25,3 +25,19 @@ class TrainingJobViewSet(viewsets.ReadOnlyModelViewSet):
         response = FileResponse(open(job.artifact_path, "rb"), content_type="application/octet-stream")
         response["Content-Disposition"] = f'attachment; filename="{job.id}.keras"'
         return response
+
+    @action(detail=True, methods=["post"], url_path="cancel")
+    def cancel(self, request, pk=None):
+        """Request cancellation of a running or queued training job.
+
+        Sets the job status to CANCELLED. The training worker will detect this
+        and stop as soon as possible, preserving any collected history.
+        """
+        job = self.get_object()
+        if job.status in {TrainingStatus.SUCCEEDED, TrainingStatus.FAILED, TrainingStatus.CANCELLED}:
+            # Already finished; return current state
+            return Response(TrainingJobSerializer(job).data, status=status.HTTP_200_OK)
+
+        job.status = TrainingStatus.CANCELLED
+        job.save(update_fields=["status", "updated_at"])
+        return Response(TrainingJobSerializer(job).data, status=status.HTTP_202_ACCEPTED)

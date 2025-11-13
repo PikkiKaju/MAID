@@ -245,6 +245,12 @@ const networkGraphService = {
     throw new Error('Failed to get training job');
   },
 
+  cancelTraining: async (jobId: string) => {
+    const resp = await djangoClient.post(`network/training-jobs/${jobId}/cancel/`);
+    if (resp.status === 202 || resp.status === 200) return resp.data;
+    throw new Error('Failed to cancel training job');
+  },
+
   downloadArtifact: async (jobId: string): Promise<Blob> => {
     const resp = await djangoClient.get(`network/training-jobs/${jobId}/artifact/`, { responseType: 'blob' });
     if (resp.status === 200) return resp.data as Blob;
