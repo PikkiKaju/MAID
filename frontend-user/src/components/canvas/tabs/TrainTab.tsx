@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Play, Settings } from 'lucide-react';
 import { Button } from '../../../ui/button';
 import { useDataset } from '../../../contexts/DatasetContext';
@@ -52,13 +52,22 @@ export default function TrainTab() {
     rlrMinLR, setRlrMinLR,
   } = useTrainingConfig();
 
-  // Job state
+  // Job state (persisted in context) and local start flag
   const [isStarting, setIsStarting] = useState(false);
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [jobStatus, setJobStatus] = useState<string | null>(null);
-  const [jobProgress, setJobProgress] = useState<number | null>(null);
-  const [jobError, setJobError] = useState<string | null>(null);
-  const [jobResult, setJobResult] = useState<TrainingResult | null>(null);
+  const {
+    jobId, setJobId,
+    jobStatus, setJobStatus,
+    jobProgress, setJobProgress,
+    jobError, setJobError,
+    jobResult, setJobResult,
+  } = useTrainingConfig() as unknown as {
+    jobId: string | null; setJobId: (v: string | null) => void;
+    jobStatus: string | null; setJobStatus: (v: string | null) => void;
+    jobProgress: number | null; setJobProgress: (v: number | null) => void;
+    jobError: string | null; setJobError: (v: string | null) => void;
+    jobResult: TrainingResult | null; setJobResult: (v: TrainingResult | null) => void;
+  };
+  const pollerRef = useRef<number | null>(null);
 
   // Fetch catalogs on mount
   useEffect(() => {
@@ -204,13 +213,15 @@ export default function TrainTab() {
     return result;
   }, [metricsCatalog, loss, targetKind]);
 
-  // When loss changes, prune selected metrics that are no longer available
+  // When catalogs are ready and loss/availability changes, prune selected metrics that are no longer available
+  const catalogsReady = optimizers.length > 0 && losses.length > 0 && metricsCatalog.length > 0;
   useEffect(() => {
+    if (!catalogsReady) return;
     if (!selectedMetrics?.length) return;
     const set = new Set(availableMetrics.map((m) => m.toLowerCase()));
     const next = selectedMetrics.filter((m) => set.has(m.toLowerCase()) || m.toLowerCase() === 'accuracy');
     if (next.length !== selectedMetrics.length) setSelectedMetrics(next);
-  }, [availableMetrics, selectedMetrics, setSelectedMetrics]);
+  }, [catalogsReady, availableMetrics, selectedMetrics, setSelectedMetrics]);
 
   function arraysToCsv(headers: string[], rows: (number[])[]): string {
     const esc = (v: number | string) => {
@@ -303,8 +314,9 @@ export default function TrainTab() {
       setJobStatus(job.status || 'queued');
       setJobProgress(job.progress ?? 0);
 
-      // Poll for job updates
-      const interval = setInterval(async () => {
+      // Poll for job updates (store interval id in ref to avoid duplicates across remounts)
+      if (pollerRef.current) window.clearInterval(pollerRef.current);
+      const interval = window.setInterval(async () => {
         try {
           const j = await networkGraphService.getTrainingJob(job.id);
           setJobStatus(j.status);
@@ -315,12 +327,15 @@ export default function TrainTab() {
             clearInterval(interval);
             if (j.status === 'succeeded') setJobResult(j.result);
             if (j.status !== 'succeeded') setJobError(j.error || 'Training failed');
+            pollerRef.current = null;
           }
         } catch {
           clearInterval(interval);
           setJobError('Failed to poll job status');
+          pollerRef.current = null;
         }
       }, 1500);
+      pollerRef.current = interval;
     } catch (e: unknown) {
       console.error(e);
       const msg = e instanceof Error ? e.message : String(e);
@@ -329,6 +344,39 @@ export default function TrainTab() {
       setIsStarting(false);
     }
   }
+
+  // Resume polling when returning to the tab if a job is in progress
+  useEffect(() => {
+    const isFinal = jobStatus === 'succeeded' || jobStatus === 'failed' || jobStatus === 'cancelled';
+    if (!jobId || isFinal) return;
+    if (pollerRef.current) return; // already polling
+    const interval = window.setInterval(async () => {
+      try {
+        const j = await networkGraphService.getTrainingJob(jobId);
+        setJobStatus(j.status);
+        if (typeof j.progress === 'number') setJobProgress(j.progress);
+        if (j.result) setJobResult(j.result as TrainingResult);
+        const final = j.status === 'succeeded' || j.status === 'failed' || j.status === 'cancelled';
+        if (final) {
+          clearInterval(interval);
+          if (j.status === 'succeeded') setJobResult(j.result);
+          if (j.status !== 'succeeded') setJobError(j.error || 'Training failed');
+          pollerRef.current = null;
+        }
+      } catch {
+        clearInterval(interval);
+        setJobError('Failed to poll job status');
+        pollerRef.current = null;
+      }
+    }, 1500);
+    pollerRef.current = interval;
+    return () => {
+      if (pollerRef.current) {
+        clearInterval(pollerRef.current);
+        pollerRef.current = null;
+      }
+    };
+  }, [jobId, jobStatus, setJobError, setJobProgress, setJobResult, setJobStatus]);
 
   return (
     <div className="h-full flex flex-col p-4 bg-slate-50">

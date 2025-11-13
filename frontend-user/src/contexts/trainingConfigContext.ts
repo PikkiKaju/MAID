@@ -41,6 +41,17 @@ export type TrainingConfigState = {
   setRlrPatience: (v: number) => void;
   rlrMinLR: number;
   setRlrMinLR: (v: number) => void;
+  // Training job state (persist across tabs)
+  jobId: string | null;
+  setJobId: (v: string | null) => void;
+  jobStatus: string | null;
+  setJobStatus: (v: string | null) => void;
+  jobProgress: number | null;
+  setJobProgress: (v: number | null) => void;
+  jobError: string | null;
+  setJobError: (v: string | null) => void;
+  jobResult: unknown | null;
+  setJobResult: (v: unknown | null) => void;
 };
 
 export const TrainingConfigContext = createContext<TrainingConfigState | undefined>(undefined);

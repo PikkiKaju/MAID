@@ -21,6 +21,12 @@ export default function TrainingConfigProvider({ children }: { children: ReactNo
   const [rlrFactor, setRlrFactor] = useState<number>(0.1);
   const [rlrPatience, setRlrPatience] = useState<number>(3);
   const [rlrMinLR, setRlrMinLR] = useState<number>(1e-6);
+  // Training job state
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [jobStatus, setJobStatus] = useState<string | null>(null);
+  const [jobProgress, setJobProgress] = useState<number | null>(null);
+  const [jobError, setJobError] = useState<string | null>(null);
+  const [jobResult, setJobResult] = useState<unknown | null>(null);
 
   const value: TrainingConfigState = {
     optimizer, setOptimizer,
@@ -42,6 +48,11 @@ export default function TrainingConfigProvider({ children }: { children: ReactNo
     rlrFactor, setRlrFactor,
     rlrPatience, setRlrPatience,
     rlrMinLR, setRlrMinLR,
+    jobId, setJobId,
+    jobStatus, setJobStatus,
+    jobProgress, setJobProgress,
+    jobError, setJobError,
+    jobResult, setJobResult,
   };
 
   return (
