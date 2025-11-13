@@ -8,6 +8,7 @@ import MetricsTab from './tabs/MetricsTab';
 import ModelSummaryTab from './tabs/ModelSummaryTab';
 import { DatasetProvider } from '../../contexts/DatasetContext';
 import { GraphProvider } from '../../contexts/GraphContext';
+import TrainingConfigProvider from '../../contexts/TrainingConfigProvider';
 
 export default function CanvasTabs() {
   const [activeTab, setActiveTab] = useState('canvas');
@@ -15,6 +16,7 @@ export default function CanvasTabs() {
   return (
     <GraphProvider>
     <DatasetProvider>
+    <TrainingConfigProvider>
       <div className="h-full flex flex-col">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
         {/* Tab Headers */}
@@ -67,6 +69,7 @@ export default function CanvasTabs() {
         </div>
       </Tabs>
     </div>
+    </TrainingConfigProvider>
     </DatasetProvider>
     </GraphProvider>
   );

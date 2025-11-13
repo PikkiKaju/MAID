@@ -4,6 +4,7 @@ import { Button } from '../../../ui/button';
 import { useDataset } from '../../../contexts/DatasetContext';
 import { useGraph } from '../../../contexts/GraphContext';
 import networkGraphService from '../../../api/networkGraphService';
+import { useTrainingConfig } from '../../../contexts/useTrainingConfig';
 
 type TrainingResult = {
   live?: {
@@ -28,30 +29,28 @@ export default function TrainTab() {
   const [losses, setLosses] = useState<string[]>([]);
   const [metricsCatalog, setMetricsCatalog] = useState<string[]>([]);
 
-  // Selected values
-  const [optimizer, setOptimizer] = useState<string>('adam');
-  const [loss, setLoss] = useState<string>('MeanSquaredError');
-  const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['mae']);
-
-  // Train options
-  const [epochs, setEpochs] = useState<number>(10);
-  const [batchSize, setBatchSize] = useState<number>(32);
-  const [learningRate, setLearningRate] = useState<number | ''>('');
-  const [shuffle, setShuffle] = useState<boolean>(true);
-  const [valBatchSize, setValBatchSize] = useState<number | ''>('');
-  // EarlyStopping
-  const [useEarlyStopping, setUseEarlyStopping] = useState<boolean>(false);
-  const [esMonitor, setEsMonitor] = useState<string>('val_loss');
-  const [esMode, setEsMode] = useState<'auto' | 'min' | 'max'>('auto');
-  const [esPatience, setEsPatience] = useState<number>(5);
-  const [esMinDelta, setEsMinDelta] = useState<number>(0);
-  const [esRestoreBest, setEsRestoreBest] = useState<boolean>(true);
-  // ReduceLROnPlateau
-  const [useReduceLR, setUseReduceLR] = useState<boolean>(false);
-  const [rlrMonitor, setRlrMonitor] = useState<string>('val_loss');
-  const [rlrFactor, setRlrFactor] = useState<number>(0.1);
-  const [rlrPatience, setRlrPatience] = useState<number>(3);
-  const [rlrMinLR, setRlrMinLR] = useState<number>(1e-6);
+  // Training configuration (persisted across tabs)
+  const {
+    optimizer, setOptimizer,
+    loss, setLoss,
+    selectedMetrics, setSelectedMetrics,
+    epochs, setEpochs,
+    batchSize, setBatchSize,
+    learningRate, setLearningRate,
+    shuffle, setShuffle,
+    valBatchSize, setValBatchSize,
+    useEarlyStopping, setUseEarlyStopping,
+    esMonitor, setEsMonitor,
+    esMode, setEsMode,
+    esPatience, setEsPatience,
+    esMinDelta, setEsMinDelta,
+    esRestoreBest, setEsRestoreBest,
+    useReduceLR, setUseReduceLR,
+    rlrMonitor, setRlrMonitor,
+    rlrFactor, setRlrFactor,
+    rlrPatience, setRlrPatience,
+    rlrMinLR, setRlrMinLR,
+  } = useTrainingConfig();
 
   // Job state
   const [isStarting, setIsStarting] = useState(false);
@@ -77,25 +76,27 @@ export default function TrainTab() {
         const dedupLosses = (los.losses || []).filter((l) => !l.alias_of).map((l) => l.name);
         setLosses(dedupLosses);
         setMetricsCatalog((met.metrics || []).map(m => m.name));
-        // Set sensible defaults if current selections not present
-        if (!opt.optimizers?.some(o => o.name === 'adam') && opt.optimizers?.length) {
-          setOptimizer(opt.optimizers[0].name);
+        // Only adjust selections if the current values are not present in the catalogs
+        if (opt.optimizers?.length) {
+          const optimizerNames = new Set(opt.optimizers.map(o => o.name));
+          if (!optimizerNames.has(optimizer)) {
+            if (optimizerNames.has('adam')) setOptimizer('adam');
+            else setOptimizer(opt.optimizers[0].name);
+          }
         }
-        // Prefer MeanSquaredError if present; else first available
-        if (!dedupLosses.includes('MeanSquaredError') && dedupLosses.length) {
-          setLoss(dedupLosses[0]);
-        } else if (dedupLosses.includes('MeanSquaredError')) {
-          setLoss('MeanSquaredError');
+        if (dedupLosses.length) {
+          if (!dedupLosses.includes(loss)) {
+            // Fall back to first available if current loss not present
+            setLoss(dedupLosses[0]);
+          }
         }
-        if (!met.metrics?.some(m => m.name.toLowerCase() === 'mae') && met.metrics?.length) {
-          setSelectedMetrics([met.metrics[0].name]);
-        }
+        // Metrics are pruned by a dedicated effect below based on availability; no need to override here
       } catch {
         console.error('Failed to load training catalogs');
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [optimizer, loss, setOptimizer, setLoss]);
 
   const computedSplits = useMemo(() => {
     // Derive validation/test splits from processed dataset sizes
@@ -209,7 +210,7 @@ export default function TrainTab() {
     const set = new Set(availableMetrics.map((m) => m.toLowerCase()));
     const next = selectedMetrics.filter((m) => set.has(m.toLowerCase()) || m.toLowerCase() === 'accuracy');
     if (next.length !== selectedMetrics.length) setSelectedMetrics(next);
-  }, [availableMetrics, selectedMetrics]);
+  }, [availableMetrics, selectedMetrics, setSelectedMetrics]);
 
   function arraysToCsv(headers: string[], rows: (number[])[]): string {
     const esc = (v: number | string) => {
