@@ -31,14 +31,6 @@ const router = createBrowserRouter([
         element: <HomePage />,
       },
       {
-        path: "projects",
-        element: <ProjectsPage />,
-      },
-      {
-        path: "datasets-regresja",
-        element: <DatasetsListPage />,
-      },
-      {
         path: "/profile",
         element: <ProfileInfoPage />,
       },
@@ -51,8 +43,25 @@ const router = createBrowserRouter([
         element: <ProfileHelpPage />,
       },
       {
-        path: "canvas",
-        element: <CanvasPage />,
+        element: <PrivateRoute />,
+        children: [
+          {
+            path: "projects",
+            element: <ProjectsPage />,
+          },
+          {
+            path: "datasets-regresja",
+            element: <DatasetsListPage />,
+          },
+          {
+            path: "canvas",
+            element: <CanvasPage />,
+          },
+          {
+            path: "projects/:id",
+            element: <ProjectEditPage />,
+          },
+        ],
       },
     ],
   },
@@ -63,15 +72,6 @@ const router = createBrowserRouter([
   {
     path: "/register",
     element: <RegisterPage />,
-  },
-  {
-    element: <PrivateRoute />,
-    children: [
-      {
-        path: "/projects/:id",
-        element: <ProjectEditPage />,
-      },
-    ],
   },
   {
     path: "*",

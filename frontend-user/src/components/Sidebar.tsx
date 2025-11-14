@@ -1,5 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useSelector } from "react-redux";
+import { RootState } from "../store/store";
 import {
   Sidebar,
   SidebarContent,
@@ -15,28 +17,43 @@ function AppSidebar() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const isLoggedIn = useSelector((state: RootState) => state.auth.isLoggedIn);
 
-  const navigationItems = [
-    { id: "home", label: t("sidebar.home"), icon: Home, path: "/" },
+  const allNavigationItems = [
+    {
+      id: "home",
+      label: t("sidebar.home"),
+      icon: Home,
+      path: "/",
+      requiresAuth: false,
+    },
     {
       id: "projects",
       label: t("sidebar.myProjects"),
       icon: FolderOpen,
       path: "/projects",
+      requiresAuth: true,
     },
     {
       id: "datasets",
       label: t("sidebar.datasets"),
       icon: Database,
       path: "/datasets-regresja",
+      requiresAuth: true,
     },
     {
       id: "canvas",
       label: t("sidebar.canvas"),
       icon: Network,
       path: "/canvas",
+      requiresAuth: true,
     },
   ];
+
+  // Filtruj elementy nawigacji na podstawie stanu zalogowania
+  const navigationItems = allNavigationItems.filter(
+    (item) => !item.requiresAuth || isLoggedIn
+  );
 
   return (
     <Sidebar className="border-none">
