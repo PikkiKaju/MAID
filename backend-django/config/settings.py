@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,12 +22,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-xihgu%&aw56df2+)q=z3z!9#+chb*yx)ao9skcp*!(#@z(l=jf'
+# Read sensitive values from environment variables. Provide a fallback only for
+# local development. Replace in production via environment.
+SECRET_KEY = os.getenv(
+    "SECRET_KEY",
+    "django-insecure-xihgu%&aw56df2+)q=z3z!9#+chb*yx)ao9skcp*!(#@z(l=jf",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Control via env var: set DEBUG=1/true in development, unset/false in prod
+DEBUG = str(os.getenv("DEBUG", "False")).lower() in ("1", "true", "yes", "on")
 
-ALLOWED_HOSTS = ['*']
+# Configure allowed hosts via comma-separated ENV value, e.g. ALLOWED_HOSTS=example.com,api.example.com
+allowed_hosts_env = os.getenv("ALLOWED_HOSTS", "")
+ALLOWED_HOSTS = [h.strip() for h in allowed_hosts_env.split(",") if h.strip()] if allowed_hosts_env else []
 
 
 # Application definition
@@ -137,4 +146,11 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ORIGIN_ALLOW_ALL = True
+CORS_ORIGIN_ALLOW_ALL = str(os.getenv("CORS_ORIGIN_ALLOW_ALL", "False")).lower() in ("1", "true", "yes", "on")
+
+# Directory to store model artifacts and job uploads. Can be overridden via ENV.
+ARTIFACTS_DIR = Path(os.getenv("ARTIFACTS_DIR")) if os.getenv("ARTIFACTS_DIR") else BASE_DIR / "artifacts"
+
+# Upload limits and allowed extensions (comma-separated)
+MAX_UPLOAD_SIZE = int(os.getenv("MAX_UPLOAD_SIZE", 10 * 1024 * 1024))  # bytes, default 10 MB
+ALLOWED_UPLOAD_EXTENSIONS = [e.strip() for e in os.getenv("ALLOWED_UPLOAD_EXTENSIONS", ".csv,.keras,.h5,.zip").split(",") if e.strip()]
