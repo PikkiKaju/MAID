@@ -4,10 +4,11 @@ import axiosInstance from "../api/axiosConfig";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 import { ProjectDetail, ProjectMeta } from "../models/project";
-import { Play, ArrowLeft, Save, Trash2 } from "lucide-react";
+import { Play, ArrowLeft, Save, Trash2, Loader2 } from "lucide-react";
 import { datasetService, DatasetMetadata } from "../api/datasetService";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { useToast } from "../components/toast/ToastProvider";
 import "../styles/Loader.css";
 
 export default function ProjectEditPage() {
@@ -24,9 +25,11 @@ export default function ProjectEditPage() {
     svg_plot: string;
   } | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true);
+  const [loadingCalculation, setLoadingCalculation] = useState(false);
 
   const navigate = useNavigate();
   const token = useSelector((state: RootState) => state.auth.token);
+  const { showSuccess, showError } = useToast();
 
   // Konfiguracja wymaganych parametrów dla każdej metody
   const paramConfig: Record<
@@ -112,15 +115,22 @@ export default function ProjectEditPage() {
 
   const handleStartCalculation = () => {
     if (!id || !detail) return;
+    setLoadingCalculation(true);
+    setCalculationResult(null);
     axiosInstance
       .post(`/Calculation/start`, JSON.stringify(id), {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
         setCalculationResult(res.data);
-        alert("Obliczenia zostały uruchomione");
+        showSuccess("Obliczenia zostały uruchomione");
       })
-      .catch(() => alert("Wystąpił błąd podczas obliczeń."));
+      .catch(() => {
+        showError("Wystąpił błąd podczas obliczeń.");
+      })
+      .finally(() => {
+        setLoadingCalculation(false);
+      });
   };
 
   const handleSaveDetails = () => {
@@ -137,10 +147,10 @@ export default function ProjectEditPage() {
         }
       )
       .then(() => {
-        alert("Zapisano zmiany w projekcie.");
+        showSuccess("Zapisano zmiany w projekcie.");
         setHasUnsavedChanges(false);
       })
-      .catch(() => alert("Błąd podczas zapisywania zmian."));
+      .catch(() => showError("Błąd podczas zapisywania zmian."));
   };
 
   const handleDeleteProject = () => {
@@ -156,10 +166,10 @@ export default function ProjectEditPage() {
         },
       })
       .then(() => {
-        alert("Projekt został usunięty.");
+        showSuccess("Projekt został usunięty.");
         navigate("/projects");
       })
-      .catch(() => alert("Wystąpił błąd podczas usuwania projektu."));
+      .catch(() => showError("Wystąpił błąd podczas usuwania projektu."));
   };
 
   // Fetch columns when dataset changes
@@ -219,7 +229,7 @@ export default function ProjectEditPage() {
         }
       );
     } catch {
-      alert("Błąd podczas zmiany datasetu.");
+      showError("Błąd podczas zmiany datasetu.");
     }
   };
 
@@ -548,7 +558,12 @@ export default function ProjectEditPage() {
         </div>
 
         {/* Results Section */}
-        {calculationResult && (
+        {loadingCalculation && (
+          <div className="flex items-center justify-center min-h-[500px]">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+        )}
+        {calculationResult && !loadingCalculation && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 gap-6">
               {/* Visualization Card */}
