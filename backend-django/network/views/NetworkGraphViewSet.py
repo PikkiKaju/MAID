@@ -15,6 +15,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
+from django.conf import settings
 
 from network.models import NetworkGraph
 from network.serializers import NetworkGraphSerializer, TrainingJobSerializer
@@ -31,7 +32,8 @@ from network.services.training import launch_training_job
 
 
 class NetworkGraphViewSet(viewsets.ModelViewSet):
-    permission_classes = [AllowAny]
+    # Require authentication for graph operations (import/export/compile/train)
+    permission_classes = [IsAuthenticated]
     serializer_class = NetworkGraphSerializer
     queryset = NetworkGraph.objects.all().prefetch_related("nodes", "edges")
 
@@ -48,8 +50,7 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """Helper to get nodes and edges payload from request or DB."""
 
-        print("request_data:", request_data)  # Debugging line
-        print("graph: ", graph)  # Debugging line
+        logger.debug("_resolve_graph_payload request_data=%s graph=%s", request_data, getattr(graph, 'id', graph))
 
         if graph:
             nodes_payload = list(graph.nodes.order_by("created_at").values(
@@ -179,7 +180,7 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
         return response
 
-    @action(detail=False, methods=["post"], url_path="import-keras-json")
+    @action(detail=False, methods=["post"], url_path="import-keras-json", permission_classes=[IsAdminUser])
     def import_keras_json(self, request):
         """Accepts a Keras model.to_json() string and creates a corresponding graph.
 
@@ -257,7 +258,7 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
         return Response(self.get_serializer(instance).data, status=status.HTTP_201_CREATED)
 
 
-    @action(detail=False, methods=["post"], url_path="import-model")
+    @action(detail=False, methods=["post"], url_path="import-model", permission_classes=[IsAdminUser])
     def import_model_artifact(self, request):
         """Upload a Keras model artifact (.keras, .h5, or SavedModel .zip) and convert to a graph.
 
@@ -269,6 +270,19 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
         uploaded = request.FILES.get("file")
         if not uploaded:
             return Response({"detail": "Missing file upload (field name 'file')"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Basic upload validation: size and allowed extensions
+        try:
+            upload_size = int(getattr(uploaded, 'size', 0))
+        except Exception:
+            upload_size = 0
+        if upload_size > getattr(settings, 'MAX_UPLOAD_SIZE', 10 * 1024 * 1024):
+            return Response({"detail": "Uploaded file is too large"}, status=status.HTTP_400_BAD_REQUEST)
+
+        suffix = os.path.splitext(getattr(uploaded, "name", "uploaded.bin"))[1].lower()
+        allowed = [e.lower() for e in getattr(settings, 'ALLOWED_UPLOAD_EXTENSIONS', ['.keras', '.h5', '.zip'])]
+        if suffix not in allowed:
+            return Response({"detail": f"Unsupported file extension '{suffix}'"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Persist to a temporary file preserving extension for loader heuristics
         suffix = os.path.splitext(getattr(uploaded, "name", "uploaded.bin"))[1]
@@ -333,6 +347,19 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
         uploaded = request.FILES.get("file")
         if not uploaded:
             return Response({"detail": "Missing CSV file (field name 'file')"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Enforce limits: size and extension
+        try:
+            upload_size = int(getattr(uploaded, 'size', 0))
+        except Exception:
+            upload_size = 0
+        if upload_size > getattr(settings, 'MAX_UPLOAD_SIZE', 10 * 1024 * 1024):
+            return Response({"detail": "Uploaded file is too large"}, status=status.HTTP_400_BAD_REQUEST)
+
+        suffix = os.path.splitext(getattr(uploaded, "name", "dataset.csv"))[1].lower() or ".csv"
+        allowed = [e.lower() for e in getattr(settings, 'ALLOWED_UPLOAD_EXTENSIONS', ['.csv'])]
+        if suffix not in allowed:
+            return Response({"detail": f"Unsupported file extension '{suffix}'"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Persist dataset to a temp path tied to the job id
         # Parse JSON-like fields if they are strings
