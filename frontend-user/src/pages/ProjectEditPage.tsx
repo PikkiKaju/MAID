@@ -4,9 +4,11 @@ import axiosInstance from "../api/axiosConfig";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 import { ProjectDetail, ProjectMeta } from "../models/project";
-import { Play, ArrowLeft } from "lucide-react";
+import { Play, ArrowLeft, Save, Trash2 } from "lucide-react";
 import { datasetService, DatasetMetadata } from "../api/datasetService";
 import { Button } from "../ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import "../styles/Loader.css";
 
 export default function ProjectEditPage() {
   const { id } = useParams();
@@ -222,11 +224,7 @@ export default function ProjectEditPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-lg">Ładowanie projektu...</div>
-      </div>
-    );
+    return <div className="loader"></div>;
   }
 
   if (!meta || !detail) {
@@ -272,7 +270,7 @@ export default function ProjectEditPage() {
                 setDetail({ ...detail, xColumn: e.target.value });
                 setHasUnsavedChanges(true);
               }}
-              className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
+              className="border border-border px-2 py-1 w-full rounded bg-input-background text-foreground [&>option]:bg-card [&>option]:text-foreground"
               disabled={loadingColumns}
             >
               <option value="">Wybierz kolumnę</option>
@@ -314,7 +312,7 @@ export default function ProjectEditPage() {
                 setDetail({ ...detail, x2Column: e.target.value });
                 setHasUnsavedChanges(true);
               }}
-              className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
+              className="border border-border px-2 py-1 w-full rounded bg-input-background text-foreground [&>option]:bg-card [&>option]:text-foreground"
               disabled={loadingColumns}
             >
               <option value="">Brak</option>
@@ -356,7 +354,7 @@ export default function ProjectEditPage() {
                 setDetail({ ...detail, yColumn: e.target.value });
                 setHasUnsavedChanges(true);
               }}
-              className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
+              className="border border-border px-2 py-1 w-full rounded bg-input-background text-foreground [&>option]:bg-card [&>option]:text-foreground"
               disabled={loadingColumns}
             >
               <option value="">Wybierz kolumnę</option>
@@ -410,7 +408,7 @@ export default function ProjectEditPage() {
           <select
             value={meta?.datasetId || ""}
             onChange={handleDatasetChange}
-            className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
+            className="border border-border px-2 py-1 w-full rounded bg-input-background text-foreground [&>option]:bg-card [&>option]:text-foreground"
           >
             <option value="">Wybierz dataset</option>
             {datasets
@@ -435,7 +433,7 @@ export default function ProjectEditPage() {
               setDetail({ ...detail, algorithm: e.target.value });
               setHasUnsavedChanges(true);
             }}
-            className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
+            className="border border-border px-2 py-1 w-full rounded bg-input-background text-foreground [&>option]:bg-card [&>option]:text-foreground"
           >
             <option value="linear">Regresja liniowa</option>
             <option value="ridge">Regresja grzbietowa</option>
@@ -469,7 +467,7 @@ export default function ProjectEditPage() {
                       });
                       setHasUnsavedChanges(true);
                     }}
-                    className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
+                    className="border border-border px-2 py-1 w-full rounded bg-input-background text-foreground [&>option]:bg-card [&>option]:text-foreground"
                   >
                     <option value="">Wybierz</option>
                     {p.options?.map((opt) => (
@@ -503,23 +501,22 @@ export default function ProjectEditPage() {
       </div>
 
       {/* Main */}
-      <div className="flex-1 p-6 relative bg-background text-foreground">
+      <div className="flex-1 p-6 relative bg-background text-foreground overflow-y-auto">
         {/* Topbar */}
-        <div className="flex justify-center gap-6 mb-6 bg-muted p-3 rounded">
-          <button
+        <div className="flex justify-center gap-4 mb-6 p-4 bg-muted/50 rounded-lg border border-border">
+          <Button
             onClick={handleSaveDetails}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            variant="default"
+            className="rounded-full px-6"
           >
+            <Save className="h-4 w-4" />
             Zapisz zmiany
-          </button>
+          </Button>
 
-          <button
+          <Button
             onClick={handleStartCalculation}
-            className={`px-6 py-2 rounded shadow text-white ${
-              hasUnsavedChanges
-                ? "bg-blue-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700"
-            }`}
+            variant="default"
+            className="rounded-full px-6"
             disabled={hasUnsavedChanges}
             title={
               hasUnsavedChanges
@@ -527,83 +524,163 @@ export default function ProjectEditPage() {
                 : "Uruchom obliczenia"
             }
           >
-            <Play />
-          </button>
+            <Play className="h-4 w-4" />
+            Uruchom obliczenia
+          </Button>
 
-          <button
+          <Button
             onClick={handleDeleteProject}
-            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            variant="destructive"
+            className="rounded-full px-6"
           >
+            <Trash2 className="h-4 w-4" />
             Usuń projekt
-          </button>
+          </Button>
         </div>
 
-        <div className="text-gray-600">
-          {calculationResult && (
-            <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-bold mb-2">Wizualizacja:</h3>
-                <div className="border p-2 bg-card rounded text-card-foreground">
-                  <div
-                    dangerouslySetInnerHTML={{
-                      __html: calculationResult.svg_plot,
-                    }}
-                  />
-                </div>
-              </div>
-              <div>
-                <h3 className="font-bold mb-2">Informacje o modelu:</h3>
-                {(() => {
-                  const info = (calculationResult as any).model_info;
-                  const degree = (calculationResult as any).degree;
-                  const n_features = (calculationResult as any).n_features;
-                  const coefficients =
-                    (calculationResult as any).coefficients ||
-                    info?.coefficients;
-                  const intercept =
-                    (calculationResult as any).intercept || info?.intercept;
-                  const r2 = info?.r_squared;
-                  return (
-                    <div className="space-y-2 text-sm">
-                      {typeof degree !== "undefined" && (
-                        <div>
-                          <span className="font-medium">Degree:</span> {degree}
-                        </div>
-                      )}
-                      {typeof n_features !== "undefined" && (
-                        <div>
-                          <span className="font-medium">Liczba cech:</span>{" "}
-                          {n_features}
-                        </div>
-                      )}
-                      {typeof r2 !== "undefined" && (
-                        <div>
-                          <span className="font-medium">R²:</span> {r2}
-                        </div>
-                      )}
-                      {typeof intercept !== "undefined" && (
-                        <div>
-                          <span className="font-medium">Intercept:</span>{" "}
-                          {intercept}
-                        </div>
-                      )}
-                      {Array.isArray(coefficients) && (
-                        <div>
-                          <div className="font-medium">Współczynniki:</div>
-                          <ul className="list-disc ml-5">
-                            {coefficients.map((c: number, i: number) => (
-                              <li key={i}>{c}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
+        {/* Results Section */}
+        {calculationResult && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-6">
+              {/* Visualization Card */}
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="text-xl font-semibold">
+                    Wizualizacja wyników
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="w-full min-h-[500px] overflow-auto bg-card rounded-lg p-6 border border-border">
+                    <div
+                      className="w-full flex items-center justify-center min-h-[450px]"
+                      dangerouslySetInnerHTML={{
+                        __html: calculationResult.svg_plot,
+                      }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Model Info Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl font-semibold">
+                    Informacje o modelu
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    const info = (calculationResult as any).model_info;
+                    const degree = (calculationResult as any).degree;
+                    const n_features = (calculationResult as any).n_features;
+                    const coefficients =
+                      (calculationResult as any).coefficients ||
+                      info?.coefficients;
+                    const intercept =
+                      (calculationResult as any).intercept || info?.intercept;
+                    const r2 = info?.r_squared;
+                    return (
+                      <div className="space-y-4">
+                        {typeof degree !== "undefined" && (
+                          <div className="flex items-center justify-between p-4 bg-accent dark:bg-accent/50 rounded-lg">
+                            <span className="text-base font-medium text-foreground">
+                              Stopień wielomianu:
+                            </span>
+                            <span className="text-lg font-semibold text-foreground">
+                              {degree}
+                            </span>
+                          </div>
+                        )}
+                        {typeof n_features !== "undefined" && (
+                          <div className="flex items-center justify-between p-4 bg-accent dark:bg-accent/50 rounded-lg">
+                            <span className="text-base font-medium text-foreground">
+                              Liczba cech:
+                            </span>
+                            <span className="text-lg font-semibold text-foreground">
+                              {n_features}
+                            </span>
+                          </div>
+                        )}
+                        {typeof r2 !== "undefined" && (
+                          <div className="flex items-center justify-between p-4 bg-accent dark:bg-accent/50 rounded-lg">
+                            <span className="text-base font-medium text-foreground">
+                              Współczynnik determinacji (R²):
+                            </span>
+                            <span className="text-lg font-semibold text-foreground">
+                              {typeof r2 === "number" ? r2.toFixed(4) : r2}
+                            </span>
+                          </div>
+                        )}
+                        {typeof intercept !== "undefined" && (
+                          <div className="flex items-center justify-between p-4 bg-accent dark:bg-accent/50 rounded-lg">
+                            <span className="text-base font-medium text-foreground">
+                              Wyraz wolny (Intercept):
+                            </span>
+                            <span className="text-lg font-semibold text-foreground">
+                              {typeof intercept === "number"
+                                ? intercept.toFixed(4)
+                                : intercept}
+                            </span>
+                          </div>
+                        )}
+                        {Array.isArray(coefficients) &&
+                          coefficients.length > 0 && (
+                            <div className="p-4 bg-accent dark:bg-accent/50 rounded-lg">
+                              <div className="text-base font-medium text-foreground mb-3">
+                                Współczynniki:
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {coefficients.map((c: number, i: number) => (
+                                  <div
+                                    key={i}
+                                    className="px-3 py-1.5 bg-card border border-border rounded-md text-base font-medium text-foreground"
+                                  >
+                                    β{i}:{" "}
+                                    {typeof c === "number" ? c.toFixed(4) : c}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                      </div>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
             </div>
-          )}
-        </div>
+
+            {/* Predictions Card */}
+            {calculationResult.prediction &&
+              Array.isArray(calculationResult.prediction) &&
+              calculationResult.prediction.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-xl font-semibold">
+                      Przewidywania
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="max-h-64 overflow-y-auto">
+                      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                        {calculationResult.prediction.map(
+                          (pred: number, idx: number) => (
+                            <div
+                              key={idx}
+                              className="p-2 bg-muted rounded-lg text-center text-sm font-medium"
+                            >
+                              {typeof pred === "number"
+                                ? pred.toFixed(4)
+                                : pred}
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+          </div>
+        )}
 
         {/* Loader */}
         <div className={`loader ${!loading ? "loader-hidden" : ""}`} />
