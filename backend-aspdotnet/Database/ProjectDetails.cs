@@ -9,6 +9,7 @@ namespace backend_aspdotnet.Database
         public Guid Id { get; set; }
 
         public string XColumn { get; set; } = string.Empty;
+        public string X2Column { get; set; } = string.Empty;
         public string YColumn { get; set; } = string.Empty;
         public string Algorithm { get; set; } = string.Empty;
         public Dictionary<string, string> Parameters { get; set; } = new();

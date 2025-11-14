@@ -16,6 +16,8 @@ using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Bson;
 using Microsoft.OpenApi.Models;
 using backend_aspdotnet.Helpers;
+using Microsoft.AspNetCore.Http.Features;
+using backend_aspdotnet;
 
 BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
 
@@ -57,10 +59,24 @@ builder.Services.AddSwaggerGen(c =>
     
 });
 
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 5L * 1024L * 1024L * 1024L; // 5 GB
+});
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 5L * 1024L * 1024L * 1024L; // 5 GB
+});
+
 
 builder.Services.AddHttpClient<PythonConectService>();
 builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<ElementDBConterxt>();
+builder.Services.AddSingleton<DatasetService>();
+builder.Services.AddSingleton<DatasetCsvParser>();
+builder.Services.AddScoped<FillDb>();
+builder.Services.AddSingleton<DatasetCsvParser>();
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -116,117 +132,129 @@ using (var scope = app.Services.CreateScope())
     var mongoContext = scope.ServiceProvider.GetRequiredService<ElementDBConterxt>();
 
     db.Database.EnsureCreated();
+    var fd = scope.ServiceProvider.GetRequiredService<FillDb>();
+    fd.FillDatabase();
+    // if (!db.Users.Any())
+    // {
+    //            var users = new List<User>
+    //     {
+         
+    //     };
 
-    if (!db.Users.Any())
-    {
-        var users = new List<User>
-        {
-            new User { Id = Guid.NewGuid(), Username = "Adam", Email = "adam@example.com", Password = authService.HashPassword("Adam") },
-            new User { Id = Guid.NewGuid(), Username = "Dominik", Email = "dominik@example.com", Password = authService.HashPassword("Dominik") },
-            new User { Id = Guid.NewGuid(), Username = "Martyna", Email = "martyna@example.com", Password = authService.HashPassword("Martyna") },
-            new User { Id = Guid.NewGuid(), Username = "Kuba", Email = "kuba@example.com", Password = authService.HashPassword("Kuba") },
-            new User { Id = Guid.NewGuid(), Username = "Rafa�", Email = "rafa�@example.com", Password = authService.HashPassword("Rafa�") },
-            new User { Id = Guid.NewGuid(), Username = "Micha�", Email = "micha�@example.com", Password = authService.HashPassword("Micha�") },
-            new User { Id = Guid.NewGuid(), Username = "Admin", Email = "admin@example.com", Password = authService.HashPassword("Admin"), Role = "Admin" }
-        };
+    //     db.Users.AddRange(users);
+    //     db.SaveChanges();
+    // }
 
-        db.Users.AddRange(users);
-        db.SaveChanges();
+    // if (!db.Users.Any())
+    // {
+    //     var users = new List<User>
+    //     {
+    //         new User { Id = Guid.NewGuid(), Username = "Adam", Email = "adam@example.com", Password = authService.HashPassword("Adam") },
+    //         new User { Id = Guid.NewGuid(), Username = "Dominik", Email = "dominik@example.com", Password = authService.HashPassword("Dominik") },
+    //         new User { Id = Guid.NewGuid(), Username = "Martyna", Email = "martyna@example.com", Password = authService.HashPassword("Martyna") },
+    //         new User { Id = Guid.NewGuid(), Username = "Kuba", Email = "kuba@example.com", Password = authService.HashPassword("Kuba") },
+    //         new User { Id = Guid.NewGuid(), Username = "Rafa�", Email = "rafa�@example.com", Password = authService.HashPassword("Rafa�") },
+    //         new User { Id = Guid.NewGuid(), Username = "Micha�", Email = "micha�@example.com", Password = authService.HashPassword("Micha�") },
+    //         new User { Id = Guid.NewGuid(), Username = "Admin", Email = "admin@example.com", Password = authService.HashPassword("Admin"), Role = "Admin" }
+    //     };
 
-        var datasets = new List<DatasetMeta>
-        {
-            new DatasetMeta { Id = Guid.NewGuid(), Name = "Sample Dataset", UserId = users[0].Id, CreatedAt = DateTime.UtcNow },
-            new DatasetMeta { Id = Guid.NewGuid(), Name = "Sample Dataset 2", UserId = users[0].Id, CreatedAt = DateTime.UtcNow },
-            new DatasetMeta { Id = Guid.NewGuid(), Name = "Sample Dataset", UserId = users[1].Id, CreatedAt = DateTime.UtcNow },
-            new DatasetMeta { Id = Guid.NewGuid(), Name = "Sample Dataset 2", UserId = users[1].Id, CreatedAt = DateTime.UtcNow },
-            new DatasetMeta { Id = Guid.NewGuid(), Name = "Sample Dataset", UserId = users[2].Id, CreatedAt = DateTime.UtcNow },
-            new DatasetMeta { Id = Guid.NewGuid(), Name = "Sample Dataset 2", UserId = users[2].Id, CreatedAt = DateTime.UtcNow }
-        };
+    //     db.Users.AddRange(users);
+    //     db.SaveChanges();
 
-        db.Datasets.AddRange(datasets);
+    //     var datasets = new List<DatasetMeta>
+    //     {
+    //         new DatasetMeta { Id = Guid.NewGuid(), Name = "Sample Dataset", UserId = users[0].Id, CreatedAt = DateTime.UtcNow },
+    //         new DatasetMeta { Id = Guid.NewGuid(), Name = "Sample Dataset 2", UserId = users[0].Id, CreatedAt = DateTime.UtcNow },
+    //         new DatasetMeta { Id = Guid.NewGuid(), Name = "Sample Dataset", UserId = users[1].Id, CreatedAt = DateTime.UtcNow },
+    //         new DatasetMeta { Id = Guid.NewGuid(), Name = "Sample Dataset 2", UserId = users[1].Id, CreatedAt = DateTime.UtcNow },
+    //         new DatasetMeta { Id = Guid.NewGuid(), Name = "Sample Dataset", UserId = users[2].Id, CreatedAt = DateTime.UtcNow },
+    //         new DatasetMeta { Id = Guid.NewGuid(), Name = "Sample Dataset 2", UserId = users[2].Id, CreatedAt = DateTime.UtcNow }
+    //     };
 
-        var projects = new List<ProjectMeta>
-        {
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Przewidywanie pogody", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true, Likes = 1 },
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Regresja interesuj�cych danych", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = true, Likes = 4},
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt startowy", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true },
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt pocz�tkowy", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true , Likes = 2},
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt nr 4", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = true, Likes = 5},
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "My project", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false },
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Przewidywanie cen pr�du", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false },
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Przewidywanie warto�ci z�ota", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = true},
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true, Likes = 3 },
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false },
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = false},
-            new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false }
-        };
+    //     db.Datasets.AddRange(datasets);
 
-        db.Projects.AddRange(projects);
-        db.SaveChanges();
+    //     var projects = new List<ProjectMeta>
+    //     {
+    //         new ProjectMeta { Id = Guid.NewGuid(), Name = "Przewidywanie pogody", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true, Likes = 1 },
+    //         new ProjectMeta { Id = Guid.NewGuid(), Name = "Regresja interesuj�cych danych", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = true, Likes = 4},
+    //         new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt startowy", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true },
+    //         new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt pocz�tkowy", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true , Likes = 2},
+    //         new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt nr 4", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = true, Likes = 5},
+    //         new ProjectMeta { Id = Guid.NewGuid(), Name = "My project", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false },
+    //         new ProjectMeta { Id = Guid.NewGuid(), Name = "Przewidywanie cen pr�du", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false },
+    //         new ProjectMeta { Id = Guid.NewGuid(), Name = "Przewidywanie warto�ci z�ota", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = true},
+    //         new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = true, Likes = 3 },
+    //         new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[0].Id, DatasetId = datasets[0].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false },
+    //         new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[1].Id, DatasetId = datasets[2].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow ,IsPublic = false},
+    //         new ProjectMeta { Id = Guid.NewGuid(), Name = "Projekt", UserId = users[2].Id, DatasetId = datasets[4].Id, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,IsPublic = false }
+    //     };
 
-        var blocked = new List<Blocked>
-        {
-        };
+    //     db.Projects.AddRange(projects);
+    //     db.SaveChanges();
 
-        db.Blocked.AddRange(blocked);
-        db.SaveChanges();
+    //     var blocked = new List<Blocked>
+    //     {
+    //     };
 
-        var like = new List<Like>
-        {
-            new Like { Id = Guid.NewGuid(), UserId = users[3].Id, ProjectId = projects[0].Id },
-            //
-            new Like { Id = Guid.NewGuid(), UserId = users[3].Id, ProjectId = projects[1].Id },
-            new Like { Id = Guid.NewGuid(), UserId = users[2].Id, ProjectId = projects[1].Id },
-            new Like { Id = Guid.NewGuid(), UserId = users[1].Id, ProjectId = projects[1].Id },
-            new Like { Id = Guid.NewGuid(), UserId = users[0].Id, ProjectId = projects[1].Id },
-            //
-            new Like { Id = Guid.NewGuid(), UserId = users[3].Id, ProjectId = projects[3].Id },
-            new Like { Id = Guid.NewGuid(), UserId = users[3].Id, ProjectId = projects[3].Id },
-            //
-            new Like { Id = Guid.NewGuid(), UserId = users[0].Id, ProjectId = projects[4].Id },
-            new Like { Id = Guid.NewGuid(), UserId = users[1].Id, ProjectId = projects[4].Id },
-            new Like { Id = Guid.NewGuid(), UserId = users[2].Id, ProjectId = projects[4].Id },
-            new Like { Id = Guid.NewGuid(), UserId = users[3].Id, ProjectId = projects[4].Id },
-            new Like { Id = Guid.NewGuid(), UserId = users[4].Id, ProjectId = projects[4].Id },
-            //
-            new Like { Id = Guid.NewGuid(), UserId = users[0].Id, ProjectId = projects[8].Id },
-            new Like { Id = Guid.NewGuid(), UserId = users[1].Id, ProjectId = projects[8].Id },
-            new Like { Id = Guid.NewGuid(), UserId = users[2].Id, ProjectId = projects[8].Id },
-        };
+    //     db.Blocked.AddRange(blocked);
+    //     db.SaveChanges();
 
-        db.Likes.AddRange(like);
-        db.SaveChanges();
+    //     var like = new List<Like>
+    //     {
+    //         new Like { Id = Guid.NewGuid(), UserId = users[3].Id, ProjectId = projects[0].Id },
+    //         //
+    //         new Like { Id = Guid.NewGuid(), UserId = users[3].Id, ProjectId = projects[1].Id },
+    //         new Like { Id = Guid.NewGuid(), UserId = users[2].Id, ProjectId = projects[1].Id },
+    //         new Like { Id = Guid.NewGuid(), UserId = users[1].Id, ProjectId = projects[1].Id },
+    //         new Like { Id = Guid.NewGuid(), UserId = users[0].Id, ProjectId = projects[1].Id },
+    //         //
+    //         new Like { Id = Guid.NewGuid(), UserId = users[3].Id, ProjectId = projects[3].Id },
+    //         new Like { Id = Guid.NewGuid(), UserId = users[3].Id, ProjectId = projects[3].Id },
+    //         //
+    //         new Like { Id = Guid.NewGuid(), UserId = users[0].Id, ProjectId = projects[4].Id },
+    //         new Like { Id = Guid.NewGuid(), UserId = users[1].Id, ProjectId = projects[4].Id },
+    //         new Like { Id = Guid.NewGuid(), UserId = users[2].Id, ProjectId = projects[4].Id },
+    //         new Like { Id = Guid.NewGuid(), UserId = users[3].Id, ProjectId = projects[4].Id },
+    //         new Like { Id = Guid.NewGuid(), UserId = users[4].Id, ProjectId = projects[4].Id },
+    //         //
+    //         new Like { Id = Guid.NewGuid(), UserId = users[0].Id, ProjectId = projects[8].Id },
+    //         new Like { Id = Guid.NewGuid(), UserId = users[1].Id, ProjectId = projects[8].Id },
+    //         new Like { Id = Guid.NewGuid(), UserId = users[2].Id, ProjectId = projects[8].Id },
+    //     };
 
-        if (!mongoContext.ProjectDetails.AsQueryable().Any())
-        {
-            var mongoProjectDetails = projects.Select(p => new ProjectDetails
-            {
-                Id = p.Id, 
-                XColumn = "X",
-                YColumn = "Y",
-                Algorithm = "Linear",
-                Parameters = new Dictionary<string, string> { { "alpha", "0.01" } }
-            });
+    //     db.Likes.AddRange(like);
+    //     db.SaveChanges();
 
-            mongoContext.ProjectDetails.InsertMany(mongoProjectDetails);
-        }
+    //     if (!mongoContext.ProjectDetails.AsQueryable().Any())
+    //     {
+    //         var mongoProjectDetails = projects.Select(p => new ProjectDetails
+    //         {
+    //             Id = p.Id, 
+    //             XColumn = "X",
+    //             YColumn = "Y",
+    //             Algorithm = "Linear",
+    //             Parameters = new Dictionary<string, string> { { "alpha", "0.01" } }
+    //         });
 
-        if (!mongoContext.Datasets.AsQueryable().Any())
-        {
-            var mongoDatasets = datasets.Select(d => new RawDataset
-            {
-                Id = d.Id, 
-                Columns = new List<string> { "X", "Y" },
-                Data = new Dictionary<string, List<string>>
-                {
-                    { "X", new List<string> { "1", "2", "3" } },
-                    { "Y", new List<string> { "2", "4", "6" } }
-                }
-            });
+    //         mongoContext.ProjectDetails.InsertMany(mongoProjectDetails);
+    //     }
 
-            mongoContext.Datasets.InsertMany(mongoDatasets);
-        }
-    }
+    //     if (!mongoContext.Datasets.AsQueryable().Any())
+    //     {
+    //         var mongoDatasets = datasets.Select(d => new RawDataset
+    //         {
+    //             Id = d.Id, 
+    //             Columns = new List<string> { "X", "Y" },
+    //             Data = new Dictionary<string, List<string>>
+    //             {
+    //                 { "X", new List<string> { "1", "2", "3" } },
+    //                 { "Y", new List<string> { "2", "4", "6" } }
+    //             }
+    //         });
+
+    //         mongoContext.Datasets.InsertMany(mongoDatasets);
+    //     }
+    // }
 }
 
 // WA�NE: app.UseRouting() musi by� przed app.UseCors() je�li u�ywasz routingu atrybutowego

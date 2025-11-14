@@ -1,147 +1,276 @@
-import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
-import { RootState } from "../store/store"; // Adjust this path to your actual store
-import { datasetService, DatasetMetadata, DatasetMyMetadata } from "../api/datasetService";
+import { useEffect, useState, useMemo } from "react";
+import AttachedDatasets from "../components/datasets/AttachedDatasets";
+import Tips from "../components/datasets/Tips";
+import UploadArea from "../components/datasets/UploadArea";
+import HeaderDatasets from "../components/datasets/HeaderDatasets";
+import UploadDatasetDialog, {
+  UploadFormData,
+} from "../components/datasets/UploadDatasetDialog";
+import DatasetDetailsDialog from "../components/datasets/DatasetDetailsDialog";
+import { handleDrag, handleDrop } from "../utilis/drag-and-drop";
+import { getFileIcon, getStatusColor } from "../models/dataset";
+import { useSelector, useDispatch } from "react-redux";
+import { AppDispatch, RootState } from "../store/store";
+import {
+  fetchPublicDatasets,
+  fetchUserDatasets,
+  uploadCsv,
+  uploadPhoto,
+} from "../features/dataset/datasetThunks";
+import { datasetService } from "../api/datasetService";
 
 export default function DatasetsListPage() {
-  const token = useSelector((state: RootState) => state.auth.token);
+  const [dragActive, setDragActive] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [fileType, setFileType] = useState<"csv" | "zip" | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedDataset, setSelectedDataset] = useState<{
+    id: string;
+    name: string;
+    type: string;
+  } | null>(null);
 
-  const [publicDatasets,setPublicDatasets] = useState<DatasetMetadata[]>([]);
-  const [userDatasets, setUserDatasets] = useState<DatasetMyMetadata[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const validateFile = (
+    file: File
+  ): { valid: boolean; type: "csv" | "zip" | null; error?: string } => {
+    const fileName = file.name.toLowerCase();
+    const extension = fileName.substring(fileName.lastIndexOf("."));
 
-  const fetchDatasets = async () => {
-    if (!token) return;
-    try {
-      setLoading(true);
-      const data = await datasetService.getAllDatasets(token);
-      setPublicDatasets(data.public);
-      setUserDatasets(data.user);
-    } catch (err: any) {
-      setError("Błąd podczas pobierania zbiorów danych: " + (err.response?.data?.message || err.message));
-    } finally {
-      setLoading(false);
+    if (extension === ".csv") {
+      return { valid: true, type: "csv" };
+    } else if (extension === ".zip") {
+      return { valid: true, type: "zip" };
+    } else {
+      return {
+        valid: false,
+        type: null,
+        error:
+          "Nieprawidłowy format pliku. Dozwolone są tylko pliki .csv lub .zip",
+      };
     }
   };
 
+  const handleFileUpload = (files: FileList) => {
+    if (files.length === 0) return;
+
+    const file = files[0];
+    const validation = validateFile(file);
+
+    if (!validation.valid) {
+      setUploadError(validation.error || "Nieprawidłowy plik");
+      setTimeout(() => setUploadError(null), 5000);
+      return;
+    }
+
+    setSelectedFile(file);
+    setFileType(validation.type);
+    setDialogOpen(true);
+    setUploadError(null);
+  };
+
+  const handleDialogUpload = async (formData: UploadFormData) => {
+    if (!selectedFile || !fileType || !token) {
+      setUploadError("Brak wymaganych danych do przesłania pliku.");
+      return;
+    }
+
+    try {
+      if (fileType === "csv") {
+        await dispatch(
+          uploadCsv({
+            file: selectedFile,
+            name: formData.name,
+            columnTransform: formData.columnTransform || "convert",
+            emptyTransform: formData.emptyTransform || "average",
+            isPublic: formData.isPublic,
+          })
+        ).unwrap();
+      } else if (fileType === "zip") {
+        await dispatch(
+          uploadPhoto({
+            file: selectedFile,
+            name: formData.name,
+            isPublic: formData.isPublic,
+          })
+        ).unwrap();
+      }
+
+      // Refresh datasets after successful upload
+      dispatch(fetchUserDatasets());
+      dispatch(fetchPublicDatasets());
+
+      // Close dialog and reset state
+      setDialogOpen(false);
+      setSelectedFile(null);
+      setFileType(null);
+      alert("Plik został przesłany pomyślnie!");
+    } catch (error: any) {
+      setUploadError(error || "Błąd podczas przesyłania pliku.");
+    }
+  };
+
+  const dispatch = useDispatch<AppDispatch>();
+  const token = useSelector((state: RootState) => state.auth.token);
+
+  // Datasets from Redux store
+  const { userDatasets, uploadStatus } = useSelector(
+    (state: RootState) => state.dataset
+  );
+
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Fetch public datasets from Redux
   useEffect(() => {
-    fetchDatasets();
-  }, [token]);
+    dispatch(fetchPublicDatasets());
+  }, [dispatch]);
+
+  // Fetch user datasets from Redux
+  useEffect(() => {
+    if (token) {
+      dispatch(fetchUserDatasets());
+    }
+  }, [dispatch, token]);
 
   const handleDelete = async (id: string, name: string) => {
-    if (!token) return;
-    if (!window.confirm(`Czy na pewno chcesz usunąć dataset "${name}"?`)) {
+    if (!token) {
+      alert("Musisz być zalogowany, aby usunąć dataset.");
       return;
     }
 
     try {
       setDeletingId(id);
       await datasetService.deleteDataset(id, token);
-      await fetchDatasets();
+      // Refresh both datasets from Redux
+      dispatch(fetchUserDatasets());
+      dispatch(fetchPublicDatasets());
       alert("Dataset został usunięty pomyślnie.");
     } catch (err: any) {
-      alert("Błąd podczas usuwania datasetu: " + (err.response?.data?.message || err.message));
+      alert(
+        "Błąd podczas usuwania datasetu: " +
+          (err.response?.data?.message || err.message)
+      );
     } finally {
       setDeletingId(null);
     }
   };
+
+  const handleViewDetails = (
+    datasetId: string,
+    datasetName: string,
+    datasetType: string
+  ) => {
+    // Only show details for CSV files
+    if (datasetType === "CSV") {
+      setSelectedDataset({
+        id: datasetId,
+        name: datasetName,
+        type: datasetType,
+      });
+      setDetailsDialogOpen(true);
+    } else {
+      alert("Podgląd szczegółów jest dostępny tylko dla plików CSV.");
+    }
+  };
+
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold">Zbiory danych (regresja)</h2>
-        <Link
-          to="/upload-regression"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          Dodaj nowy zbiór
-        </Link>
+    <div className="space-y-6">
+      {/* Header */}
+      <HeaderDatasets />
+
+      {/* Upload Area */}
+      <div
+        onDragEnter={handleDrag(setDragActive)}
+        onDragLeave={handleDrag(setDragActive)}
+        onDragOver={handleDrag(setDragActive)}
+        onDrop={handleDrop(setDragActive, handleFileUpload)}
+      >
+        <UploadArea
+          dragActive={dragActive}
+          uploading={uploadStatus === "loading"}
+          uploadProgress={uploadStatus === "loading" ? 50 : 0}
+          onBrowseClick={() => {
+            const input = document.getElementById(
+              "file-input"
+            ) as HTMLInputElement;
+            if (input) {
+              input.accept = ".csv,.zip";
+              input.click();
+            }
+          }}
+          onFileSelected={(files) => handleFileUpload(files)}
+        />
+
+        <input
+          id="file-input"
+          type="file"
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files && e.target.files.length > 0) {
+              handleFileUpload(e.target.files);
+            }
+          }}
+          accept=".csv,.zip"
+        />
+
+        <UploadDatasetDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          file={selectedFile}
+          fileType={fileType}
+          onUpload={handleDialogUpload}
+          isUploading={uploadStatus === "loading"}
+        />
       </div>
-      
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
-      
-      {loading ? (
-        <div className="text-center py-8">
-          <div className="text-gray-500">Ładowanie zbiorów danych...</div>
-        </div>
-      ) : (
-        <div>
-          {/* Public Datasets Section */}
-          <div className="mb-8">
-            <h3 className="text-xl font-semibold mb-4 text-gray-700">Publiczne zbiory danych</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {publicDatasets.map((dataset) => (
-                <div key={dataset.id} className="border rounded-lg p-4 hover:shadow-md bg-green-50">
-                  <h4 className="font-semibold text-lg mb-2">{dataset.name}</h4>
-                  <div className="text-sm text-gray-600 mb-2">
-                    <p>ID: {dataset.id}</p>
-                    <p>Autor: {dataset.username}</p>
-                    <p>Utworzono: {new Date(dataset.createdAt).toLocaleDateString()}</p>
-                  </div>
-                  <div className="text-xs text-green-600 font-medium">Publiczny</div>
-                </div>
-              ))}
-              
-              {publicDatasets.length === 0 && (
-                <div className="col-span-full text-center py-4 text-gray-500">
-                  Brak publicznych zbiorów danych.
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* User Datasets Section */}
-          <div className="mb-8">
-            <h3 className="text-xl font-semibold mb-4 text-gray-700">Moje zbiory danych</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {userDatasets.map((dataset) => (
-                <div key={dataset.id} className="border rounded-lg p-4 hover:shadow-md bg-blue-50 relative">
-                  <h4 className="font-semibold text-lg mb-2">{dataset.name}</h4>
-                  <div className="text-sm text-gray-600 mb-2">
-                    <p>ID: {dataset.id}</p>
-                    <p>Nazwa: {dataset.name}</p>
-                    <p>Utworzono: {new Date(dataset.createdAt).toLocaleDateString()}</p>
-                    <p>Publiczny: {dataset.IsPublic}</p>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <div className="text-xs text-blue-600 font-medium">Prywatny</div>
-                    <button
-                      onClick={() => handleDelete(dataset.id, dataset.name)}
-                      disabled={deletingId === dataset.id}
-                      className={`text-xs px-3 py-1 rounded ${
-                        deletingId === dataset.id
-                          ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                          : "bg-red-500 text-white hover:bg-red-600"
-                      }`}
-                    >
-                      {deletingId === dataset.id ? "Usuwanie..." : "Usuń"}
-                    </button>
-                  </div>
-                </div>
-              ))}
-              
-              {userDatasets.length === 0 && (
-                <div className="col-span-full text-center py-4 text-gray-500">
-                  Brak prywatnych zbiorów danych. Dodaj pierwszy zbiór danych.
-                </div>
-              )}
-            </div>
-          </div>
+      {/* Attached Datasets - My Datasets */}
+      <AttachedDatasets
+        datasets={useMemo(() => {
+          return userDatasets.map((dataset) => {
+            // Determine file type based on dataType (0 = CSV, assume ZIP for photos)
+            const fileType = dataset.dataType === 0 ? "CSV" : "ZIP";
 
-          {/* No datasets at all */}
-          {publicDatasets.length === 0 && userDatasets.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              Brak zbiorów danych. Dodaj pierwszy zbiór danych.
-            </div>
-          )}
-        </div>
+            // Format date
+            const uploadDate = new Date(dataset.createdAt).toLocaleDateString(
+              "pl-PL",
+              {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              }
+            );
+
+            return {
+              id: dataset.id,
+              name: dataset.name,
+              type: fileType,
+              status: "Ready",
+              uploadDate: uploadDate,
+              author: dataset.username,
+              likes: dataset.likes,
+              isPublic: dataset.isPublic,
+            };
+          });
+        }, [userDatasets])}
+        getFileIcon={getFileIcon}
+        getStatusColor={getStatusColor}
+        onDelete={handleDelete}
+        onViewDetails={handleViewDetails}
+      />
+
+      {/* Dataset Details Dialog */}
+      {selectedDataset && token && (
+        <DatasetDetailsDialog
+          open={detailsDialogOpen}
+          onOpenChange={setDetailsDialogOpen}
+          datasetId={selectedDataset.id}
+          datasetName={selectedDataset.name}
+          token={token}
+        />
       )}
+
+      <Tips />
     </div>
   );
 }

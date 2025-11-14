@@ -229,7 +229,7 @@ namespace backend_aspdotnet.Controllers
         {
             var user = await _postgers.Users.FindAsync(id);
             if (user == null)
-                return NotFound();
+                return BadRequest("User not found.");
 
             var blocked = await _postgers.Blocked.FirstOrDefaultAsync(b => b.UserId == id);
             if (blocked == null)
@@ -237,14 +237,13 @@ namespace backend_aspdotnet.Controllers
                 blocked = new Blocked
                 {
                     UserId = id,
-                    BlockedUntil = DateTime.UtcNow.AddDays(1)
+                    BlockedUntil = DateTime.Now.AddDays(1)
                 };
                 await _postgers.Blocked.AddAsync(blocked);
             }
             else
             {
-                blocked.BlockedUntil = DateTime.UtcNow.AddDays(1);
-                _postgers.Blocked.Update(blocked);
+                _postgers.Blocked.Remove(blocked);
             }
 
             await _postgers.SaveChangesAsync();

@@ -21,6 +21,18 @@ namespace backend_aspdotnet.Controllers
         {
             private readonly AppDbContext _context;
             private readonly ElementDBConterxt _mongo;
+            
+            private readonly List<string> allowedAlgorithms = new List<string>
+            {
+                "linear",
+                "polynomial",
+                "ridge",
+                "lasso",
+                "elasticnet",
+                "svr",
+                "decision-tree",
+                "random-forest"
+            };
 
             public ProjectController(AppDbContext context, ElementDBConterxt mongo)
             {
@@ -47,6 +59,7 @@ namespace backend_aspdotnet.Controllers
 
 
             [HttpGet("All")]
+            [AllowAnonymous]
             public async Task<IActionResult> GetAllPublic()
         {
             /*
@@ -63,39 +76,92 @@ namespace backend_aspdotnet.Controllers
             return Ok(projects);
         }
 
-            [HttpGet("New")]
-            public async Task<IActionResult> GetNew()
+     
+        [HttpGet("New")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetNew()
         {
-            /*
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdString))
-                return Unauthorized("User ID not found in token.");
+            Guid? userId = null;
 
-            if (!Guid.TryParse(userIdString, out Guid userId))
-                return Unauthorized("Invalid user ID format.");
-            */
-            var projects = await _context.Projects
-                    .Where(p => p.IsPublic == true)
-                    .OrderByDescending(p => p.LastModifiedAt)
-                    .ToListAsync();
+            // ✅ Detect logged-in user
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (Guid.TryParse(userIdString, out Guid parsedId))
+                {
+                    userId = parsedId;
+                }
+            }
+
+            // ✅ Base query for public projects
+            var query = _context.Projects
+                .Where(p => p.IsPublic)
+                .OrderByDescending(p => p.LastModifiedAt)
+                .Select(p => new
+                {
+                    p.Id,
+                    p.Name,
+                    p.LastModifiedAt,
+                    p.UserId,
+                    p.IsPublic,
+
+                    // ✅ Add IsLiked field only if user is logged in
+                    IsLiked = userId.HasValue
+                        ? _context.LikesProjects.Any(lp => lp.ProjectId == p.Id && lp.UserId == userId.Value)
+                        : false
+                });
+
+            // ✅ Exclude the logged-in user's own projects if desired
+            if (userId.HasValue)
+            {
+                query = query.Where(p => p.UserId != userId.Value);
+            }
+
+            var projects = await query.ToListAsync();
             return Ok(projects);
         }
 
             [HttpGet("Popular")]
+            [AllowAnonymous]
             public async Task<IActionResult> GetPopular()
-        {
-            /*
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdString))
-                return Unauthorized("User ID not found in token.");
+          {
+            Guid? userId = null;
 
-            if (!Guid.TryParse(userIdString, out Guid userId))
-                return Unauthorized("Invalid user ID format.");
-            */
-            var projects = await _context.Projects
-                    .Where(p => p.IsPublic == true)
-                    .OrderByDescending(p => p.Likes)
-                    .ToListAsync();
+            // ✅ Detect logged-in user
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (Guid.TryParse(userIdString, out Guid parsedId))
+                {
+                    userId = parsedId;
+                }
+            }
+
+            // ✅ Base query for public projects
+            var query = _context.Projects
+                .Where(p => p.IsPublic)
+                .OrderByDescending(p => p.Likes)
+                .Select(p => new
+                {
+                    p.Id,
+                    p.Name,
+                    p.LastModifiedAt,
+                    p.UserId,
+                    p.IsPublic,
+
+                    // ✅ Add IsLiked field only if user is logged in
+                    IsLiked = userId.HasValue
+                        ? _context.LikesProjects.Any(lp => lp.ProjectId == p.Id && lp.UserId == userId.Value)
+                        : false
+                });
+
+            // ✅ Exclude the logged-in user's own projects if desired
+            if (userId.HasValue)
+            {
+                query = query.Where(p => p.UserId != userId.Value);
+            }
+
+            var projects = await query.ToListAsync();
             return Ok(projects);
         }
 
@@ -132,8 +198,9 @@ namespace backend_aspdotnet.Controllers
             var detail = new ProjectDetails
             {
                 Id = projectId,
-                Algorithm = "linear",    // default algorithm
-                XColumn = string.Empty,  // no columns selected yet
+                Algorithm = "linear",
+                XColumn = string.Empty,
+                X2Column = string.Empty,     
                 YColumn = string.Empty,
                 Parameters = new Dictionary<string, string>()
             };
@@ -147,7 +214,7 @@ namespace backend_aspdotnet.Controllers
 
             [HttpPut("{id}/details")]
             [Authorize]
-        public async Task<IActionResult> UpdateDetails(Guid id, [FromBody] UpdateProjectDetailsDto dto)
+    public async Task<IActionResult> UpdateDetails(Guid id, [FromBody] UpdateProjectDetailsDto dto)
 {
     var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
     if (string.IsNullOrEmpty(userIdString))
@@ -157,16 +224,35 @@ namespace backend_aspdotnet.Controllers
         return Unauthorized("Invalid user ID format.");
 
     var projectMeta = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
-    if (projectMeta == null) return NotFound("Project not found.");
+    if (projectMeta == null) 
+        return NotFound("Project not found.");
 
     var filter = Builders<ProjectDetails>.Filter.Eq(p => p.Id, id);
+    
     var updateDefs = new List<UpdateDefinition<ProjectDetails>>();
-
+    
     if (dto.Algorithm != null)
+    {
+        if (!allowedAlgorithms.Contains(dto.Algorithm))
+                return BadRequest("Invalid algorithm specified.");
+
         updateDefs.Add(Builders<ProjectDetails>.Update.Set(p => p.Algorithm, dto.Algorithm));
+    }
 
     if (dto.XColumn != null)
+    {
         updateDefs.Add(Builders<ProjectDetails>.Update.Set(p => p.XColumn, dto.XColumn));
+    }
+        
+    if (dto.X2Column == null || dto.X2Column == "")
+    {
+        updateDefs.Add(Builders<ProjectDetails>.Update.Set(p => p.X2Column, string.Empty));
+    }
+    else
+    {
+         updateDefs.Add(Builders<ProjectDetails>.Update.Set(p => p.X2Column, dto.X2Column));        
+    }
+    
 
     if (dto.YColumn != null)
         updateDefs.Add(Builders<ProjectDetails>.Update.Set(p => p.YColumn, dto.YColumn));
@@ -268,10 +354,10 @@ namespace backend_aspdotnet.Controllers
             var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id);
             if (project == null) return NotFound("Project not found.");
 
-            var like = await _context.Likes.FirstOrDefaultAsync(p => p.ProjectId == id && p.UserId == userId);
+            var like = await _context.LikesProjects.FirstOrDefaultAsync(p => p.ProjectId == id && p.UserId == userId);
             if (like == null)
             {
-                _context.Likes.Add(new Like
+                _context.LikesProjects.Add(new LikeProjects
                 {
                     Id = Guid.NewGuid(),
                     ProjectId = id,
@@ -281,7 +367,7 @@ namespace backend_aspdotnet.Controllers
             }
             else
             {
-                _context.Likes.Remove(like);
+                _context.LikesProjects.Remove(like);
                 project.Likes--;
             }
             await _context.SaveChangesAsync();

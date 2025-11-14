@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../store/store";
 import { clearAuthStatus } from "../features/auth/authSlice";
 import { useNavigate } from "react-router-dom";
-import RegisterForm from "../components/RegisterForm";
+import RegisterForm from "../components/forms/RegisterForm";
 import { RegisterUserForm } from "../models/auth";
 import { registerUser } from "../features/auth/registerThunks";
+import { useToast } from "../components/toast/ToastProvider";
 
 function RegisterPage() {
   const [userToRegister, setUserToRegister] = useState<RegisterUserForm>({
@@ -15,6 +17,7 @@ function RegisterPage() {
     confirmPassword: "",
   });
   const [passwordError, setPasswordError] = useState("");
+  const { showSuccess } = useToast();
 
   // Hooks Implementation
   const navigate = useNavigate();
@@ -23,16 +26,20 @@ function RegisterPage() {
     (state: RootState) => state.auth
   );
 
+  const { t } = useTranslation();
+
   // Effect to inform about user action
   useEffect(() => {
     if (isLoggedIn && status === "succeeded") {
-      alert("Rejestracja zakończona sukcesem!");
-      navigate("/");
-      dispatch(clearAuthStatus());
+      showSuccess(t("auth.registrationSuccess"));
+      setTimeout(() => {
+        navigate("/");
+        dispatch(clearAuthStatus());
+      }, 2000); // Czeka 2 sekundy przed przekierowaniem, aby użytkownik zobaczył toast
     }
     //  TODO
     //  inne informacje np o tym, że użytkownik się wylogował
-  }, [isLoggedIn, status, navigate, dispatch]);
+  }, [isLoggedIn, status, showSuccess, t, navigate, dispatch]);
 
   // Effect to to clear old status
   useEffect(() => {
@@ -55,7 +62,7 @@ function RegisterPage() {
     e.preventDefault();
 
     if (userToRegister.password !== userToRegister.confirmPassword) {
-      setPasswordError("Hasła nie pasują do siebie!");
+      setPasswordError(t("auth.passwordMismatch"));
       return;
     } else {
       setPasswordError("");

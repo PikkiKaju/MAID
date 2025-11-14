@@ -27,6 +27,7 @@ export interface ThunkConfig {
 export interface ProjectDetail {
   id: string;
   xColumn: string;
+  x2Column?: string;
   yColumn: string;
   algorithm: string;
   parameters: Record<string, any>;
