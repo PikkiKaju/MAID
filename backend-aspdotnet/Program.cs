@@ -131,7 +131,9 @@ using (var scope = app.Services.CreateScope())
     var authService = scope.ServiceProvider.GetRequiredService<AuthService>();
     var mongoContext = scope.ServiceProvider.GetRequiredService<ElementDBConterxt>();
 
-    db.Database.EnsureCreated();
+    // Apply any pending EF Core migrations (do not use EnsureCreated; migrations own the schema)
+    db.Database.Migrate();
+
     var fd = scope.ServiceProvider.GetRequiredService<FillDb>();
     fd.FillDatabase();
     // if (!db.Users.Any())

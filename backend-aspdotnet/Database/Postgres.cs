@@ -24,6 +24,7 @@ namespace backend_aspdotnet.Database
         {
             base.OnModelCreating(modelBuilder);
             modelBuilder.Entity<Blocked>().ToTable("Blocked");
+            modelBuilder.Entity<Avatars>().ToTable("Avatars");
             // e.g., modelBuilder.Entity<Element>().ToTable("elements");
         }
     }
