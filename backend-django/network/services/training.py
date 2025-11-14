@@ -78,8 +78,13 @@ class TrainParams:
 
 
 def _ensure_artifacts_dir() -> str:
-    base = getattr(settings, "BASE_DIR", os.getcwd())
-    out_dir = os.path.join(str(base), "artifacts")
+    # Prefer explicit ARTIFACTS_DIR setting; fall back to BASE_DIR/artifacts
+    artifacts_dir = getattr(settings, "ARTIFACTS_DIR", None)
+    if artifacts_dir:
+        out_dir = str(artifacts_dir)
+    else:
+        base = getattr(settings, "BASE_DIR", os.getcwd())
+        out_dir = os.path.join(str(base), "artifacts")
     os.makedirs(out_dir, exist_ok=True)
     return out_dir
 
