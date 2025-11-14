@@ -4,6 +4,8 @@ import uuid
 import os
 import tempfile
 import zipfile
+from pathlib import Path
+from django.conf import settings
 from typing import Any, Dict, List
 
 try:
@@ -282,14 +284,37 @@ def _is_savedmodel_dir(path: str) -> bool:
 
 
 def _safe_extract_zip(zip_path: str, dest_dir: str) -> str:
+    # Protect against zip-slip and zip-bomb attacks:
+    # - ensure resolved paths are within dest_dir
+    # - limit number of files and total uncompressed bytes
+    max_files = int(getattr(settings, "MAX_ZIP_EXTRACTED_FILES", 1000))
+    max_bytes = int(getattr(settings, "MAX_ZIP_EXTRACTED_BYTES", 200 * 1024 * 1024))
+
+    dest_path = Path(dest_dir).resolve()
+    total_files = 0
+    total_uncompressed = 0
+
     with zipfile.ZipFile(zip_path, "r") as zf:
-        for member in zf.namelist():
-            # Guard against zip slip
-            member_path = os.path.normpath(os.path.join(dest_dir, member))
-            if not member_path.startswith(os.path.abspath(dest_dir)):
+        for member in zf.infolist():
+            total_files += 1
+            # Count uncompressed size (approx)
+            total_uncompressed += member.file_size or 0
+            if total_files > max_files:
+                raise GraphValidationError({"detail": "Zip contains too many files"})
+            if total_uncompressed > max_bytes:
+                raise GraphValidationError({"detail": "Zip uncompressed size exceeds allowed limit"})
+
+            member_name = member.filename
+            if os.path.isabs(member_name):
                 raise GraphValidationError({"detail": "Unsafe zip contents"})
-        zf.extractall(dest_dir)
-    return dest_dir
+            target_path = (dest_path / member_name).resolve()
+            if not str(target_path).startswith(str(dest_path)):
+                raise GraphValidationError({"detail": "Unsafe zip contents"})
+
+        # If all checks passed, extract safely
+        zf.extractall(path=str(dest_path))
+
+    return str(dest_path)
 
 
 def _keras_load_model(path: str):
