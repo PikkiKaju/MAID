@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
+from django.conf import settings
 from django.http import FileResponse, Http404
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -12,17 +14,31 @@ from network.serializers import TrainingJobSerializer
 
 
 class TrainingJobViewSet(viewsets.ReadOnlyModelViewSet):
-    permission_classes = [AllowAny]
+    # Require authentication for job operations (download artifact, cancel, predict)
+    permission_classes = [IsAuthenticated]
     serializer_class = TrainingJobSerializer
     queryset = TrainingJob.objects.all()
 
     @action(detail=True, methods=["get"], url_path="artifact")
     def download_artifact(self, request, pk=None):
         job = self.get_object()
-        if not job.artifact_path or not os.path.exists(job.artifact_path):
+        # Basic validation: artifact must exist and must live inside configured ARTIFACTS_DIR
+        if not job.artifact_path:
             raise Http404("Artifact not available")
-        # Stream the .keras file
-        response = FileResponse(open(job.artifact_path, "rb"), content_type="application/octet-stream")
+
+        try:
+            artifact_path = Path(job.artifact_path)
+            artifact_path_resolved = artifact_path.resolve(strict=True)
+        except Exception:
+            raise Http404("Artifact not available")
+
+        artifacts_dir = Path(getattr(settings, "ARTIFACTS_DIR", settings.BASE_DIR / "artifacts")).resolve()
+        # Ensure artifact is inside the artifacts directory to avoid path traversal or arbitrary file exposure
+        if not str(artifact_path_resolved).startswith(str(artifacts_dir)):
+            raise Http404("Artifact not available")
+
+        # Stream the file safely
+        response = FileResponse(artifact_path_resolved.open("rb"), content_type="application/octet-stream")
         response["Content-Disposition"] = f'attachment; filename="{job.id}.keras"'
         return response
 
