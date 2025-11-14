@@ -270,12 +270,21 @@ export default function ProjectEditPage() {
                 setDetail({ ...detail, xColumn: e.target.value });
                 setHasUnsavedChanges(true);
               }}
-              className="border border-border px-2 py-1 w-full rounded bg-input-background text-foreground [&>option]:bg-card [&>option]:text-foreground"
+              className="border border-border px-2 py-1 w-full rounded bg-input-background dark:bg-input/30 text-foreground [&>option]:bg-card [&>option]:text-foreground"
               disabled={loadingColumns}
             >
-              <option value="">Wybierz kolumnę</option>
+              <option
+                value=""
+                className="bg-input-background dark:bg-input/30 text-foreground"
+              >
+                Wybierz kolumnę
+              </option>
               {datasetColumns.map((column) => (
-                <option key={column} value={column}>
+                <option
+                  key={column}
+                  value={column}
+                  className="bg-red-500 dark:bg-input/30 text-foreground"
+                >
                   {column}
                 </option>
               ))}
@@ -296,7 +305,7 @@ export default function ProjectEditPage() {
                   : "Brak dostępnych kolumn"
               }
               disabled={loadingColumns}
-              className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
+              className="border border-border px-2 py-1 w-full rounded bg-input-background dark:bg-input/30 text-card-foreground"
             />
           )}
         </div>
@@ -312,7 +321,7 @@ export default function ProjectEditPage() {
                 setDetail({ ...detail, x2Column: e.target.value });
                 setHasUnsavedChanges(true);
               }}
-              className="border border-border px-2 py-1 w-full rounded bg-input-background text-foreground [&>option]:bg-card [&>option]:text-foreground"
+              className="border border-border px-2 py-1 w-full rounded bg-input-background dark:bg-input/30 text-foreground [&>option]:bg-card [&>option]:text-foreground"
               disabled={loadingColumns}
             >
               <option value="">Brak</option>
@@ -338,7 +347,7 @@ export default function ProjectEditPage() {
                   : "Brak dostępnych kolumn"
               }
               disabled={loadingColumns}
-              className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
+              className="border border-border px-2 py-1 w-full rounded bg-input-background dark:bg-input/30 text-card-foreground"
             />
           )}
         </div>
@@ -354,7 +363,7 @@ export default function ProjectEditPage() {
                 setDetail({ ...detail, yColumn: e.target.value });
                 setHasUnsavedChanges(true);
               }}
-              className="border border-border px-2 py-1 w-full rounded bg-input-background text-foreground [&>option]:bg-card [&>option]:text-foreground"
+              className="border border-border px-2 py-1 w-full rounded bg-input-background dark:bg-input/30 text-foreground [&>option]:bg-card [&>option]:text-foreground"
               disabled={loadingColumns}
             >
               <option value="">Wybierz kolumnę</option>
@@ -380,7 +389,7 @@ export default function ProjectEditPage() {
                   : "Brak dostępnych kolumn"
               }
               disabled={loadingColumns}
-              className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
+              className="border border-border px-2 py-1 w-full rounded bg-input-background dark:bg-input/30 text-card-foreground"
             />
           )}
         </div>
@@ -408,7 +417,7 @@ export default function ProjectEditPage() {
           <select
             value={meta?.datasetId || ""}
             onChange={handleDatasetChange}
-            className="border border-border px-2 py-1 w-full rounded bg-input-background text-foreground [&>option]:bg-card [&>option]:text-foreground"
+            className="border border-border px-2 py-1 w-full rounded bg-input-background dark:bg-input/30 text-foreground [&>option]:bg-card [&>option]:text-foreground"
           >
             <option value="">Wybierz dataset</option>
             {datasets
@@ -433,7 +442,7 @@ export default function ProjectEditPage() {
               setDetail({ ...detail, algorithm: e.target.value });
               setHasUnsavedChanges(true);
             }}
-            className="border border-border px-2 py-1 w-full rounded bg-input-background text-foreground [&>option]:bg-card [&>option]:text-foreground"
+            className="border border-border px-2 py-1 w-full rounded bg-input-background dark:bg-input/30 text-foreground [&>option]:bg-card [&>option]:text-foreground"
           >
             <option value="linear">Regresja liniowa</option>
             <option value="ridge">Regresja grzbietowa</option>
@@ -467,7 +476,7 @@ export default function ProjectEditPage() {
                       });
                       setHasUnsavedChanges(true);
                     }}
-                    className="border border-border px-2 py-1 w-full rounded bg-input-background text-foreground [&>option]:bg-card [&>option]:text-foreground"
+                    className="border border-border px-2 py-1 w-full rounded bg-input-background dark:bg-input/30 text-foreground [&>option]:bg-card [&>option]:text-foreground"
                   >
                     <option value="">Wybierz</option>
                     {p.options?.map((opt) => (
@@ -491,7 +500,7 @@ export default function ProjectEditPage() {
                       });
                       setHasUnsavedChanges(true);
                     }}
-                    className="border border-border px-2 py-1 w-full rounded bg-input-background text-card-foreground"
+                    className="border border-border px-2 py-1 w-full rounded bg-input-background dark:bg-input/30 text-card-foreground"
                   />
                 )}
               </div>
