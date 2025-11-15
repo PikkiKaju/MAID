@@ -44,6 +44,7 @@ class LayerNodeSerializer(serializers.ModelSerializer):
         model = LayerNode
         fields = (
             "id",
+            "stable_id",
             "type",
             "label",
             "params",
@@ -52,7 +53,7 @@ class LayerNodeSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("created_at", "updated_at")
+        read_only_fields = ("stable_id", "created_at", "updated_at")
         extra_kwargs = {
             'id': {'validators': []},  # Disable automatic uniqueness validation
         }
@@ -66,13 +67,14 @@ class EdgeSerializer(serializers.ModelSerializer):
         model = Edge
         fields = (
             "id",
+            "stable_id",
             "source",
             "target",
             "meta",
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("created_at", "updated_at")
+        read_only_fields = ("stable_id", "created_at", "updated_at")
         extra_kwargs = {
             'id': {'validators': []},  # Disable automatic uniqueness validation
         }
@@ -235,12 +237,14 @@ class NetworkGraphSerializer(serializers.ModelSerializer):
                 existing_node.params = payload_params
                 existing_node.position = payload_position
                 existing_node.notes = payload_notes
+                existing_node.client_id = raw_id
                 existing_node.save()
             else:
                 # Create new node for this graph with namespaced PK
                 LayerNode.objects.create(
                     id=db_id,
                     graph=graph,
+                    client_id=raw_id,
                     type=node.get("type"),
                     label=node.get("label", ""),
                     params=payload_params,
@@ -284,12 +288,14 @@ class NetworkGraphSerializer(serializers.ModelSerializer):
                 existing_edge.source_id = db_source
                 existing_edge.target_id = db_target
                 existing_edge.meta = edge.get("meta", {})
+                existing_edge.client_id = raw_edge_id
                 existing_edge.save()
             else:
                 # Create new edge for this graph
                 Edge.objects.create(
                     id=db_edge_id,
                     graph=graph,
+                    client_id=raw_edge_id,
                     source_id=db_source,
                     target_id=db_target,
                     meta=edge.get("meta", {}),
@@ -317,11 +323,12 @@ class NetworkGraphSerializer(serializers.ModelSerializer):
 
         # Normalize edges using DB IDs (avoid stringified related object like "Dense (id)")
         normalized_edges: list[dict[str, Any]] = []
-        for e in instance.edges.order_by("created_at").values("id", "source_id", "target_id", "meta"):
+        for e in instance.edges.order_by("created_at").values("id", "source_id", "target_id", "meta", "stable_id"):
             normalized_edges.append({
                 "id": _strip(e.get("id")),
                 "source": _strip(e.get("source_id")),
                 "target": _strip(e.get("target_id")),
+                "stable_id": str(e.get("stable_id")) if e.get("stable_id") else None,
                 "meta": e.get("meta") or {},
             })
         data["edges"] = normalized_edges
@@ -399,6 +406,7 @@ class ModelImportJobSerializer(serializers.ModelSerializer):
             "graph",
             "error",
             "options",
+            "upload_size_bytes",
             "created_at",
             "updated_at",
             "started_at",
@@ -412,6 +420,7 @@ class ModelImportJobSerializer(serializers.ModelSerializer):
             "graph",
             "error",
             "options",
+            "upload_size_bytes",
             "created_at",
             "updated_at",
             "started_at",

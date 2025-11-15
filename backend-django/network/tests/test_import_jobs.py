@@ -74,7 +74,7 @@ class ImportJobsTests(APITestCase):
         import network.services.import_jobs as import_jobs
         _orig_delay = getattr(import_jobs.process_model_import_job, "delay", None)
         import_jobs.process_model_import_job.delay = lambda *a, **k: None
-        with self.settings(IMPORT_JOB_MAX_PENDING_PER_USER=1):
+        with self.settings(IMPORT_JOB_MAX_PENDING_PER_USER=1, IMPORT_JOB_PENDING_STORAGE_LIMIT_MB=0):
             f1 = SimpleUploadedFile("a.keras", b"{}", content_type="application/json")
             resp1 = self.client.post(url, {"file": f1}, format="multipart")
             self.assertEqual(resp1.status_code, 202)
@@ -82,5 +82,26 @@ class ImportJobsTests(APITestCase):
             f2 = SimpleUploadedFile("b.keras", b"{}", content_type="application/json")
             resp2 = self.client.post(url, {"file": f2}, format="multipart")
             self.assertEqual(resp2.status_code, 429)
+        if _orig_delay is not None:
+            import_jobs.process_model_import_job.delay = _orig_delay
+
+    def test_storage_quota(self):
+        import network.services.import_jobs as import_jobs
+        _orig_delay = getattr(import_jobs.process_model_import_job, "delay", None)
+        import_jobs.process_model_import_job.delay = lambda *a, **k: None
+
+        url = reverse("model-import-job-list")
+        payload_a = b"a" * (600 * 1024)
+        payload_b = b"b" * (600 * 1024)
+
+        with self.settings(IMPORT_JOB_PENDING_STORAGE_LIMIT_MB=1):
+            f1 = SimpleUploadedFile("a.keras", payload_a, content_type="application/json")
+            resp1 = self.client.post(url, {"file": f1}, format="multipart")
+            self.assertEqual(resp1.status_code, 202)
+
+            f2 = SimpleUploadedFile("b.keras", payload_b, content_type="application/json")
+            resp2 = self.client.post(url, {"file": f2}, format="multipart")
+            self.assertEqual(resp2.status_code, 429)
+
         if _orig_delay is not None:
             import_jobs.process_model_import_job.delay = _orig_delay

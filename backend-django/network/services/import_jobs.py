@@ -22,6 +22,7 @@ def enqueue_import_job(job_id: Any) -> None:
 def _clear_uploaded_artifact(job: ModelImportJob) -> None:
     job.drop_uploaded_file()
     job.stored_path = ""
+    job.upload_size_bytes = 0
 
 
 @shared_task(bind=True, name="network.process_model_import_job")

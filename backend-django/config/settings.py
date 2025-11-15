@@ -164,6 +164,7 @@ IMPORT_JOB_ALLOWED_EXTENSIONS = [
     for e in os.getenv("IMPORT_JOB_ALLOWED_EXTENSIONS", ".keras,.h5,.zip").split(",")
     if e.strip()
 ]
+IMPORT_JOB_PENDING_STORAGE_LIMIT_MB = int(os.getenv("IMPORT_JOB_PENDING_STORAGE_LIMIT_MB", 0))
 
 # Celery / Redis configuration
 DEFAULT_REDIS_URL = "redis://redis:6379/0"

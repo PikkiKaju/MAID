@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Any, Dict
 
 from django.conf import settings
+from django.db.models import Sum
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
@@ -62,6 +64,27 @@ class ModelImportJobViewSet(
         if suffix not in allowed:
             return Response({"detail": f"Unsupported file extension '{suffix}'"}, status=status.HTTP_400_BAD_REQUEST)
 
+        storage_limit_mb = int(getattr(settings, "IMPORT_JOB_PENDING_STORAGE_LIMIT_MB", 0))
+        if storage_limit_mb > 0:
+            limit_bytes = storage_limit_mb * 1024 * 1024
+            active_statuses = [ImportJobStatus.QUEUED, ImportJobStatus.PROCESSING]
+            pending_bytes = (
+                ModelImportJob.objects.filter(owner=request.user, status__in=active_statuses)
+                .aggregate(total=Coalesce(Sum("upload_size_bytes"), 0))
+                .get("total", 0)
+                or 0
+            )
+            if pending_bytes + upload_size > limit_bytes:
+                return Response(
+                    {
+                        "detail": (
+                            "Pending import storage quota exceeded. "
+                            f"Limit: {storage_limit_mb} MB, currently queued: {pending_bytes // (1024 * 1024)} MB."
+                        )
+                    },
+                    status=status.HTTP_429_TOO_MANY_REQUESTS,
+                )
+
         imports_dir = Path(getattr(settings, "ARTIFACTS_DIR", Path.cwd() / "artifacts")) / "imports"
         imports_dir.mkdir(parents=True, exist_ok=True)
         dest_path = imports_dir / f"upload-{uuid.uuid4().hex}{suffix}"
@@ -85,6 +108,7 @@ class ModelImportJobViewSet(
             owner=request.user,
             source_name=getattr(uploaded, "name", "uploaded.keras"),
             stored_path=str(dest_path),
+            upload_size_bytes=upload_size,
             options=options,
         )
 

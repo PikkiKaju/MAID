@@ -64,7 +64,7 @@ $env:DJANGO_SETTINGS_MODULE = "config.settings"
 # In another terminal (with venv active), start Celery worker (Windows requires --pool=solo):
 .\.venv\Scripts\celery.exe -A config worker -l info --pool=solo
 
-# (Optional) start periodic scheduler:
+# (noe yet implemented) (Optional) start periodic scheduler:
 .\.venv\Scripts\celery.exe -A config beat -l info
 ```
 
@@ -80,3 +80,4 @@ Notes & troubleshooting:
 - Authenticated users can POST `/api/network/import-jobs/` with `file`, `graph_name`, and optional `auto_create_graph` to enqueue Keras artifact imports.
 - Use `GET /api/network/import-jobs/` to monitor status (`queued`, `processing`, `succeeded`, `failed`).
 - Once the job succeeds, either call `POST /api/network/import-jobs/<id>/create-graph/` to persist the generated graph or copy the returned `graph_payload` into the existing graph APIs.
+- The server enforces per-user pending job counts (`IMPORT_JOB_MAX_PENDING_PER_USER`) and storage quotas (`IMPORT_JOB_PENDING_STORAGE_LIMIT_MB`). Increase the env vars if you need to queue larger uploads locally.

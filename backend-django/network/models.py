@@ -45,6 +45,8 @@ class NetworkGraph(TimeStampedModel):
 # Model used for storing canvas nodes, which represent Network's layers
 class LayerNode(TimeStampedModel):
     id = models.CharField(primary_key=True, max_length=64)
+    stable_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    client_id = models.CharField(max_length=64, blank=True, default="")
     graph = models.ForeignKey(
         NetworkGraph,
         on_delete=models.CASCADE,
@@ -58,6 +60,9 @@ class LayerNode(TimeStampedModel):
 
     class Meta(TimeStampedModel.Meta):
         ordering = ("graph", "id")
+        indexes = [
+            models.Index(fields=("graph", "client_id"), name="layernode_graph_client_idx"),
+        ]
 
     def __str__(self) -> str:  # pragma: no cover - human readable helper
         return f"{self.label or self.type} ({self.id})"
@@ -65,6 +70,8 @@ class LayerNode(TimeStampedModel):
 # Model used for storing edges which connect two distinct Layer Nodes
 class Edge(TimeStampedModel):
     id = models.CharField(primary_key=True, max_length=64)
+    stable_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    client_id = models.CharField(max_length=64, blank=True, default="")
     graph = models.ForeignKey(
         NetworkGraph,
         on_delete=models.CASCADE,
@@ -84,6 +91,9 @@ class Edge(TimeStampedModel):
 
     class Meta(TimeStampedModel.Meta):
         ordering = ("graph", "id")
+        indexes = [
+            models.Index(fields=("graph", "client_id"), name="edge_graph_client_idx"),
+        ]
 
     def __str__(self) -> str:  # pragma: no cover - human readable helper
         return f"{self.source_id} -> {self.target_id}"
@@ -190,6 +200,7 @@ class ModelImportJob(TimeStampedModel):
     )
     source_name = models.CharField(max_length=255)
     stored_path = models.CharField(max_length=512, blank=True, default="")
+    upload_size_bytes = models.BigIntegerField(default=0)
     graph_payload = models.JSONField(blank=True, default=dict)
     options = models.JSONField(blank=True, default=dict)
     graph = models.ForeignKey(
