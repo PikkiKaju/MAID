@@ -30,3 +30,10 @@ This Django backend provides a REST API for building and compiling neural-networ
 
 - The network compiler requires Keras/TensorFlow at runtime. Without it, the compile endpoint will error.
 - If you are using Windows, prefer the CPU build of TensorFlow unless you have a compatible GPU setup.
+- Celery is used for long-running work (training jobs and model import jobs). Start a worker with `celery -A config worker -l info --pool=solo` and a Redis broker to process tasks outside of Docker.
+
+## Import job workflow
+
+- Authenticated users can POST `/api/network/import-jobs/` with `file`, `graph_name`, and optional `auto_create_graph` to enqueue Keras artifact imports.
+- Use `GET /api/network/import-jobs/` to monitor status (`queued`, `processing`, `succeeded`, `failed`).
+- Once the job succeeds, either call `POST /api/network/import-jobs/<id>/create-graph/` to persist the generated graph or copy the returned `graph_payload` into the existing graph APIs.

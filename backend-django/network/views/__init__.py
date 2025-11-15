@@ -7,6 +7,7 @@ from .LossManifestViewSet import LossManifestViewSet
 from .MetricManifestViewSet import MetricManifestViewSet
 from .ActivationManifestViewSet import ActivationManifestViewSet
 from .TrainingJobViewSet import TrainingJobViewSet
+from .ModelImportJobViewSet import ModelImportJobViewSet
 
 __all__ = [
     "NetworkGraphViewSet",
@@ -18,4 +19,5 @@ __all__ = [
     "MetricManifestViewSet",
     "ActivationManifestViewSet",
     "TrainingJobViewSet",
+    "ModelImportJobViewSet",
 ]

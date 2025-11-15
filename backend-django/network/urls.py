@@ -10,6 +10,7 @@ from .views import (
     LossManifestViewSet,
     MetricManifestViewSet,
     ActivationManifestViewSet,
+    ModelImportJobViewSet,
 )
 
 router = DefaultRouter()
@@ -22,5 +23,6 @@ router.register(r"optimizers", OptimizerManifestViewSet, basename="optimizer-man
 router.register(r"losses", LossManifestViewSet, basename="loss-manifest")
 router.register(r"metrics", MetricManifestViewSet, basename="metric-manifest")
 router.register(r"activations", ActivationManifestViewSet, basename="activation-manifest")
+router.register(r"import-jobs", ModelImportJobViewSet, basename="model-import-job")
 
 urlpatterns = router.urls
