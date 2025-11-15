@@ -33,9 +33,52 @@ services:
       - ./backend-django:/app
     environment:
       - DEBUG=1
-      - DJANGO_ALLOWED_HOSTS=*
+      - ALLOWED_HOSTS=*
       - DJANGO_SETTINGS_MODULE=config.settings
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - CELERY_TASK_ALWAYS_EAGER=0
     command: sh -c "python manage.py migrate && python manage.py loadmanifests && python manage.py runserver 0.0.0.0:8000"
+
+  celery-worker:
+    build:
+      context: ./backend-django
+      dockerfile: Dockerfile
+    mem_limit: 512m
+    container_name: celery-worker
+    networks:
+      - maid-net
+    volumes:
+      - ./backend-django:/app
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - CELERY_TASK_ALWAYS_EAGER=0
+    depends_on:
+      - django
+      - redis
+    command: sh -c "celery -A config worker -l info --pool=solo"
+
+  celery-beat:
+    build:
+      context: ./backend-django
+      dockerfile: Dockerfile
+    mem_limit: 256m
+    container_name: celery-beat
+    networks:
+      - maid-net
+    volumes:
+      - ./backend-django:/app
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - CELERY_TASK_ALWAYS_EAGER=0
+    depends_on:
+      - django
+      - redis
+    command: sh -c "celery -A config beat -l info"
 
   frontend-user:
     build:
@@ -82,7 +125,7 @@ services:
       - maid-net
 
     healthcheck:
-      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 5s
       timeout: 5s
       retries: 7
@@ -94,7 +137,7 @@ services:
     restart: always
 
     healthcheck:
-      test: [ "CMD", "pg_isready", "-U", "postgres" ]
+      test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 5s
       timeout: 5s
       retries: 7
@@ -110,10 +153,22 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    mem_limit: 128m
+    ports:
+      - "6379:6379"
+    networks:
+      - maid-net
+    volumes:
+      - redis-data:/data
+
 volumes:
   mongo-data:
   postgres-data:
-
+  redis-data:
 
 networks:
   maid-net:

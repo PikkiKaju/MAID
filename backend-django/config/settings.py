@@ -154,3 +154,15 @@ ARTIFACTS_DIR = Path(os.getenv("ARTIFACTS_DIR")) if os.getenv("ARTIFACTS_DIR") e
 # Upload limits and allowed extensions (comma-separated)
 MAX_UPLOAD_SIZE = int(os.getenv("MAX_UPLOAD_SIZE", 10 * 1024 * 1024))  # bytes, default 10 MB
 ALLOWED_UPLOAD_EXTENSIONS = [e.strip() for e in os.getenv("ALLOWED_UPLOAD_EXTENSIONS", ".csv,.keras,.h5,.zip").split(",") if e.strip()]
+
+# Celery / Redis configuration
+DEFAULT_REDIS_URL = "redis://redis:6379/0"
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", DEFAULT_REDIS_URL)
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", CELERY_BROKER_URL)
+CELERY_TASK_ALWAYS_EAGER = str(os.getenv("CELERY_TASK_ALWAYS_EAGER", "False")).lower() in {"1", "true", "yes", "on"}
+CELERY_TASK_EAGER_PROPAGATES = True
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_TRACK_STARTED = True
