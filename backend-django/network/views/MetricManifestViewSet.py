@@ -10,13 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-from network.manifests.metrics import (
-    get_manifest,
-    regenerate_manifest,
-    refresh_manifest,
-    get_metric_entry,
-    list_metrics,
-)
+from network.manifests import manager as manifest_manager
 
 
 class MetricManifestViewSet(viewsets.ViewSet):
@@ -34,7 +28,7 @@ class MetricManifestViewSet(viewsets.ViewSet):
     def regenerate_metric_manifest(self, request):
         """Regenerate the metric manifest from scratch."""
         try:
-            if regenerate_manifest():
+            if manifest_manager.regenerate_manifest("metrics"):
                 return JsonResponse({"ok": True, "message": "manifest regenerated"})
             else:
                 return JsonResponse({"ok": False, "error": "failed to regenerate manifest"}, status=500)
@@ -46,7 +40,7 @@ class MetricManifestViewSet(viewsets.ViewSet):
     def refresh_metric_manifest(self, request):
         """Refresh the metric manifest from disk."""
         try:
-            if refresh_manifest():
+            if manifest_manager.refresh_manifest("metrics"):
                 return JsonResponse({"ok": True, "message": "manifest refreshed"})
             else:
                 return JsonResponse({"ok": False, "error": "failed to refresh manifest"}, status=500)
@@ -56,7 +50,7 @@ class MetricManifestViewSet(viewsets.ViewSet):
 
     def list(self, request):
         """List all available metrics with metadata."""
-        mf = get_manifest()
+        mf = manifest_manager.get_manifest("metrics")
         items = []
         for metric in mf.get("metrics", []):
             items.append(
@@ -77,7 +71,7 @@ class MetricManifestViewSet(viewsets.ViewSet):
     def retrieve(self, request, pk=None):
         """Get full manifest entry for a specific metric by name (e.g. 'Accuracy')."""
         try:
-            entry = get_metric_entry(pk)
+            entry = manifest_manager.get_entry("metrics", pk)
         except KeyError:
             return Response({"detail": f"Metric '{pk}' not found"}, status=status.HTTP_404_NOT_FOUND)
         return Response(entry)
@@ -86,7 +80,7 @@ class MetricManifestViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"], url_path="specs")
     def specs(self, request):
         """Get top-level manifest specs like versions."""
-        mf = get_manifest()
+        mf = manifest_manager.get_manifest("metrics")
         return Response({
             "tensorflow_version": mf.get("tensorflow_version"),
         })

@@ -10,13 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-from network.manifests.optimizers import (
-    get_manifest,
-    regenerate_manifest,
-    refresh_manifest,
-    get_optimizer_entry,
-    list_optimizers,
-)
+from network.manifests import manager as manifest_manager
 
 
 class OptimizerManifestViewSet(viewsets.ViewSet):
@@ -34,7 +28,7 @@ class OptimizerManifestViewSet(viewsets.ViewSet):
     def regenerate_optimizer_manifest(self, request):
         """Regenerate the optimizer manifest from scratch."""
         try:
-            if regenerate_manifest():
+            if manifest_manager.regenerate_manifest("optimizers"):
                 return JsonResponse({"ok": True, "message": "manifest regenerated"})
             else:
                 return JsonResponse({"ok": False, "error": "failed to regenerate manifest"}, status=500)
@@ -46,7 +40,7 @@ class OptimizerManifestViewSet(viewsets.ViewSet):
     def refresh_optimizer_manifest(self, request):
         """Refresh the optimizer manifest from disk."""
         try:
-            if refresh_manifest():
+            if manifest_manager.refresh_manifest("optimizers"):
                 return JsonResponse({"ok": True, "message": "manifest refreshed"})
             else:
                 return JsonResponse({"ok": False, "error": "failed to refresh manifest"}, status=500)
@@ -56,7 +50,7 @@ class OptimizerManifestViewSet(viewsets.ViewSet):
 
     def list(self, request):
         """List all available optimizers with metadata."""
-        mf = get_manifest()
+        mf = manifest_manager.get_manifest("optimizers")
         items = []
         for opt in mf.get("optimizers", []):
             items.append(
@@ -76,7 +70,7 @@ class OptimizerManifestViewSet(viewsets.ViewSet):
     def retrieve(self, request, pk=None):
         """Get full manifest entry for a specific optimizer by name (e.g. 'Adam')."""
         try:
-            entry = get_optimizer_entry(pk)
+            entry = manifest_manager.get_entry("optimizers", pk)
         except KeyError:
             return Response({"detail": f"Optimizer '{pk}' not found"}, status=status.HTTP_404_NOT_FOUND)
         return Response(entry)

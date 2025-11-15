@@ -10,13 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-from network.manifests.activations import (
-    get_manifest,
-    regenerate_manifest,
-    refresh_manifest,
-    get_activation_entry,
-    list_activations,
-)
+from network.manifests import manager as manifest_manager
 
 
 class ActivationManifestViewSet(viewsets.ViewSet):
@@ -34,7 +28,7 @@ class ActivationManifestViewSet(viewsets.ViewSet):
     def regenerate_activation_manifest(self, request):
         """Regenerate the activation manifest from scratch."""
         try:
-            if regenerate_manifest():
+            if manifest_manager.regenerate_manifest("activations"):
                 return JsonResponse({"ok": True, "message": "manifest regenerated"})
             else:
                 return JsonResponse({"ok": False, "error": "failed to regenerate manifest"}, status=500)
@@ -46,7 +40,7 @@ class ActivationManifestViewSet(viewsets.ViewSet):
     def refresh_activation_manifest(self, request):
         """Refresh the activation manifest from disk."""
         try:
-            if refresh_manifest():
+            if manifest_manager.refresh_manifest("activations"):
                 return JsonResponse({"ok": True, "message": "manifest refreshed"})
             else:
                 return JsonResponse({"ok": False, "error": "failed to refresh manifest"}, status=500)
@@ -56,7 +50,7 @@ class ActivationManifestViewSet(viewsets.ViewSet):
 
     def list(self, request):
         """List all available activations with metadata."""
-        mf = get_manifest()
+        mf = manifest_manager.get_manifest("activations")
         items = []
         for activation in mf.get("activations", []):
             items.append(
@@ -77,7 +71,7 @@ class ActivationManifestViewSet(viewsets.ViewSet):
     def retrieve(self, request, pk=None):
         """Get full manifest entry for a specific activation by name (e.g. 'relu')."""
         try:
-            entry = get_activation_entry(pk)
+            entry = manifest_manager.get_entry("activations", pk)
         except KeyError:
             return Response({"detail": f"Activation '{pk}' not found"}, status=status.HTTP_404_NOT_FOUND)
         return Response(entry)
@@ -86,7 +80,7 @@ class ActivationManifestViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"], url_path="specs")
     def specs(self, request):
         """Get top-level manifest specs like versions."""
-        mf = get_manifest()
+        mf = manifest_manager.get_manifest("activations")
         return Response({
             "tensorflow_version": mf.get("tensorflow_version"),
         })

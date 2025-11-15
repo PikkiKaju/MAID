@@ -10,13 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-from network.manifests.losses import (
-    get_manifest,
-    regenerate_manifest,
-    refresh_manifest,
-    get_loss_entry,
-    list_losses,
-)
+from network.manifests import manager as manifest_manager
 
 
 class LossManifestViewSet(viewsets.ViewSet):
@@ -34,7 +28,7 @@ class LossManifestViewSet(viewsets.ViewSet):
     def regenerate_loss_manifest(self, request):
         """Regenerate the loss manifest from scratch."""
         try:
-            if regenerate_manifest():
+            if manifest_manager.regenerate_manifest("losses"):
                 return JsonResponse({"ok": True, "message": "manifest regenerated"})
             else:
                 return JsonResponse({"ok": False, "error": "failed to regenerate manifest"}, status=500)
@@ -46,7 +40,7 @@ class LossManifestViewSet(viewsets.ViewSet):
     def refresh_loss_manifest(self, request):
         """Refresh the loss manifest from disk."""
         try:
-            if refresh_manifest():
+            if manifest_manager.refresh_manifest("losses"):
                 return JsonResponse({"ok": True, "message": "manifest refreshed"})
             else:
                 return JsonResponse({"ok": False, "error": "failed to refresh manifest"}, status=500)
@@ -56,7 +50,7 @@ class LossManifestViewSet(viewsets.ViewSet):
 
     def list(self, request):
         """List all available losses with metadata."""
-        mf = get_manifest()
+        mf = manifest_manager.get_manifest("losses")
         items = []
         for loss in mf.get("losses", []):
             items.append(
@@ -78,7 +72,7 @@ class LossManifestViewSet(viewsets.ViewSet):
     def retrieve(self, request, pk=None):
         """Get full manifest entry for a specific loss by name (e.g. 'BinaryCrossentropy')."""
         try:
-            entry = get_loss_entry(pk)
+            entry = manifest_manager.get_entry("losses", pk)
         except KeyError:
             return Response({"detail": f"Loss '{pk}' not found"}, status=status.HTTP_404_NOT_FOUND)
         return Response(entry)
@@ -87,7 +81,7 @@ class LossManifestViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"], url_path="specs")
     def specs(self, request):
         """Get top-level manifest specs like versions."""
-        mf = get_manifest()
+        mf = manifest_manager.get_manifest("losses")
         return Response({
             "tensorflow_version": mf.get("tensorflow_version"),
         })

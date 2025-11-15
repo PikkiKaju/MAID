@@ -10,13 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-from network.manifests.layers import (
-    get_manifest,
-    regenerate_manifest,
-    refresh_manifest,
-    get_layer_entry,
-    list_layers,
-)
+from network.manifests import manager as manifest_manager
 
 
 class LayerManifestViewSet(viewsets.ViewSet):
@@ -34,7 +28,7 @@ class LayerManifestViewSet(viewsets.ViewSet):
     def regenerate_layer_manifest(self, request):
         """Regenerate the layer manifest from scratch."""
         try:
-            if regenerate_manifest():
+            if manifest_manager.regenerate_manifest("layers"):
                 return JsonResponse({"ok": True, "message": "manifest regenerated"})
             else:
                 return JsonResponse({"ok": False, "error": "failed to regenerate manifest"}, status=500)
@@ -46,7 +40,7 @@ class LayerManifestViewSet(viewsets.ViewSet):
     def refresh_layer_manifest(self, request):
         """Refresh the layer manifest from disk."""
         try:
-            if refresh_manifest():
+            if manifest_manager.refresh_manifest("layers"):
                 return JsonResponse({"ok": True, "message": "manifest refreshed"})
             else:
                 return JsonResponse({"ok": False, "error": "failed to refresh manifest"}, status=500)
@@ -56,7 +50,7 @@ class LayerManifestViewSet(viewsets.ViewSet):
 
     def list(self, request):
         """List all available layers with metadata."""
-        mf = get_manifest()
+        mf = manifest_manager.get_manifest("layers")
         items = []
         for li in mf.get("layers", []):
             items.append(
@@ -79,7 +73,7 @@ class LayerManifestViewSet(viewsets.ViewSet):
     def retrieve(self, request, pk=None):
         """Get full manifest entry for a specific layer by name (e.g. 'Conv2D')."""
         try:
-            entry = get_layer_entry(pk)
+            entry = manifest_manager.get_entry("layers", pk)
         except KeyError:
             return Response({"detail": f"Layer '{pk}' not found"}, status=status.HTTP_404_NOT_FOUND)
         return Response(entry)
@@ -88,7 +82,7 @@ class LayerManifestViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"], url_path="specs")
     def specs(self, request):
         """Get top-level manifest specs like param_value_specs and versions."""
-        mf = get_manifest()
+        mf = manifest_manager.get_manifest("layers")
         return Response({
             "tensorflow_version": mf.get("tensorflow_version"),
             "keras_version": mf.get("keras_version"),

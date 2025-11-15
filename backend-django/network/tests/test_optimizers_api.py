@@ -13,9 +13,9 @@ class OptimizerManifestAPITests(APITestCase):
     def setUpClass(cls):
         super().setUpClass()
         # Load the manifest before running tests
-        from network.manifests.optimizers import refresh_manifest
+        from network.manifests import manager as manifest_manager
         try:
-            refresh_manifest()
+            manifest_manager.refresh_manifest("optimizers")
         except Exception:
             # If manifest doesn't exist, that's okay for tests
             pass
