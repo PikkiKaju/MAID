@@ -59,6 +59,9 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ],
 }
+# Use a custom exception handler to convert library-specific exceptions
+# (e.g. GraphValidationError) into clean API responses.
+REST_FRAMEWORK.setdefault('EXCEPTION_HANDLER', 'network.api_exception_handler.custom_exception_handler')
 
 
 LOGGING = {

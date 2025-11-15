@@ -19,7 +19,7 @@ from rest_framework.response import Response
 from django.conf import settings
 
 from network.models import NetworkGraph
-from network.serializers import NetworkGraphSerializer, TrainingJobSerializer
+from network.serializers import NetworkGraphSerializer, TrainingJobSerializer, TrainingStartSerializer
 
 from network.services import (
     GraphValidationError,
@@ -362,48 +362,15 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
         if suffix not in allowed:
             return Response({"detail": f"Unsupported file extension '{suffix}'"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Persist dataset to a temp path tied to the job id
-        # Parse JSON-like fields if they are strings
-        import json as _json
-        def _maybe_json(val):
-            if isinstance(val, str):
-                try:
-                    return _json.loads(val)
-                except Exception:
-                    return val
-            return val
+        # Validate training parameters using a dedicated serializer
+        serializer = TrainingStartSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        params = serializer.validated_data
 
+        # Persist dataset to a temp path tied to the job id
         job = TrainingJob.objects.create(
             graph=graph,
-            params={
-                "x_columns": _maybe_json(request.data.get("x_columns")),
-                "y_column": request.data.get("y_column"),
-                "optimizer": request.data.get("optimizer", "adam"),
-                "loss": request.data.get("loss", "mse"),
-                "metrics": _maybe_json(request.data.get("metrics")),
-                "epochs": request.data.get("epochs", 10),
-                "batch_size": request.data.get("batch_size", 32),
-                "validation_split": request.data.get("validation_split", 0.1),
-                "test_split": request.data.get("test_split", 0.1),
-                "y_one_hot": request.data.get("y_one_hot", False),
-                # New optional hyperparameters
-                "learning_rate": request.data.get("learning_rate"),
-                "shuffle": request.data.get("shuffle", True),
-                "validation_batch_size": request.data.get("validation_batch_size"),
-                # EarlyStopping
-                "early_stopping": request.data.get("early_stopping", False),
-                "es_monitor": request.data.get("es_monitor", "val_loss"),
-                "es_mode": request.data.get("es_mode", "auto"),
-                "es_patience": request.data.get("es_patience", 5),
-                "es_min_delta": request.data.get("es_min_delta", 0.0),
-                "es_restore_best_weights": request.data.get("es_restore_best_weights", True),
-                # ReduceLROnPlateau
-                "reduce_lr": request.data.get("reduce_lr", False),
-                "rlrop_monitor": request.data.get("rlrop_monitor", "val_loss"),
-                "rlrop_factor": request.data.get("rlrop_factor", 0.1),
-                "rlrop_patience": request.data.get("rlrop_patience", 3),
-                "rlrop_min_lr": request.data.get("rlrop_min_lr", 1e-6),
-            },
+            params=dict(params),
         )
 
         # Create a per-job temp CSV file

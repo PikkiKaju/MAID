@@ -393,6 +393,63 @@ class TrainingJobSerializer(serializers.ModelSerializer):
         )
 
 
+class TrainingStartSerializer(serializers.Serializer):
+    x_columns = serializers.ListField(child=serializers.CharField(), required=True)
+    y_column = serializers.CharField(required=True)
+    optimizer = serializers.CharField(required=False, default="adam")
+    loss = serializers.CharField(required=False, default="mse")
+    metrics = serializers.ListField(child=serializers.CharField(), required=False, allow_empty=True)
+    epochs = serializers.IntegerField(required=False, min_value=1, default=10)
+    batch_size = serializers.IntegerField(required=False, min_value=1, default=32)
+    validation_split = serializers.FloatField(required=False, min_value=0.0, max_value=1.0, default=0.1)
+    test_split = serializers.FloatField(required=False, min_value=0.0, max_value=1.0, default=0.1)
+    y_one_hot = serializers.BooleanField(required=False, default=False)
+    learning_rate = serializers.FloatField(required=False, allow_null=True)
+    shuffle = serializers.BooleanField(required=False, default=True)
+    validation_batch_size = serializers.IntegerField(required=False, allow_null=True, min_value=1)
+
+    # EarlyStopping
+    early_stopping = serializers.BooleanField(required=False, default=False)
+    es_monitor = serializers.CharField(required=False, default="val_loss")
+    es_mode = serializers.CharField(required=False, default="auto")
+    es_patience = serializers.IntegerField(required=False, min_value=0, default=5)
+    es_min_delta = serializers.FloatField(required=False, default=0.0)
+    es_restore_best_weights = serializers.BooleanField(required=False, default=True)
+
+    # ReduceLROnPlateau
+    reduce_lr = serializers.BooleanField(required=False, default=False)
+    rlrop_monitor = serializers.CharField(required=False, default="val_loss")
+    rlrop_factor = serializers.FloatField(required=False, default=0.1)
+    rlrop_patience = serializers.IntegerField(required=False, min_value=0, default=3)
+    rlrop_min_lr = serializers.FloatField(required=False, default=1e-6)
+
+    def to_internal_value(self, data):
+        # Allow JSON strings for list fields (common from multipart/form-data)
+        import json
+
+        data = dict(data)
+        for key in ("x_columns", "metrics"):
+            if key in data and isinstance(data[key], str):
+                try:
+                    parsed = json.loads(data[key])
+                    data[key] = parsed
+                except Exception:
+                    # Leave as-is; ListField will raise validation error
+                    pass
+        return super().to_internal_value(data)
+
+    def validate(self, attrs):
+        # Ensure splits don't overlap
+        val = attrs.get("validation_split", 0.0) or 0.0
+        test = attrs.get("test_split", 0.0) or 0.0
+        if val + test >= 1.0:
+            raise serializers.ValidationError({
+                "validation_split": ["validation_split + test_split must be < 1.0"],
+                "test_split": ["validation_split + test_split must be < 1.0"],
+            })
+        return attrs
+
+
 class ModelImportJobSerializer(serializers.ModelSerializer):
     graph = NetworkGraphSerializer(read_only=True)
 
