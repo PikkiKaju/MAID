@@ -2,16 +2,14 @@ from __future__ import annotations
 
 import json
 import os
-import threading
-import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
+from celery import shared_task
 from django.conf import settings
 from django.db import close_old_connections
-from django.utils import timezone
 
 from network.models import TrainingJob, TrainingStatus, NetworkGraph
 from network.services.builders import build_keras_model
@@ -89,12 +87,9 @@ def _ensure_artifacts_dir() -> str:
     return out_dir
 
 
-def _train_worker(job_id: str) -> None:
-    """Background thread entry: trains a compiled Keras model and updates the job record.
-    The job params include optimizer/loss/metrics and fit params.
-    Dataset is expected at job.dataset_path.
-    """
-    # Make sure DB connections are not shared into the new thread
+def run_training_job(job_id: str) -> None:
+    """Train a compiled Keras model and update the associated job record."""
+    # Make sure DB connections are not shared across task worker processes
     close_old_connections()
 
     try:
@@ -541,7 +536,12 @@ def _train_worker(job_id: str) -> None:
         job.save(update_fields=["status", "error", "updated_at"])
 
 
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, max_retries=3, name="network.run_training_job")
+def run_training_job_task(self, job_id: str) -> None:
+    """Celery task entry point for executing a training job."""
+    run_training_job(job_id)
+
+
 def launch_training_job(job: TrainingJob) -> None:
-    """Starts a background thread to process the given job."""
-    t = threading.Thread(target=_train_worker, args=(str(job.id),), daemon=True)
-    t.start()
+    """Enqueue the training job via Celery."""
+    run_training_job_task.delay(str(job.id))

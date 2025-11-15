@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import os
 import logging
+from pathlib import Path
 logger = logging.getLogger(__name__)
 from typing import Any, Dict, List, Tuple
 import tempfile
@@ -406,14 +407,14 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
         )
 
         # Create a per-job temp CSV file
-        import tempfile, os
         suffix = os.path.splitext(getattr(uploaded, "name", "dataset.csv"))[1] or ".csv"
-        temp_dir = tempfile.gettempdir()
-        dataset_path = os.path.join(temp_dir, f"job-{job.id}{suffix}")
+        datasets_dir = Path(getattr(settings, "ARTIFACTS_DIR", settings.BASE_DIR / "artifacts")) / "datasets"
+        datasets_dir.mkdir(parents=True, exist_ok=True)
+        dataset_path = datasets_dir / f"job-{job.id}{suffix}"
         with open(dataset_path, "wb") as fp:
             for chunk in uploaded.chunks():
                 fp.write(chunk)
-        job.dataset_path = dataset_path
+        job.dataset_path = str(dataset_path)
         job.save(update_fields=["dataset_path", "updated_at"])
 
         # Launch background worker
