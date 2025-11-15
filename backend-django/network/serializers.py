@@ -2,7 +2,16 @@ from typing import Any, Dict, List
 
 from rest_framework import serializers
 
-from .models import Edge, GraphPreset, GraphSnapshot, LayerNode, NetworkGraph, TrainingJob
+from .models import (
+    Edge,
+    GraphPreset,
+    GraphSnapshot,
+    LayerNode,
+    ModelImportJob,
+    NetworkGraph,
+    TrainingJob,
+)
+from .models import ImportJobStatus
 from .manifests.layers import list_layers, normalize_params_for_layer
 from .services import GraphValidationError, validate_graph_payload
 
@@ -375,3 +384,42 @@ class TrainingJobSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
+
+
+class ModelImportJobSerializer(serializers.ModelSerializer):
+    graph = NetworkGraphSerializer(read_only=True)
+
+    class Meta:
+        model = ModelImportJob
+        fields = (
+            "id",
+            "status",
+            "source_name",
+            "graph_payload",
+            "graph",
+            "error",
+            "options",
+            "created_at",
+            "updated_at",
+            "started_at",
+            "finished_at",
+        )
+        read_only_fields = (
+            "id",
+            "status",
+            "source_name",
+            "graph_payload",
+            "graph",
+            "error",
+            "options",
+            "created_at",
+            "updated_at",
+            "started_at",
+            "finished_at",
+        )
+
+    def to_representation(self, instance: ModelImportJob) -> Dict[str, Any]:
+        data = super().to_representation(instance)
+        if instance.status != ImportJobStatus.SUCCEEDED:
+            data["graph_payload"] = None
+        return data

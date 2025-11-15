@@ -1,5 +1,7 @@
+import os
 import uuid
 
+from django.conf import settings
 from django.db import models
 
 
@@ -164,4 +166,56 @@ class TrainingJob(TimeStampedModel):
 
     def __str__(self) -> str:  # pragma: no cover
         return f"TrainJob {self.id} [{self.status}] for {self.graph_id}"
+
+
+class ImportJobStatus(models.TextChoices):
+    QUEUED = "queued", "Queued"
+    PROCESSING = "processing", "Processing"
+    SUCCEEDED = "succeeded", "Succeeded"
+    FAILED = "failed", "Failed"
+    CANCELLED = "cancelled", "Cancelled"
+
+
+class ModelImportJob(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="model_import_jobs",
+    )
+    status = models.CharField(
+        max_length=16,
+        choices=ImportJobStatus.choices,
+        default=ImportJobStatus.QUEUED,
+    )
+    source_name = models.CharField(max_length=255)
+    stored_path = models.CharField(max_length=512, blank=True, default="")
+    graph_payload = models.JSONField(blank=True, default=dict)
+    options = models.JSONField(blank=True, default=dict)
+    graph = models.ForeignKey(
+        NetworkGraph,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="import_jobs",
+    )
+    error = models.TextField(blank=True, default="")
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta(TimeStampedModel.Meta):
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"ImportJob {self.id} [{self.status}]"
+
+    def drop_uploaded_file(self) -> None:
+        path = self.stored_path
+        if not path:
+            return
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+        except OSError:
+            pass
     

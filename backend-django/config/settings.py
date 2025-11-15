@@ -155,6 +155,14 @@ ARTIFACTS_DIR = Path(os.getenv("ARTIFACTS_DIR")) if os.getenv("ARTIFACTS_DIR") e
 MAX_UPLOAD_SIZE = int(os.getenv("MAX_UPLOAD_SIZE", 10 * 1024 * 1024))  # bytes, default 10 MB
 ALLOWED_UPLOAD_EXTENSIONS = [e.strip() for e in os.getenv("ALLOWED_UPLOAD_EXTENSIONS", ".csv,.keras,.h5,.zip").split(",") if e.strip()]
 
+# Import job safeguards
+IMPORT_JOB_MAX_PENDING_PER_USER = int(os.getenv("IMPORT_JOB_MAX_PENDING_PER_USER", 3))
+IMPORT_JOB_ALLOWED_EXTENSIONS = [
+    e.strip()
+    for e in os.getenv("IMPORT_JOB_ALLOWED_EXTENSIONS", ".keras,.h5,.zip").split(",")
+    if e.strip()
+]
+
 # Celery / Redis configuration
 DEFAULT_REDIS_URL = "redis://redis:6379/0"
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", DEFAULT_REDIS_URL)
