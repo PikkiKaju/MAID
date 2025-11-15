@@ -88,29 +88,69 @@ class TrainingJobViewSet(viewsets.ReadOnlyModelViewSet):
         except Exception:
             return Response({"detail": "Failed to resolve feature names for this model"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Build input matrix X
+        # Build input matrix X with validation
         X = None
         if request.FILES.get("file"):
-            # Parse CSV with header
+            # Parse CSV with header and validate columns
             import io, csv
             f = request.FILES["file"]
-            data = f.read().decode("utf-8")
-            reader = csv.DictReader(io.StringIO(data))
+            try:
+                raw = f.read()
+                try:
+                    f.seek(0)
+                except Exception:
+                    pass
+                text = raw.decode("utf-8") if isinstance(raw, (bytes, bytearray)) else str(raw)
+            except Exception as exc:
+                return Response({"detail": f"Failed to read uploaded file: {exc}"}, status=status.HTTP_400_BAD_REQUEST)
+
+            reader = csv.DictReader(io.StringIO(text))
+            header = reader.fieldnames or []
+            missing = [c for c in feat_names if c not in (header or [])]
+            if missing:
+                return Response({"detail": f"Uploaded CSV is missing required columns: {missing}"}, status=status.HTTP_400_BAD_REQUEST)
+
             rows = []
+            row_num = 0
             for row in reader:
-                rows.append([float(row.get(col, 0) or 0) for col in feat_names])
+                row_num += 1
+                try:
+                    vals = [float(row.get(col, 0) or 0) for col in feat_names]
+                except Exception as exc:
+                    return Response({"detail": f"Could not parse numeric values on row {row_num}: {exc}"}, status=status.HTTP_400_BAD_REQUEST)
+                rows.append(vals)
+            if not rows:
+                return Response({"detail": "Uploaded CSV contains no data rows"}, status=status.HTTP_400_BAD_REQUEST)
             X = rows
         else:
             # JSON body
             payload = request.data if isinstance(request.data, dict) else {}
             if "instances" in payload and isinstance(payload["instances"], (list, tuple)):
-                X = payload["instances"]
+                instances = payload["instances"]
+                # Validate shape
+                if not instances:
+                    return Response({"detail": "'instances' array is empty"}, status=status.HTTP_400_BAD_REQUEST)
+                for i, inst in enumerate(instances, start=1):
+                    if not isinstance(inst, (list, tuple)):
+                        return Response({"detail": f"Each instance must be an array; item {i} is invalid"}, status=status.HTTP_400_BAD_REQUEST)
+                    if len(inst) != len(feat_names):
+                        return Response({"detail": f"Instance length mismatch at item {i}: expected {len(feat_names)} values"}, status=status.HTTP_400_BAD_REQUEST)
+                X = instances
             elif "records" in payload and isinstance(payload["records"], (list, tuple)):
                 rows = []
-                for rec in payload["records"]:
+                if not payload["records"]:
+                    return Response({"detail": "'records' array is empty"}, status=status.HTTP_400_BAD_REQUEST)
+                for i, rec in enumerate(payload["records"], start=1):
                     if not isinstance(rec, dict):
-                        return Response({"detail": "Each record must be an object with feature:value pairs"}, status=status.HTTP_400_BAD_REQUEST)
-                    rows.append([float(rec.get(col, 0) or 0) for col in feat_names])
+                        return Response({"detail": f"Each record must be an object with feature:value pairs; item {i} is invalid"}, status=status.HTTP_400_BAD_REQUEST)
+                    missing = [c for c in feat_names if c not in rec]
+                    if missing:
+                        return Response({"detail": f"Record {i} is missing columns: {missing}"}, status=status.HTTP_400_BAD_REQUEST)
+                    try:
+                        vals = [float(rec.get(col, 0) or 0) for col in feat_names]
+                    except Exception as exc:
+                        return Response({"detail": f"Could not parse numeric values in record {i}: {exc}"}, status=status.HTTP_400_BAD_REQUEST)
+                    rows.append(vals)
                 X = rows
             else:
                 return Response({"detail": "Provide 'instances' as array of arrays or 'records' as array of objects, or upload a CSV file"}, status=status.HTTP_400_BAD_REQUEST)

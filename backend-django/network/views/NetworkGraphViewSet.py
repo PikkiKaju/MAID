@@ -17,6 +17,8 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from django.conf import settings
+from django.urls import reverse
+import csv
 
 from network.models import NetworkGraph
 from network.serializers import NetworkGraphSerializer, TrainingJobSerializer, TrainingStartSerializer
@@ -367,7 +369,43 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         params = serializer.validated_data
 
-        # Persist dataset to a temp path tied to the job id
+        # Validate CSV header against declared x_columns before creating a job
+        # Read a small portion to get header line(s) safely
+        try:
+            # Attempt to read header without consuming the whole stream permanently
+            # Some UploadedFile implementations support .open()/seek; fall back to reading chunks
+            raw = None
+            try:
+                uploaded.seek(0)
+                raw = uploaded.read(65536)
+                try:
+                    uploaded.seek(0)
+                except Exception:
+                    pass
+            except Exception:
+                # Fallback: read chunks and reconstruct small preview
+                pieces = []
+                total = 0
+                for chunk in uploaded.chunks():
+                    pieces.append(chunk)
+                    total += len(chunk)
+                    if total > 65536:
+                        break
+                raw = b"".join(pieces)
+            text = raw.decode("utf-8", errors="replace") if isinstance(raw, (bytes, bytearray)) else str(raw or "")
+            # Extract first non-empty line as header and parse CSV header
+            first_lines = [ln for ln in text.splitlines() if ln.strip()]
+            header_line = first_lines[0] if first_lines else ""
+            header = next(csv.reader([header_line])) if header_line else []
+        except Exception:
+            header = []
+
+        x_cols = list(params.get("x_columns") or [])
+        missing = [c for c in x_cols if c not in header]
+        if missing:
+            return Response({"detail": f"Uploaded CSV is missing required columns: {missing}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Persist dataset to a temp path tied to the job id (create job now)
         job = TrainingJob.objects.create(
             graph=graph,
             params=dict(params),
@@ -379,13 +417,29 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
         datasets_dir.mkdir(parents=True, exist_ok=True)
         dataset_path = datasets_dir / f"job-{job.id}{suffix}"
         with open(dataset_path, "wb") as fp:
-            for chunk in uploaded.chunks():
-                fp.write(chunk)
+            # If we consumed some chunks above, uploaded may be partially read; prefer rewinding
+            try:
+                uploaded.seek(0)
+                for chunk in uploaded.chunks():
+                    fp.write(chunk)
+            except Exception:
+                # Fallback: if chunks exhausted earlier, use pieces from memory if available
+                try:
+                    uploaded.seek(0)
+                except Exception:
+                    pass
+                for chunk in uploaded.chunks():
+                    fp.write(chunk)
         job.dataset_path = str(dataset_path)
         job.save(update_fields=["dataset_path", "updated_at"])
 
         # Launch background worker
         launch_training_job(job)
 
-        headers = {"Location": request.build_absolute_uri(f"/api/network/training-jobs/{job.id}/")}
+        # Build a proper Location header using router reverse name
+        try:
+            loc = request.build_absolute_uri(reverse("training-job-detail", args=[str(job.id)]))
+            headers = {"Location": loc}
+        except Exception:
+            headers = {"Location": request.build_absolute_uri(f"/api/network/training-jobs/{job.id}/")}
         return Response(TrainingJobSerializer(job).data, status=status.HTTP_202_ACCEPTED, headers=headers)
