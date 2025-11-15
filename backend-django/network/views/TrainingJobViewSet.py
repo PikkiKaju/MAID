@@ -5,6 +5,7 @@ from pathlib import Path
 from django.conf import settings
 from django.http import FileResponse, Http404
 from rest_framework import viewsets, status
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -108,7 +109,7 @@ class TrainingJobViewSet(viewsets.ReadOnlyModelViewSet):
             header = reader.fieldnames or []
             missing = [c for c in feat_names if c not in (header or [])]
             if missing:
-                return Response({"detail": f"Uploaded CSV is missing required columns: {missing}"}, status=status.HTTP_400_BAD_REQUEST)
+                raise DRFValidationError(f"Uploaded CSV is missing required columns: {missing}")
 
             rows = []
             row_num = 0
@@ -132,24 +133,24 @@ class TrainingJobViewSet(viewsets.ReadOnlyModelViewSet):
                     return Response({"detail": "'instances' array is empty"}, status=status.HTTP_400_BAD_REQUEST)
                 for i, inst in enumerate(instances, start=1):
                     if not isinstance(inst, (list, tuple)):
-                        return Response({"detail": f"Each instance must be an array; item {i} is invalid"}, status=status.HTTP_400_BAD_REQUEST)
+                        raise DRFValidationError(f"Each instance must be an array; item {i} is invalid")
                     if len(inst) != len(feat_names):
-                        return Response({"detail": f"Instance length mismatch at item {i}: expected {len(feat_names)} values"}, status=status.HTTP_400_BAD_REQUEST)
+                        raise DRFValidationError(f"Instance length mismatch at item {i}: expected {len(feat_names)} values")
                 X = instances
             elif "records" in payload and isinstance(payload["records"], (list, tuple)):
                 rows = []
                 if not payload["records"]:
-                    return Response({"detail": "'records' array is empty"}, status=status.HTTP_400_BAD_REQUEST)
+                    raise DRFValidationError("'records' array is empty")
                 for i, rec in enumerate(payload["records"], start=1):
                     if not isinstance(rec, dict):
-                        return Response({"detail": f"Each record must be an object with feature:value pairs; item {i} is invalid"}, status=status.HTTP_400_BAD_REQUEST)
+                        raise DRFValidationError(f"Each record must be an object with feature:value pairs; item {i} is invalid")
                     missing = [c for c in feat_names if c not in rec]
                     if missing:
-                        return Response({"detail": f"Record {i} is missing columns: {missing}"}, status=status.HTTP_400_BAD_REQUEST)
+                        raise DRFValidationError(f"Record {i} is missing columns: {missing}")
                     try:
                         vals = [float(rec.get(col, 0) or 0) for col in feat_names]
                     except Exception as exc:
-                        return Response({"detail": f"Could not parse numeric values in record {i}: {exc}"}, status=status.HTTP_400_BAD_REQUEST)
+                        raise DRFValidationError(f"Could not parse numeric values in record {i}: {exc}")
                     rows.append(vals)
                 X = rows
             else:

@@ -427,15 +427,24 @@ class TrainingStartSerializer(serializers.Serializer):
         # Allow JSON strings for list fields (common from multipart/form-data)
         import json
 
+        # Convert QueryDict-like inputs where values are single-item lists into scalars.
+        # e.g. QueryDict({'x_columns': ['["a","b"]'], 'y_column': ['c']})
         data = dict(data)
+        for k, v in list(data.items()):
+            # collapse single-value lists/tuples to scalar for DRF serializers
+            if isinstance(v, (list, tuple)) and len(v) == 1:
+                data[k] = v[0]
+
+        # Parse JSON strings for list-like fields that are commonly sent as strings
         for key in ("x_columns", "metrics"):
             if key in data and isinstance(data[key], str):
                 try:
                     parsed = json.loads(data[key])
                     data[key] = parsed
                 except Exception:
-                    # Leave as-is; ListField will raise validation error
+                    # Leave as-is; ListField will raise validation error if needed
                     pass
+
         return super().to_internal_value(data)
 
     def validate(self, attrs):

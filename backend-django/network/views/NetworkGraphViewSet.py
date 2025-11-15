@@ -13,6 +13,7 @@ from django.utils.text import slugify
 from django.http import JsonResponse
 from django.contrib.admin.views.decorators import staff_member_required
 from rest_framework import status, viewsets
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
@@ -403,7 +404,7 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
         x_cols = list(params.get("x_columns") or [])
         missing = [c for c in x_cols if c not in header]
         if missing:
-            return Response({"detail": f"Uploaded CSV is missing required columns: {missing}"}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError(f"Uploaded CSV is missing required columns: {missing}")
 
         # Persist dataset to a temp path tied to the job id (create job now)
         job = TrainingJob.objects.create(
