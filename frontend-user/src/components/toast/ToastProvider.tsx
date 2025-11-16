@@ -4,6 +4,7 @@ import { ToastContainer, Toast } from "../../ui/toast";
 interface ToastContextType {
   showSuccess: (message: string) => void;
   showError: (message: string) => void;
+  showInfo: (message: string) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -12,7 +13,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const showToast = useCallback(
-    (message: string, type: "success" | "error") => {
+    (message: string, type: "success" | "error" | "info") => {
       const id = Math.random().toString(36).substring(7);
       setToasts((prev) => [...prev, { id, message, type }]);
     },
@@ -33,8 +34,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     [showToast]
   );
 
+  const showInfo = useCallback(
+    (message: string) => showToast(message, "info"),
+    [showToast]
+  );
+
   return (
-    <ToastContext.Provider value={{ showSuccess, showError }}>
+    <ToastContext.Provider value={{ showSuccess, showError, showInfo }}>
       {children}
       <ToastContainer toasts={toasts} onClose={removeToast} />
     </ToastContext.Provider>

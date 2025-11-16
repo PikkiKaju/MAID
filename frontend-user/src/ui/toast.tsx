@@ -1,8 +1,8 @@
 import * as React from "react";
-import { X, CheckCircle2, AlertCircle } from "lucide-react";
+import { X, CheckCircle2, AlertCircle, Info } from "lucide-react";
 import { cn } from "../utilis/tailwind";
 
-export type ToastType = "success" | "error";
+export type ToastType = "success" | "error" | "info";
 
 export interface Toast {
   id: string;
@@ -39,7 +39,9 @@ function ToastComponent({ toast, onClose }: ToastProps) {
   const bgColor =
     toast.type === "success"
       ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800"
-      : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800";
+      : toast.type === "error"
+      ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+      : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800";
 
   return (
     <div
@@ -51,9 +53,11 @@ function ToastComponent({ toast, onClose }: ToastProps) {
     >
       <div className="flex-shrink-0 text-foreground">
         {toast.type === "success" ? (
-          <CheckCircle2 className="h-6 w-6" />
+          <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
+        ) : toast.type === "error" ? (
+          <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
         ) : (
-          <AlertCircle className="h-6 w-6" />
+          <Info className="h-6 w-6 text-amber-600 dark:text-amber-400" />
         )}
       </div>
       <div className="flex-1 text-base font-medium text-foreground">

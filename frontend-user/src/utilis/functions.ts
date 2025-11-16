@@ -18,3 +18,16 @@ export const formatDate = (dateString: string | undefined): string => {
       return dateString;
     }
   };
+
+export const formatUploadDate = (dateString: string | Date): string => {
+  try {
+    return new Date(dateString).toLocaleDateString('pl-PL', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  } catch (e) {
+    console.error("Błąd formatowania daty uploadu:", e);
+    return typeof dateString === 'string' ? dateString : 'Brak daty';
+  }
+};

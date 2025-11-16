@@ -8,6 +8,7 @@ import UploadDatasetDialog, {
 } from "../components/datasets/UploadDatasetDialog";
 import DatasetDetailsDialog from "../components/datasets/DatasetDetailsDialog";
 import { handleDrag, handleDrop } from "../utilis/drag-and-drop";
+import { formatUploadDate } from "../utilis/functions";
 import { getFileIcon, getStatusColor } from "../models/dataset";
 import { useSelector, useDispatch } from "react-redux";
 import { AppDispatch, RootState } from "../store/store";
@@ -18,13 +19,14 @@ import {
   uploadPhoto,
 } from "../features/dataset/datasetThunks";
 import { datasetService } from "../api/datasetService";
+import { useToast } from "../components/toast/ToastProvider";
 
 export default function DatasetsListPage() {
+  const { showSuccess, showError, showInfo } = useToast();
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [fileType, setFileType] = useState<"csv" | "zip" | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedDataset, setSelectedDataset] = useState<{
     id: string;
@@ -32,6 +34,7 @@ export default function DatasetsListPage() {
     type: string;
   } | null>(null);
 
+  // Validate file extension and pass only matches files that are .csv or .zip
   const validateFile = (
     file: File
   ): { valid: boolean; type: "csv" | "zip" | null; error?: string } => {
@@ -52,6 +55,7 @@ export default function DatasetsListPage() {
     }
   };
 
+  // Handle file upload to global state
   const handleFileUpload = (files: FileList) => {
     if (files.length === 0) return;
 
@@ -59,20 +63,21 @@ export default function DatasetsListPage() {
     const validation = validateFile(file);
 
     if (!validation.valid) {
-      setUploadError(validation.error || "Nieprawidłowy plik");
-      setTimeout(() => setUploadError(null), 5000);
+      const errorMessage = validation.error || "Nieprawidłowy plik";
+      showError(errorMessage);
       return;
     }
 
     setSelectedFile(file);
     setFileType(validation.type);
     setDialogOpen(true);
-    setUploadError(null);
   };
 
+  // Handle file upload to database and refresh datasets in Redux store after successful upload
   const handleDialogUpload = async (formData: UploadFormData) => {
     if (!selectedFile || !fileType || !token) {
-      setUploadError("Brak wymaganych danych do przesłania pliku.");
+      const errorMessage = "Brak wymaganych danych do przesłania pliku.";
+      showError(errorMessage);
       return;
     }
 
@@ -105,21 +110,22 @@ export default function DatasetsListPage() {
       setDialogOpen(false);
       setSelectedFile(null);
       setFileType(null);
-      alert("Plik został przesłany pomyślnie!");
+      showSuccess("Plik został przesłany pomyślnie!");
     } catch (error: any) {
-      setUploadError(error || "Błąd podczas przesyłania pliku.");
+      const errorMessage = error?.message || "Błąd podczas przesyłania pliku.";
+      showError(errorMessage);
     }
   };
 
+  // Dispatch to Redux store
   const dispatch = useDispatch<AppDispatch>();
+  // Token from Redux store
   const token = useSelector((state: RootState) => state.auth.token);
 
   // Datasets from Redux store
   const { userDatasets, uploadStatus } = useSelector(
     (state: RootState) => state.dataset
   );
-
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Fetch public datasets from Redux
   useEffect(() => {
@@ -133,29 +139,28 @@ export default function DatasetsListPage() {
     }
   }, [dispatch, token]);
 
-  const handleDelete = async (id: string, name: string) => {
+  // Handle delete dataset from database and refresh datasets in Redux store after successful delete
+  const handleDelete = async (id: string) => {
     if (!token) {
-      alert("Musisz być zalogowany, aby usunąć dataset.");
+      showError("Musisz być zalogowany, aby usunąć dataset.");
       return;
     }
 
     try {
-      setDeletingId(id);
       await datasetService.deleteDataset(id, token);
       // Refresh both datasets from Redux
       dispatch(fetchUserDatasets());
       dispatch(fetchPublicDatasets());
-      alert("Dataset został usunięty pomyślnie.");
+      showSuccess("Dataset został usunięty pomyślnie.");
     } catch (err: any) {
-      alert(
+      const errorMessage =
         "Błąd podczas usuwania datasetu: " +
-          (err.response?.data?.message || err.message)
-      );
-    } finally {
-      setDeletingId(null);
+        (err.response?.data?.message || err.message);
+      showError(errorMessage);
     }
   };
 
+  // Handle view details for dataset
   const handleViewDetails = (
     datasetId: string,
     datasetName: string,
@@ -170,7 +175,7 @@ export default function DatasetsListPage() {
       });
       setDetailsDialogOpen(true);
     } else {
-      alert("Podgląd szczegółów jest dostępny tylko dla plików CSV.");
+      showInfo("Podgląd szczegółów jest dostępny tylko dla plików CSV.");
     }
   };
 
@@ -228,18 +233,11 @@ export default function DatasetsListPage() {
       <AttachedDatasets
         datasets={useMemo(() => {
           return userDatasets.map((dataset) => {
-            // Determine file type based on dataType (0 = CSV, assume ZIP for photos)
+            // Determine file type (0 = CSV, 1 = ZIP)
             const fileType = dataset.dataType === 0 ? "CSV" : "ZIP";
 
             // Format date
-            const uploadDate = new Date(dataset.createdAt).toLocaleDateString(
-              "pl-PL",
-              {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-              }
-            );
+            const uploadDate = formatUploadDate(dataset.createdAt);
 
             return {
               id: dataset.id,
