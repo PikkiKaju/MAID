@@ -213,3 +213,21 @@ CELERY_TASK_TRACK_STARTED = True
 # Artifact cleanup policy: number of days to retain saved artifacts before pruning
 ARTIFACT_RETENTION_DAYS = int(os.getenv("ARTIFACT_RETENTION_DAYS", 30))
 
+# Azure Blob Storage (optional). If AZURE_ACCOUNT_NAME is set, storage helpers
+# will use Azure SDK to generate SAS URLs. For production, prefer Managed Identity
+# and a minimal secret footprint.
+AZURE_ACCOUNT_NAME = os.getenv("AZURE_ACCOUNT_NAME")
+if AZURE_ACCOUNT_NAME:
+    AZURE_ACCOUNT_KEY = os.getenv("AZURE_ACCOUNT_KEY", "")
+    AZURE_CONTAINER = os.getenv("AZURE_CONTAINER", "maid-artifacts")
+    AZURE_SSL = str(os.getenv("AZURE_SSL", "True")).lower() in ("1", "true", "yes")
+
+    # Optionally enable presigned URL usage: when True, download endpoints will
+    # return presigned URLs instead of streaming files through Django.
+    USE_PRESIGNED_STORAGE_URLS = str(os.getenv("USE_PRESIGNED_STORAGE_URLS", "True")).lower() in ("1", "true", "yes")
+else:
+    AZURE_ACCOUNT_KEY = None
+    AZURE_CONTAINER = None
+    AZURE_SSL = True
+    USE_PRESIGNED_STORAGE_URLS = False
+

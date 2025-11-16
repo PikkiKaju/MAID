@@ -12,6 +12,7 @@ from rest_framework.response import Response
 
 from network.models import TrainingJob, TrainingStatus
 from network.serializers import TrainingJobSerializer
+from network import storage
 
 
 class TrainingJobViewSet(viewsets.ReadOnlyModelViewSet):
@@ -26,20 +27,24 @@ class TrainingJobViewSet(viewsets.ReadOnlyModelViewSet):
         # Basic validation: artifact must exist and must live inside configured ARTIFACTS_DIR
         if not job.artifact_path:
             raise Http404("Artifact not available")
+        # If configured to use Azure presigned URLs, attempt to generate one.
+        if getattr(settings, "USE_PRESIGNED_STORAGE_URLS", False):
+            try:
+                url = storage.get_presigned_download(job.artifact_path)
+                if url:
+                    # Return the presigned URL so the client can download directly from blob storage
+                    return Response({"url": url}, status=status.HTTP_200_OK)
+            except Exception:
+                # Fall back to local streaming if presign fails
+                pass
 
+        # Fallback: attempt to stream via default storage or local filesystem
         try:
-            artifact_path = Path(job.artifact_path)
-            artifact_path_resolved = artifact_path.resolve(strict=True)
+            stream = storage.open_stream(job.artifact_path)
         except Exception:
             raise Http404("Artifact not available")
 
-        artifacts_dir = Path(getattr(settings, "ARTIFACTS_DIR", settings.BASE_DIR / "artifacts")).resolve()
-        # Ensure artifact is inside the artifacts directory to avoid path traversal or arbitrary file exposure
-        if not str(artifact_path_resolved).startswith(str(artifacts_dir)):
-            raise Http404("Artifact not available")
-
-        # Stream the file safely
-        response = FileResponse(artifact_path_resolved.open("rb"), content_type="application/octet-stream")
+        response = FileResponse(stream, content_type="application/octet-stream")
         response["Content-Disposition"] = f'attachment; filename="{job.id}.keras"'
         return response
 
@@ -71,7 +76,7 @@ class TrainingJobViewSet(viewsets.ReadOnlyModelViewSet):
         Returns: {"predictions": [[...], ...] or [value, ...]}
         """
         job = self.get_object()
-        if job.status != TrainingStatus.SUCCEEDED or not job.artifact_path or not os.path.exists(job.artifact_path):
+        if job.status != TrainingStatus.SUCCEEDED or not job.artifact_path:
             return Response({"detail": "Model artifact not available for this job"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Determine feature order
@@ -160,8 +165,43 @@ class TrainingJobViewSet(viewsets.ReadOnlyModelViewSet):
             import numpy as np
             from keras.models import load_model
             X_arr = np.array(X, dtype=np.float32)
-            model = load_model(job.artifact_path)
-            preds = model.predict(X_arr, verbose=0)
+
+            # Load model from storage-aware source. If presigned storage is enabled
+            # or the artifact is stored remotely, use `network.storage.open_stream`
+            # and write to a temporary file for Keras to load. Otherwise load
+            # directly from the local filesystem path.
+            model = None
+            tmp_path = None
+            try:
+                if getattr(settings, "USE_PRESIGNED_STORAGE_URLS", False):
+                    # Attempt to open remote stream and write to temp file
+                    import tempfile, shutil
+                    stream = storage.open_stream(job.artifact_path)
+                    tmpf = tempfile.NamedTemporaryFile(delete=False)
+                    try:
+                        # copy stream contents to temp file
+                        shutil.copyfileobj(stream, tmpf)
+                        tmp_path = tmpf.name
+                    finally:
+                        try:
+                            tmpf.close()
+                        except Exception:
+                            pass
+                    model = load_model(tmp_path)
+                else:
+                    # Local path expected
+                    if not os.path.exists(job.artifact_path):
+                        return Response({"detail": "Model artifact not available for this job"}, status=status.HTTP_400_BAD_REQUEST)
+                    model = load_model(job.artifact_path)
+
+                preds = model.predict(X_arr, verbose=0)
+            finally:
+                # cleanup temporary file if used
+                try:
+                    if tmp_path and os.path.exists(tmp_path):
+                        os.remove(tmp_path)
+                except Exception:
+                    pass
             # Normalize to plain Python types
             if hasattr(preds, "tolist"):
                 out = preds.tolist()
