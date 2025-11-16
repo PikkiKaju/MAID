@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 from celery import shared_task
@@ -10,6 +11,7 @@ from django.utils import timezone
 from network.models import ImportJobStatus, ModelImportJob
 from network.services.importers import load_graph_from_keras_artifact
 from network.services.types import GraphValidationError
+from network import storage
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +23,16 @@ def enqueue_import_job(job_id: Any) -> None:
 
 def _clear_uploaded_artifact(job: ModelImportJob) -> None:
     job.drop_uploaded_file()
+    job.stored_path = ""
+    try:
+        if job.stored_path:
+            # prefer storage.delete which handles remote/local
+            storage.delete(job.stored_path)
+    except Exception:
+        try:
+            job.drop_uploaded_file()
+        except Exception:
+            pass
     job.stored_path = ""
     job.upload_size_bytes = 0
 
@@ -50,7 +62,25 @@ def process_model_import_job(self, job_id: str) -> None:
         if not job.stored_path:
             raise ValueError("Stored upload path is missing for this job")
 
-        graph_payload = load_graph_from_keras_artifact(job.stored_path)
+        # If the stored_path refers to a storage key, stream it to a temp file for the importer
+        tmp_path = None
+        try:
+            if storage.exists(job.stored_path):
+                import tempfile, shutil
+                tmpf = tempfile.NamedTemporaryFile(delete=False)
+                tmp_path = tmpf.name
+                tmpf.close()
+                with storage.open_stream(job.stored_path) as fh, open(tmp_path, "wb") as out:
+                    shutil.copyfileobj(fh, out)
+                graph_payload = load_graph_from_keras_artifact(tmp_path)
+            else:
+                graph_payload = load_graph_from_keras_artifact(job.stored_path)
+        finally:
+            try:
+                if tmp_path and os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+            except Exception:
+                pass
         options = job.options if isinstance(job.options, dict) else {}
         override_name = options.get("graph_name")
         if override_name:
