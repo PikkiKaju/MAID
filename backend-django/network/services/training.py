@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from celery import shared_task
 from django.conf import settings
+from network import storage
 from django.db import close_old_connections
 
 from network.models import TrainingJob, TrainingStatus, NetworkGraph
@@ -143,11 +144,21 @@ def run_training_job(job_id: str) -> None:
         # 3) Load params and dataset first (so we can validate compatibility before fitting)
         params = TrainParams.from_dict(job.params)
 
-        # 4) Load dataset
-        if not job.dataset_path or not os.path.exists(job.dataset_path):
+        # 4) Load dataset (support storage-backed keys)
+        if not job.dataset_path:
             raise FileNotFoundError("Uploaded dataset CSV file not found for job")
 
-        df = pd.read_csv(job.dataset_path)
+        # If storage.exists indicates presence, open stream; otherwise treat as local path
+        try:
+            if storage.exists(job.dataset_path):
+                with storage.open_stream(job.dataset_path) as fh:
+                    df = pd.read_csv(fh)
+            else:
+                if not os.path.exists(job.dataset_path):
+                    raise FileNotFoundError("Uploaded dataset CSV file not found for job")
+                df = pd.read_csv(job.dataset_path)
+        except Exception as exc:
+            raise
         x_cols = params.x_columns
         y_col = params.y_column
         if not x_cols or not y_col:
@@ -500,15 +511,30 @@ def run_training_job(job_id: str) -> None:
             else:
                 eval_res = {"loss": float(eval_res)}
 
-        # 10) Save artifact
-        out_dir = _ensure_artifacts_dir()
-        artifact = os.path.join(out_dir, f"{job.id}.keras")
+        # 10) Save artifact: write to a temp path and push to configured storage
+        import tempfile, shutil
+
+        tmpf = None
         try:
-            model.save(artifact)
-            job.artifact_path = artifact
+            tmpf = tempfile.NamedTemporaryFile(delete=False, suffix=".keras")
+            tmp_path = tmpf.name
+            tmpf.close()
+            model.save(tmp_path)
+            # Upload to storage under artifacts/<job.id>.keras
+            key = f"artifacts/{job.id}.keras"
+            with open(tmp_path, "rb") as fh:
+                saved = storage.save_file(key, fh)
+            job.artifact_path = str(saved)
         except Exception as exc:
             # Saving is optional in phase 1; continue even if save fails
             job.error = job.error + f"\nArtifact save warning: {exc}" if job.error else f"Artifact save warning: {exc}"
+        finally:
+            try:
+                if tmpf:
+                    if os.path.exists(tmp_path):
+                        os.remove(tmp_path)
+            except Exception:
+                pass
 
         # 11) Persist results
         job.result = {
