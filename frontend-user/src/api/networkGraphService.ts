@@ -5,6 +5,27 @@ const DJANGO_API_BASE = import.meta.env.VITE_DJANGO_API_BASE || import.meta.env.
 const djangoClient = axios.create({
   baseURL: DJANGO_API_BASE,
   headers: { 'Content-Type': 'application/json' },
+  // Allow cookies for SessionAuthentication if used alongside TokenAuthentication
+  withCredentials: true,
+});
+
+// Attach token if present (stored under 'token' in sessionStorage/localStorage)
+djangoClient.interceptors.request.use((config) => {
+  try {
+    const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+    if (token) {
+      // DRF TokenAuthentication expects 'Token <key>'
+      config.headers = config.headers || {};
+      // Preserve existing Authorization if present
+      if (!config.headers['Authorization'] && !config.headers['authorization']) {
+        config.headers['Authorization'] = `Token ${token}`;
+      }
+    }
+  } catch (e) {
+    // Ignore storage read errors but log at debug level for diagnostics
+    console.debug('Failed to read auth token from storage', e);
+  }
+  return config;
 });
 
 // Minimal types for payloads returned/accepted by the Django API
@@ -72,14 +93,13 @@ const networkGraphService = {
   },
 
   /**
-   * Compile graph on the backend. If nodes/edges are provided they will be used
-   * instead of the stored graph (the view reads request.data when present).
+   * Compile graph by id on the backend. Backend exposes this as GET
+   * `/network/graphs/{id}/compile/` which uses the persisted graph.
+   * To compile from arbitrary nodes/edges without saving, use
+   * `compileGraphFromPayload`.
    */
-  compileGraph: async (id: string, nodes?: GraphNode[], edges?: GraphEdge[]) => {
-    const body: Record<string, unknown> = {};
-    if (nodes) body.nodes = nodes;
-    if (edges) body.edges = edges;
-    const resp = await djangoClient.post(`network/graphs/${id}/compile/`, body);
+  compileGraph: async (id: string) => {
+    const resp = await djangoClient.get(`network/graphs/${id}/compile/`);
     if (resp.status === 200) return resp.data;
     throw new Error('Failed to compile graph');
   },
@@ -232,9 +252,8 @@ const networkGraphService = {
     if (options.rlrop_patience != null) form.append('rlrop_patience', String(options.rlrop_patience));
     if (options.rlrop_min_lr != null) form.append('rlrop_min_lr', String(options.rlrop_min_lr));
 
-    const resp = await djangoClient.post(`network/graphs/${graphId}/train/`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    // Let the browser/axios set the Content-Type (including boundary)
+    const resp = await djangoClient.post(`network/graphs/${graphId}/train/`, form);
     if (resp.status === 202) return resp.data;
     throw new Error('Failed to start training job');
   },
@@ -266,14 +285,34 @@ const networkGraphService = {
   predictWithCsv: async (jobId: string, file: File): Promise<{ predictions: unknown }> => {
     const form = new FormData();
     form.append('file', file);
-    const resp = await djangoClient.post(`network/training-jobs/${jobId}/predict/`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    // Let the browser/axios set the Content-Type (including boundary)
+    const resp = await djangoClient.post(`network/training-jobs/${jobId}/predict/`, form);
     if (resp.status === 200) return resp.data;
     throw new Error('Prediction failed');
   },
 
-  downloadArtifact: async (jobId: string): Promise<Blob> => {
+  // Download artifact: backend may either return a presigned JSON {url: ...}
+  // or stream the file directly. We first attempt to fetch JSON, then
+  // fall back to a blob request if the server streams binary data.
+  downloadArtifact: async (jobId: string): Promise<Blob | { url: string } | string> => {
+    // try JSON response first (presigned URL)
+    try {
+      const respJson = await djangoClient.get(`network/training-jobs/${jobId}/artifact/`);
+      if (respJson.status === 200 && respJson.data) {
+        // If backend returned a presigned url object, return it
+        if (typeof respJson.data === 'object' && respJson.data.url) {
+          return respJson.data;
+        }
+        // If server returned plain data (unlikely for artifact), return it
+        return respJson.data as string;
+      }
+    } catch (err) {
+      // If JSON fetch failed (server returned binary or non-JSON),
+      // log for diagnostics and fall through to blob fetch.
+      console.debug('artifact JSON fetch failed, falling back to blob fetch', err);
+    }
+
+    // Fallback: request binary stream
     const resp = await djangoClient.get(`network/training-jobs/${jobId}/artifact/`, { responseType: 'blob' });
     if (resp.status === 200) return resp.data as Blob;
     throw new Error('Failed to download artifact');
