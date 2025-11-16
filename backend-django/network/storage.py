@@ -148,3 +148,18 @@ def get_presigned_download(key: str, expires: int = 3600) -> Optional[str]:
     except Exception:
         url = None
     return url
+
+
+def get_presigned_upload(key: str, expires: int = 3600) -> Optional[str]:
+    """Provider-agnostic presigned upload URL generator.
+
+    Currently supports Azure via settings/Azure SDK. Returns URL string or None.
+    """
+    url = None
+    try:
+        if generate_blob_sas is None:
+            return None
+        url = generate_azure_presigned_upload(key, expires=expires)
+    except Exception:
+        url = None
+    return url
