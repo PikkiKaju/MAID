@@ -317,6 +317,59 @@ const networkGraphService = {
     if (resp.status === 200) return resp.data as Blob;
     throw new Error('Failed to download artifact');
   },
+
+  /**
+   * Convenience helper that downloads the artifact into the browser.
+   * - If backend returns a presigned URL ({url}), opens that URL in a new tab.
+   * - If backend streams a Blob, creates an object URL and triggers a download.
+   */
+  downloadArtifactToBrowser: async (jobId: string, filename: string = 'model.keras'): Promise<void> => {
+    // Inline fetch similar to downloadArtifact to avoid circular typing issues
+    // Try JSON/presigned URL first
+    try {
+      const respJson = await djangoClient.get(`network/training-jobs/${jobId}/artifact/`);
+      if (respJson.status === 200 && respJson.data) {
+        if (typeof respJson.data === 'object' && 'url' in respJson.data) {
+          const url = String((respJson.data as unknown as { url?: string }).url ?? '');
+          window.open(url, '_blank');
+          return;
+        }
+        // If server returned a string payload, download it as blob
+        if (typeof respJson.data === 'string') {
+          const blob = new Blob([respJson.data], { type: 'application/octet-stream' });
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+          return;
+        }
+      }
+    } catch (err) {
+      // fall through to blob fetch below
+      console.debug('artifact JSON fetch failed, falling back to blob fetch', err);
+    }
+
+    // Fallback: fetch binary blob and trigger download
+    const resp = await djangoClient.get(`network/training-jobs/${jobId}/artifact/`, { responseType: 'blob' });
+    if (resp.status === 200 && resp.data instanceof Blob) {
+      const blob: Blob = resp.data;
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+      return;
+    }
+
+    throw new Error('Failed to download artifact');
+  },
 };
 
 export default networkGraphService;

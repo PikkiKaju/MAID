@@ -890,6 +890,25 @@ export default function TrainTab() {
                       </div>
                     </div>
                   )}
+                  {/* Download artifact button when job succeeded */}
+                  {jobStatus === 'succeeded' && (
+                    <div className="mt-3">
+                      <Button
+                        onClick={async () => {
+                          try {
+                            if (!jobId) return;
+                            await networkGraphService.downloadArtifactToBrowser(jobId, 'model.keras');
+                          } catch (e) {
+                            console.error('Failed to download artifact', e);
+                            setJobError(e instanceof Error ? e.message : String(e));
+                          }
+                        }}
+                      >
+                        Download Model
+                      </Button>
+                    </div>
+                  )}
+
                   {/* Loss chart above final metrics */}
                   {(() => {
                     type HistoryMap = Record<string, number[]>;
