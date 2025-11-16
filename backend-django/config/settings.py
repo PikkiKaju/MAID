@@ -128,6 +128,35 @@ DATABASES = {
     }
 }
 
+# PostgreSQL configuration (optional). If POSTGRES_HOST is set, we switch to
+# Postgres and configure search_path to use a separate schema for the Django
+# application to avoid interfering with ASP.NET-owned tables.
+POSTGRES_HOST = os.getenv("POSTGRES_HOST")
+if POSTGRES_HOST:
+    POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", 5432))
+    POSTGRES_DB = os.getenv("POSTGRES_DB", "maid")
+    POSTGRES_USER = os.getenv("POSTGRES_USER", "maid")
+    POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "")
+    # Schema to use for Django objects (keep separate from ASP.NET schema)
+    DATABASE_SCHEMA = os.getenv("POSTGRES_SCHEMA", "django_app")
+
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql_psycopg2",
+            "NAME": POSTGRES_DB,
+            "USER": POSTGRES_USER,
+            "PASSWORD": POSTGRES_PASSWORD,
+            "HOST": POSTGRES_HOST,
+            "PORT": POSTGRES_PORT,
+            # Keep connections alive for performance in web workers
+            "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", 600)),
+            # Set the search_path so Django uses the dedicated schema by default
+            "OPTIONS": {
+                "options": f"-c search_path={DATABASE_SCHEMA},public",
+            },
+        }
+    }
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
