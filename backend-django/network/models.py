@@ -225,6 +225,14 @@ class ModelImportJob(TimeStampedModel):
         if not path:
             return
         try:
+            # Prefer using storage helper to delete, falling back to local FS
+            try:
+                from network import storage
+
+                storage.delete(path)
+                return
+            except Exception:
+                pass
             if os.path.exists(path):
                 os.remove(path)
         except OSError:
