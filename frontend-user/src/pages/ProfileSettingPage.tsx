@@ -1,16 +1,19 @@
 import { useState, useEffect } from "react";
-import { Save, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Button } from "../ui/button";
 import { PersonalInfoForm } from "../components/profile/PersonalInfoForm";
 import { SecurityForm } from "../components/profile/SecurityForm";
 import { DangerZoneCard } from "../components/profile/DangerZoneCard";
+import { ProfileSettingsHeader } from "../components/profile/Setting/ProfileSettingsHeader";
+import { ProfileSettingsActions } from "../components/profile/Setting/ProfileSettingsActions";
+import { ProfileSettingsLoading } from "../components/profile/Setting/ProfileSettingsLoading";
 import { profileService } from "../api/profileService";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "../store/store";
 import { logout } from "../features/auth/authSlice";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../components/toast/ToastProvider";
+import type { ProfileSettingsFormData, AvatarState } from "../models/profile";
+import { validateEmail } from "../utilis/functions";
 
 export function ProfileSettingsPage() {
   const { t } = useTranslation();
@@ -19,7 +22,7 @@ export function ProfileSettingsPage() {
   const { showSuccess, showError } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ProfileSettingsFormData>({
     firstName: "",
     lastName: "",
     email: "",
@@ -29,10 +32,10 @@ export function ProfileSettingsPage() {
     newPassword: "",
     confirmPassword: "",
   });
-  const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
-  const [selectedAvatarSvg, setSelectedAvatarSvg] = useState<string | null>(
-    null
-  );
+  const [avatarState, setAvatarState] = useState<AvatarState>({
+    selectedAvatarId: null,
+    selectedAvatarSvg: null,
+  });
 
   useEffect(() => {
     loadProfile();
@@ -65,22 +68,15 @@ export function ProfileSettingsPage() {
   };
 
   const handleAvatarSelect = (avatarId: string, avatarSvg: string) => {
-    setSelectedAvatarId(avatarId);
-    setSelectedAvatarSvg(avatarSvg);
+    setAvatarState({
+      selectedAvatarId: avatarId,
+      selectedAvatarSvg: avatarSvg,
+    });
   };
 
-  // Funkcja walidacji emaila
-  const validateEmail = (email: string): string | null => {
-    if (!email) {
-      return null; // Pusty email jest OK (opcjonalne pole)
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return t("profile.invalidEmail");
-    }
-
-    return null;
+  const handleCancel = () => {
+    loadProfile();
+    setAvatarState({ selectedAvatarId: null, selectedAvatarSvg: null });
   };
 
   const handleSave = async () => {
@@ -89,7 +85,7 @@ export function ProfileSettingsPage() {
     // Walidacja emaila
     const emailValidationError = validateEmail(formData.email);
     if (emailValidationError) {
-      showError(emailValidationError);
+      showError(t("profile.invalidEmail"));
       setSaving(false);
       return;
     }
@@ -121,13 +117,12 @@ export function ProfileSettingsPage() {
       });
 
       // Zapisuj avatar do bazy danych tylko jeśli został wybrany
-      if (selectedAvatarId) {
-        await profileService.updateAvatar(selectedAvatarId);
+      if (avatarState.selectedAvatarId) {
+        await profileService.updateAvatar(avatarState.selectedAvatarId);
         // Wyślij event, aby zaktualizować avatar w headerze
         window.dispatchEvent(new CustomEvent("avatarUpdated"));
         // Wyczyść stan wybranego avatara po zapisaniu
-        setSelectedAvatarId(null);
-        setSelectedAvatarSvg(null);
+        setAvatarState({ selectedAvatarId: null, selectedAvatarSvg: null });
       }
 
       // Wyczyść pola haseł po udanym zapisie
@@ -166,21 +161,12 @@ export function ProfileSettingsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+    return <ProfileSettingsLoading />;
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">
-          {t("profile.profileSettings")}
-        </h1>
-        <p className="text-muted-foreground">{t("profile.manageSettings")}</p>
-      </div>
+      <ProfileSettingsHeader />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
@@ -188,8 +174,8 @@ export function ProfileSettingsPage() {
             formData={formData}
             onChange={(key, value) => handleInputChange(key, value)}
             onAvatarSelect={handleAvatarSelect}
-            selectedAvatarId={selectedAvatarId}
-            selectedAvatarSvg={selectedAvatarSvg}
+            selectedAvatarId={avatarState.selectedAvatarId}
+            selectedAvatarSvg={avatarState.selectedAvatarSvg}
           />
         </div>
 
@@ -206,32 +192,11 @@ export function ProfileSettingsPage() {
         </div>
       </div>
 
-      {/* Save Button */}
-      <div className="flex justify-end gap-3">
-        <Button
-          variant="outline"
-          onClick={() => {
-            loadProfile();
-            setSelectedAvatarId(null);
-            setSelectedAvatarSvg(null);
-          }}
-        >
-          {t("common.cancel")}
-        </Button>
-        <Button className="gap-2" onClick={handleSave} disabled={saving}>
-          {saving ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {t("profile.saving")}
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4" />
-              {t("profile.saveChanges")}
-            </>
-          )}
-        </Button>
-      </div>
+      <ProfileSettingsActions
+        onSave={handleSave}
+        onCancel={handleCancel}
+        saving={saving}
+      />
     </div>
   );
 }

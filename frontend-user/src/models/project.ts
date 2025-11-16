@@ -63,3 +63,23 @@ export interface DisplayProject {
     isPublic: boolean;
     likes: number;
 }
+
+export interface ProjectDisplay extends Project {
+  title: string;
+  description: string;
+  status: string;
+  category: string;
+  lastModified: string;
+  imageUrl: string;
+}
+
+export interface DeleteDialogState {
+  open: boolean;
+  project: ProjectDisplay | null;
+}
+
+export interface ProjectFilters {
+  searchTerm: string;
+  statusFilter: string;
+  sortBy: "name" | "created" | "modified";
+}

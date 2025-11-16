@@ -53,7 +53,11 @@
     "loginError": "Login error",
     "registerError": "Registration error",
     "registrationSuccess": "Registration successful!",
-    "userAlreadyExists": "User with this name already exists."
+    "userAlreadyExists": "User with this name already exists.",
+    "usernameRequired": "Username is required.",
+    "passwordRequired": "Password is required.",
+    "usernameMinLength": "Username must be at least 3 characters long.",
+    "passwordMinLength": "Password must be at least 4 characters long."
   },
   "home": {
     "recent": "Recent",

@@ -45,4 +45,31 @@ export type FAQItem = {
   category: string;
 };
 
+export type ProfileInfoData = {
+  avatar: string;
+  name: string;
+  surname: string;
+  title: string;
+  bio: string;
+  email: string;
+  joined: string;
+  stats: ProfileStats;
+};
+
+export type ProfileSettingsFormData = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  title: string;
+  bio: string;
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+};
+
+export type AvatarState = {
+  selectedAvatarId: string | null;
+  selectedAvatarSvg: string | null;
+};
+
 
