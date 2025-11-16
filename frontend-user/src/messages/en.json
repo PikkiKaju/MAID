@@ -123,7 +123,16 @@
     "attachedDatasets": "Attached datasets",
     "tips": "Tips",
     "emptyState": "No datasets",
-    "emptyStateDescription": "Upload your first dataset"
+    "emptyStateDescription": "Upload your first dataset",
+    "invalidFileFormat": "Invalid file format. Only .csv or .zip files are allowed",
+    "invalidFile": "Invalid file",
+    "missingUploadData": "Missing required data to upload file.",
+    "uploadSuccess": "File uploaded successfully!",
+    "uploadError": "Error uploading file.",
+    "loginRequiredDelete": "You must be logged in to delete a dataset.",
+    "deleteSuccess": "Dataset deleted successfully.",
+    "deleteError": "Error deleting dataset: {{message}}",
+    "csvOnlyDetails": "Details preview is only available for CSV files."
   },
   "profile": {
     "overview": "Overview",
@@ -193,6 +202,11 @@
     "switchTo": "Switch to",
     "polish": "Polish",
     "english": "English"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "Sorry, we couldn't find the page you're looking for.",
+    "backToHome": "Back to home"
   }
 }
 

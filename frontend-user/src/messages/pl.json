@@ -123,7 +123,16 @@
     "attachedDatasets": "Załączone zbiory danych",
     "tips": "Wskazówki",
     "emptyState": "Brak zbiorów danych",
-    "emptyStateDescription": "Prześlij swój pierwszy zbiór danych"
+    "emptyStateDescription": "Prześlij swój pierwszy zbiór danych",
+    "invalidFileFormat": "Nieprawidłowy format pliku. Dozwolone są tylko pliki .csv lub .zip",
+    "invalidFile": "Nieprawidłowy plik",
+    "missingUploadData": "Brak wymaganych danych do przesłania pliku.",
+    "uploadSuccess": "Plik został przesłany pomyślnie!",
+    "uploadError": "Błąd podczas przesyłania pliku.",
+    "loginRequiredDelete": "Musisz być zalogowany, aby usunąć dataset.",
+    "deleteSuccess": "Dataset został usunięty pomyślnie.",
+    "deleteError": "Błąd podczas usuwania datasetu: {{message}}",
+    "csvOnlyDetails": "Podgląd szczegółów jest dostępny tylko dla plików CSV."
   },
   "profile": {
     "overview": "Przegląd",
@@ -193,6 +202,11 @@
     "switchTo": "Przełącz na",
     "polish": "Polski",
     "english": "Angielski"
+  },
+  "notFound": {
+    "title": "Strona nie znaleziona",
+    "description": "Przepraszamy, nie mogliśmy znaleźć strony, której szukasz.",
+    "backToHome": "Powrót do strony głównej"
   }
 }
 

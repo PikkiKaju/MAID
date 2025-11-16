@@ -20,8 +20,10 @@ import {
 } from "../features/dataset/datasetThunks";
 import { datasetService } from "../api/datasetService";
 import { useToast } from "../components/toast/ToastProvider";
+import { useTranslation } from "react-i18next";
 
 export default function DatasetsListPage() {
+  const { t } = useTranslation();
   const { showSuccess, showError, showInfo } = useToast();
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -49,8 +51,7 @@ export default function DatasetsListPage() {
       return {
         valid: false,
         type: null,
-        error:
-          "Nieprawidłowy format pliku. Dozwolone są tylko pliki .csv lub .zip",
+        error: t("datasets.invalidFileFormat"),
       };
     }
   };
@@ -63,7 +64,7 @@ export default function DatasetsListPage() {
     const validation = validateFile(file);
 
     if (!validation.valid) {
-      const errorMessage = validation.error || "Nieprawidłowy plik";
+      const errorMessage = validation.error || t("datasets.invalidFile");
       showError(errorMessage);
       return;
     }
@@ -76,7 +77,7 @@ export default function DatasetsListPage() {
   // Handle file upload to database and refresh datasets in Redux store after successful upload
   const handleDialogUpload = async (formData: UploadFormData) => {
     if (!selectedFile || !fileType || !token) {
-      const errorMessage = "Brak wymaganych danych do przesłania pliku.";
+      const errorMessage = t("datasets.missingUploadData");
       showError(errorMessage);
       return;
     }
@@ -110,9 +111,9 @@ export default function DatasetsListPage() {
       setDialogOpen(false);
       setSelectedFile(null);
       setFileType(null);
-      showSuccess("Plik został przesłany pomyślnie!");
+      showSuccess(t("datasets.uploadSuccess"));
     } catch (error: any) {
-      const errorMessage = error?.message || "Błąd podczas przesyłania pliku.";
+      const errorMessage = error?.message || t("datasets.uploadError");
       showError(errorMessage);
     }
   };
@@ -142,7 +143,7 @@ export default function DatasetsListPage() {
   // Handle delete dataset from database and refresh datasets in Redux store after successful delete
   const handleDelete = async (id: string) => {
     if (!token) {
-      showError("Musisz być zalogowany, aby usunąć dataset.");
+      showError(t("datasets.loginRequiredDelete"));
       return;
     }
 
@@ -151,11 +152,11 @@ export default function DatasetsListPage() {
       // Refresh both datasets from Redux
       dispatch(fetchUserDatasets());
       dispatch(fetchPublicDatasets());
-      showSuccess("Dataset został usunięty pomyślnie.");
+      showSuccess(t("datasets.deleteSuccess"));
     } catch (err: any) {
-      const errorMessage =
-        "Błąd podczas usuwania datasetu: " +
-        (err.response?.data?.message || err.message);
+      const errorMessage = t("datasets.deleteError", {
+        message: err.response?.data?.message || err.message,
+      });
       showError(errorMessage);
     }
   };
@@ -175,7 +176,7 @@ export default function DatasetsListPage() {
       });
       setDetailsDialogOpen(true);
     } else {
-      showInfo("Podgląd szczegółów jest dostępny tylko dla plików CSV.");
+      showInfo(t("datasets.csvOnlyDetails"));
     }
   };
 
