@@ -17,6 +17,7 @@ from rest_framework.reverse import reverse
 from network.models import ImportJobStatus, ModelImportJob
 from network.serializers import ModelImportJobSerializer, NetworkGraphSerializer
 from network.services.import_jobs import enqueue_import_job
+from network import storage
 
 
 class ModelImportJobViewSet(
@@ -85,17 +86,22 @@ class ModelImportJobViewSet(
                     status=status.HTTP_429_TOO_MANY_REQUESTS,
                 )
 
-        imports_dir = Path(getattr(settings, "ARTIFACTS_DIR", Path.cwd() / "artifacts")) / "imports"
-        imports_dir.mkdir(parents=True, exist_ok=True)
-        dest_path = imports_dir / f"upload-{uuid.uuid4().hex}{suffix}"
-
+        # Persist to configured storage under imports/<uuid> suffix
+        key = f"imports/upload-{uuid.uuid4().hex}{suffix}"
         try:
-            with open(dest_path, "wb") as dest:
-                for chunk in uploaded.chunks():
-                    dest.write(chunk)
+            from io import BytesIO
+
+            buf = BytesIO()
+            try:
+                uploaded.seek(0)
+            except Exception:
+                pass
+            for chunk in uploaded.chunks():
+                buf.write(chunk)
+            buf.seek(0)
+            saved = storage.save_file(key, buf)
+            dest_path = str(saved)
         except Exception as exc:
-            if dest_path.exists():
-                dest_path.unlink(missing_ok=True)
             return Response({"detail": f"Failed to store upload: {exc}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         options: Dict[str, Any] = {}
@@ -117,6 +123,37 @@ class ModelImportJobViewSet(
         serializer = self.get_serializer(job)
         location = reverse("model-import-job-detail", kwargs={"pk": job.id}, request=request)
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED, headers={"Location": location})
+
+    @action(detail=False, methods=["post"], url_path="presign-upload")
+    def presign_upload(self, request):
+        """Return a presigned upload URL for a model import artifact.
+
+        Client should upload directly to the provided URL and then POST to the created job's endpoint to enqueue processing.
+        """
+        uploaded_name = request.data.get("filename") or "uploaded.keras"
+        suffix = Path(uploaded_name).suffix.lower() or ".keras"
+
+        # Basic param validation similar to create (size/extension checks are not enforceable here)
+        allowed = [e.lower() for e in getattr(settings, "IMPORT_JOB_ALLOWED_EXTENSIONS", [".keras", ".h5", ".zip"]) ]
+        if suffix not in allowed:
+            return Response({"detail": f"Unsupported file extension '{suffix}'"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create job record with intended storage key
+        import_key = f"imports/upload-{uuid.uuid4().hex}{suffix}"
+        job = ModelImportJob.objects.create(
+            owner=request.user,
+            source_name=uploaded_name,
+            stored_path=import_key,
+            upload_size_bytes=0,
+            options={},
+        )
+
+        url = storage.get_presigned_upload(import_key)
+        if not url:
+            job.delete()
+            return Response({"detail": "Presigned uploads are not available"}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"job_id": str(job.id), "upload_url": url}, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"], url_path="cancel")
     def cancel(self, request, pk=None):

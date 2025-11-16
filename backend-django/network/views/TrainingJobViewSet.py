@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from network.models import TrainingJob, TrainingStatus
 from network.serializers import TrainingJobSerializer
 from network import storage
+from network.services.training import launch_training_job
 
 
 class TrainingJobViewSet(viewsets.ReadOnlyModelViewSet):
@@ -47,6 +48,39 @@ class TrainingJobViewSet(viewsets.ReadOnlyModelViewSet):
         response = FileResponse(stream, content_type="application/octet-stream")
         response["Content-Disposition"] = f'attachment; filename="{job.id}.keras"'
         return response
+
+    @action(detail=True, methods=["post"], url_path="start")
+    def start(self, request, pk=None):
+        """Start the training job once the dataset has been uploaded to storage.
+
+        This checks that `job.dataset_path` exists in storage (or locally) and enqueues the Celery task.
+        """
+        job = self.get_object()
+        if job.status != TrainingStatus.QUEUED:
+            return Response({"detail": "Job is not in a queued state"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check dataset presence
+        exists = False
+        try:
+            if job.dataset_path and storage.exists(job.dataset_path):
+                exists = True
+            else:
+                # treat dataset_path as local path fallback
+                if job.dataset_path and os.path.exists(job.dataset_path):
+                    exists = True
+        except Exception:
+            exists = False
+
+        if not exists:
+            return Response({"detail": "Dataset not found for job"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Launch background worker
+        try:
+            launch_training_job(job)
+        except Exception as exc:
+            return Response({"detail": f"Failed to enqueue job: {exc}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(TrainingJobSerializer(job).data, status=status.HTTP_202_ACCEPTED)
 
     @action(detail=True, methods=["post"], url_path="cancel")
     def cancel(self, request, pk=None):

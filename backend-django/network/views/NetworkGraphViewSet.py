@@ -33,6 +33,7 @@ from network.services import (
 )
 from network.models import TrainingJob
 from network.services.training import launch_training_job
+from network import storage
 
 
 class NetworkGraphViewSet(viewsets.ModelViewSet):
@@ -412,27 +413,46 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
             params=dict(params),
         )
 
-        # Create a per-job temp CSV file
+        # Persist dataset to configured storage under a per-job key
         suffix = os.path.splitext(getattr(uploaded, "name", "dataset.csv"))[1] or ".csv"
-        datasets_dir = Path(getattr(settings, "ARTIFACTS_DIR", settings.BASE_DIR / "artifacts")) / "datasets"
-        datasets_dir.mkdir(parents=True, exist_ok=True)
-        dataset_path = datasets_dir / f"job-{job.id}{suffix}"
-        with open(dataset_path, "wb") as fp:
-            # If we consumed some chunks above, uploaded may be partially read; prefer rewinding
+        key = f"datasets/job-{job.id}{suffix}"
+        # Use storage.save_file which supports Django storages or local fallback
+        try:
+            # uploaded is an InMemoryUploadedFile or TemporaryUploadedFile with .chunks(); wrap into a BytesIO
+            from io import BytesIO
+
+            buf = BytesIO()
             try:
                 uploaded.seek(0)
-                for chunk in uploaded.chunks():
-                    fp.write(chunk)
             except Exception:
-                # Fallback: if chunks exhausted earlier, use pieces from memory if available
+                pass
+            for chunk in uploaded.chunks():
+                buf.write(chunk)
+            buf.seek(0)
+            saved = storage.save_file(key, buf)
+            # store the returned storage key/path
+            job.dataset_path = str(saved)
+            job.save(update_fields=["dataset_path", "updated_at"])
+        except Exception:
+            # If storage save fails, attempt local fallback similar to previous behavior
+            suffix = os.path.splitext(getattr(uploaded, "name", "dataset.csv"))[1] or ".csv"
+            datasets_dir = Path(getattr(settings, "ARTIFACTS_DIR", settings.BASE_DIR / "artifacts")) / "datasets"
+            datasets_dir.mkdir(parents=True, exist_ok=True)
+            dataset_path = datasets_dir / f"job-{job.id}{suffix}"
+            with open(dataset_path, "wb") as fp:
                 try:
                     uploaded.seek(0)
+                    for chunk in uploaded.chunks():
+                        fp.write(chunk)
                 except Exception:
-                    pass
-                for chunk in uploaded.chunks():
-                    fp.write(chunk)
-        job.dataset_path = str(dataset_path)
-        job.save(update_fields=["dataset_path", "updated_at"])
+                    try:
+                        uploaded.seek(0)
+                    except Exception:
+                        pass
+                    for chunk in uploaded.chunks():
+                        fp.write(chunk)
+            job.dataset_path = str(dataset_path)
+            job.save(update_fields=["dataset_path", "updated_at"])
 
         # Launch background worker
         launch_training_job(job)
@@ -444,3 +464,32 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
         except Exception:
             headers = {"Location": request.build_absolute_uri(f"/api/network/training-jobs/{job.id}/")}
         return Response(TrainingJobSerializer(job).data, status=status.HTTP_202_ACCEPTED, headers=headers)
+
+    @action(detail=True, methods=["post"], url_path="presign-upload")
+    def presign_upload(self, request, pk=None):
+        """Create a training job and return a presigned upload URL for the client to PUT the CSV dataset.
+
+        The client should then upload the dataset to the returned `url` and call the training-job `start` action to begin.
+        """
+        graph = self.get_object()
+
+        # Validate params via the same serializer used for training
+        serializer = TrainingStartSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        params = serializer.validated_data
+
+        # Create job record (dataset_path set to the intended storage key)
+        job = TrainingJob.objects.create(graph=graph, params=dict(params))
+        suffix = ".csv"
+        key = f"datasets/job-{job.id}{suffix}"
+        job.dataset_path = key
+        job.save(update_fields=["dataset_path", "updated_at"])
+
+        # Generate presigned upload URL
+        url = storage.get_presigned_upload(key)
+        if not url:
+            # Clean up job if presign unavailable
+            job.delete()
+            return Response({"detail": "Presigned uploads not available in this deployment"}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"job_id": str(job.id), "upload_url": url}, status=status.HTTP_201_CREATED)
