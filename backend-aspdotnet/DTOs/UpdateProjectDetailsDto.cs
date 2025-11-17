@@ -1,4 +1,6 @@
-﻿namespace backend_aspdotnet.DTOs
+﻿using backend_aspdotnet.Database;
+
+namespace backend_aspdotnet.DTOs
 {
     public class UpdateProjectDetailsDto
     {
@@ -8,6 +10,7 @@
         public string? YColumn { get; set; }
         public Dictionary<string, string>? Parameters { get; set; }
         public bool? isPublic { get; set; }
+        public ProjectStatus? Status { get; set; }
     }
 
 
