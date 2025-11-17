@@ -62,6 +62,15 @@ namespace backend_aspdotnet.Controllers
             [AllowAnonymous]
             public async Task<IActionResult> GetAllPublic()
         {
+            Guid? userId = null;
+             if (User.Identity?.IsAuthenticated == true)
+            {
+                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (Guid.TryParse(userIdString, out Guid parsedId))
+                {
+                    userId = parsedId;
+                }
+            }
             /*
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdString))
@@ -71,8 +80,19 @@ namespace backend_aspdotnet.Controllers
                 return Unauthorized("Invalid user ID format.");
             */
             var projects = await _context.Projects
-                    .Where(p => p.IsPublic == true)
-                    .ToListAsync();
+                    .Where(p => p.IsPublic == true).Select(p => new
+                {
+                    p.Id,
+                    p.Name,
+                    p.LastModifiedAt,
+                    p.UserId,
+                    p.IsPublic,
+
+                    // ✅ Add IsLiked field only if user is logged in
+                    IsLiked = userId.HasValue
+                        ? _context.LikesProjects.Any(lp => lp.ProjectId == p.Id && lp.UserId == userId.Value)
+                        : false
+                }).ToListAsync();
             return Ok(projects);
         }
 
