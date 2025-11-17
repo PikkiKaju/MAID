@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "../../ui/card";
 import { Badge } from "../../ui/badge";
 import {
@@ -8,15 +9,7 @@ import {
   DropdownMenuItem,
 } from "../../ui/dropdown-menu";
 import { Button } from "../../ui/button";
-import {
-  Calendar,
-  Trash2,
-  Eye,
-  ExternalLink,
-  User,
-  Heart,
-  Lock,
-} from "lucide-react";
+import { Calendar, Trash2, Eye, User, Heart, Lock } from "lucide-react";
 
 interface Dataset {
   id: string;
@@ -43,6 +36,8 @@ interface Props {
     datasetName: string,
     datasetType: string
   ) => void; // Callback for view details action
+  onLike?: (datasetId: string) => void; // Callback for like action
+  showLikeOption?: boolean; // Show like option in Actions menu
 }
 
 export default function AttachedDatasets({
@@ -52,7 +47,11 @@ export default function AttachedDatasets({
   hideHeader = false,
   onDelete,
   onViewDetails,
+  onLike,
+  showLikeOption = false,
 }: Props) {
+  const { t } = useTranslation();
+
   return (
     <div>
       {!hideHeader && (
@@ -154,6 +153,21 @@ export default function AttachedDatasets({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      {showLikeOption && onLike && (
+                        <DropdownMenuItem onClick={() => onLike(dataset.id)}>
+                          <Heart
+                            className={`h-4 w-4 mr-2 ${
+                              dataset.isLiked ? "fill-red-500 text-red-500" : ""
+                            }`}
+                          />
+                          {dataset.isLiked
+                            ? t("datasets.removeFromFavorites")
+                            : t("datasets.addToFavorites")}
+                        </DropdownMenuItem>
+                      )}
+                      {showLikeOption && onLike && onDelete && (
+                        <div className="h-px bg-border my-1" />
+                      )}
                       {onDelete && (
                         <DropdownMenuItem
                           className="text-destructive"

@@ -136,7 +136,12 @@
     "loginRequiredDelete": "Musisz być zalogowany, aby usunąć dataset.",
     "deleteSuccess": "Dataset został usunięty pomyślnie.",
     "deleteError": "Błąd podczas usuwania datasetu: {{message}}",
-    "csvOnlyDetails": "Podgląd szczegółów jest dostępny tylko dla plików CSV."
+    "csvOnlyDetails": "Podgląd szczegółów jest dostępny tylko dla plików CSV.",
+    "likeSuccess": "Dataset został dodany do ulubionych!",
+    "likeError": "Błąd podczas dodawania do ulubionych.",
+    "likeLoginRequired": "Musisz być zalogowany, aby dodać dataset do ulubionych.",
+    "addToFavorites": "Dodaj do ulubionych",
+    "removeFromFavorites": "Usuń z ulubionych"
   },
   "profile": {
     "overview": "Przegląd",

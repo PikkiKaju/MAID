@@ -136,7 +136,12 @@
     "loginRequiredDelete": "You must be logged in to delete a dataset.",
     "deleteSuccess": "Dataset deleted successfully.",
     "deleteError": "Error deleting dataset: {{message}}",
-    "csvOnlyDetails": "Details preview is only available for CSV files."
+    "csvOnlyDetails": "Details preview is only available for CSV files.",
+    "likeSuccess": "Dataset added to favorites!",
+    "likeError": "Error adding to favorites.",
+    "likeLoginRequired": "You must be logged in to add dataset to favorites.",
+    "addToFavorites": "Add to favorites",
+    "removeFromFavorites": "Remove from favorites"
   },
   "profile": {
     "overview": "Overview",

@@ -88,7 +88,7 @@ export default function DatasetsListPage() {
           uploadCsv({
             file: selectedFile,
             name: formData.name,
-            columnTransform: formData.columnTransform || "convert",
+            columnTransform: formData.columnTransform || "remove",
             emptyTransform: formData.emptyTransform || "average",
             isPublic: formData.isPublic,
           })
