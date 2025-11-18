@@ -349,7 +349,7 @@ namespace backend_aspdotnet.Controllers
 
             // Find dataset by ID and check ownership
             var dataset = await _postgresDb.Datasets
-                .FirstOrDefaultAsync(d => d.Id == id && d.UserId == userId);
+                .FirstOrDefaultAsync(d => d.Id == id && (d.UserId == userId || d.IsPublic));
 
             if (dataset == null)
                 return NotFound("Dataset not found or access denied.");
