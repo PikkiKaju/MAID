@@ -9,6 +9,8 @@ export interface Project {
   lastModifiedAt: string; 
   isPublic: boolean;
   likes: number;
+  status?: number; // 0 = draft, 1 = completed, 2 = active
+  pictureUrl?: string; // URL to project image
 }
 
 export interface CreateProjectInput {
@@ -32,6 +34,7 @@ export interface ProjectDetail {
   algorithm: string;
   parameters: Record<string, any>;
   isPublic: boolean;
+  status?: number; // 0 = draft, 1 = completed, 2 = active
 }
 
 export interface ProjectMeta {
@@ -42,6 +45,7 @@ export interface ProjectMeta {
   createdAt: string;
   lastModifiedAt: string;
   isPublic: boolean;
+  status?: number; // 0 = draft, 1 = completed, 2 = active
 }
 
 export interface ApiProject {
@@ -53,6 +57,7 @@ export interface ApiProject {
     lastModifiedAt: string;
     isPublic: boolean;
     likes: number;
+    pictureUrl?: string; // URL to project image
 }
 
 export interface DisplayProject {
@@ -62,12 +67,13 @@ export interface DisplayProject {
     lastModifiedAt: string;
     isPublic: boolean;
     likes: number;
+    pictureUrl?: string; // URL to project image
 }
 
-export interface ProjectDisplay extends Project {
+export interface ProjectDisplay extends Omit<Project, 'status'> {
   title: string;
   description: string;
-  status: string;
+  status: string; // Display status as string (Draft, Running, Active)
   category: string;
   lastModified: string;
   imageUrl: string;

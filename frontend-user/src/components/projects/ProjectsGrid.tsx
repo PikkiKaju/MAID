@@ -114,7 +114,13 @@ export default function ProjectsGrid({
             />
             <div className="absolute top-3 left-3 flex gap-2">
               <Badge className={getStatusColor(project.status)}>
-                {project.status}
+                {project.status === "Draft"
+                  ? t("projects.draft")
+                  : project.status === "Completed"
+                  ? t("projects.completed")
+                  : project.status === "Active"
+                  ? t("projects.active")
+                  : project.status}
               </Badge>
               <Badge
                 variant="outline"

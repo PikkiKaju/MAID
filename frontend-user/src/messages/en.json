@@ -88,6 +88,7 @@
     "allStatus": "All Status",
     "active": "Active",
     "draft": "Draft",
+    "running": "Running",
     "completed": "Completed",
     "sortBy": "Sort by",
     "lastModified": "Modified",

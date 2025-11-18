@@ -8,6 +8,7 @@ import DatasetSelect from "./DatasetSelect";
 import AlgorithmSelect from "./AlgorithmSelect";
 import ParameterInputs from "./ParameterInputs";
 import PublicCheckbox from "./PublicCheckbox";
+import StatusSelect from "./StatusSelect";
 
 interface ProjectEditSidebarProps {
   meta: ProjectMeta;
@@ -84,6 +85,11 @@ export default function ProjectEditSidebar({
       <PublicCheckbox
         checked={!!detail.isPublic}
         onChange={(checked) => handleDetailChange({ isPublic: checked })}
+      />
+
+      <StatusSelect
+        value={detail.status}
+        onChange={(status) => handleDetailChange({ status })}
       />
 
       <DatasetSelect

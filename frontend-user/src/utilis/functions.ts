@@ -120,12 +120,51 @@ export const validateEmail = (email: string): string | null => {
 };
 
 /**
+ * Converts status number to status string
+ * @param status - Status number (0 = draft, 1 = completed, 2 = active)
+ * @returns Status string
+ */
+export const getStatusString = (status?: number): string => {
+  switch (status) {
+    case 0:
+      return "Draft";
+    case 1:
+      return "Completed";
+    case 2:
+      return "Active";
+    default:
+      return "Draft";
+  }
+};
+
+/**
+ * Converts status string to status number
+ * @param status - Status string (draft, completed, active)
+ * @returns Status number (0, 1, 2)
+ */
+export const getStatusNumber = (status: string): number => {
+  switch (status.toLowerCase()) {
+    case "draft":
+      return 0;
+    case "completed":
+      return 1;
+    case "active":
+      return 2;
+    default:
+      return 0;
+  }
+};
+
+/**
  * Gets color classes for project status badge
- * @param status - Project status
+ * @param status - Project status (string or number)
  * @returns Tailwind CSS classes for status badge
  */
-export const getProjectStatusColor = (status: string): string => {
-  switch (status) {
+export const getProjectStatusColor = (status: string | number): string => {
+  // Handle both string and number status
+  const statusStr = typeof status === "number" ? getStatusString(status) : status;
+  
+  switch (statusStr) {
     case "Active":
       return "bg-green-100 text-green-800 border-green-200";
     case "Draft":

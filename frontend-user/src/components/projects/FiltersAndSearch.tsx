@@ -47,9 +47,9 @@ export default function FiltersAndSearch({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("projects.allStatus")}</SelectItem>
-            <SelectItem value="active">{t("projects.active")}</SelectItem>
             <SelectItem value="draft">{t("projects.draft")}</SelectItem>
             <SelectItem value="completed">{t("projects.completed")}</SelectItem>
+            <SelectItem value="active">{t("projects.active")}</SelectItem>
           </SelectContent>
         </Select>
 

@@ -1,4 +1,5 @@
 import type { Project, ProjectDisplay } from "../models/project";
+import { getStatusString } from "./functions";
 
 const DEFAULT_PROJECT_IMAGE =
   "https://images.unsplash.com/photo-1653564142048-d5af2cf9b50f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkYXRhJTIwc2NpZW5jZSUyMG1hY2hpbmUlMjBsZWFybmluZ3xlbnwxfHx8fDE3NTk3NjYyMDR8MA&ixlib=rb-4.1.0&q=80&w=1080";
@@ -13,10 +14,10 @@ export const mapProjectToDisplay = (project: Project): ProjectDisplay => {
     ...project,
     title: project.name,
     description: "Opis domyślny",
-    status: "Active",
+    status: getStatusString(project.status),
     category: "ML",
     lastModified: project.lastModifiedAt,
-    imageUrl: DEFAULT_PROJECT_IMAGE,
+    imageUrl: project.pictureUrl || DEFAULT_PROJECT_IMAGE, // Use pictureUrl from API, fallback to default
   };
 };
 
@@ -41,7 +42,7 @@ export const filterAndSortProjects = (
         project.description.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus =
         statusFilter === "all" ||
-        project.status.toLowerCase() === statusFilter;
+        project.status.toLowerCase() === statusFilter.toLowerCase();
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {

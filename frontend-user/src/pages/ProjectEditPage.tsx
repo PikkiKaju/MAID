@@ -40,6 +40,7 @@ export default function ProjectEditPage() {
         setDetail({
           ...res.detail,
           isPublic: res.meta.isPublic,
+          status: res.meta.status ?? res.detail.status ?? 0, // Use status from meta or detail, default to 0 (draft)
         });
         setHasUnsavedChanges(false);
       })

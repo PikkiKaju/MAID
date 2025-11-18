@@ -1,5 +1,5 @@
 import axiosInstance from "./axiosConfig";
-import { ProjectDetail, ProjectMeta } from "../models/project";
+import { ProjectDetail } from "../models/project";
 
 export interface CalculationResult {
   prediction: number[];

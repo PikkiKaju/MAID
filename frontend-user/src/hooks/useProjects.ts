@@ -19,6 +19,7 @@ const transformApiProjectToDisplayProject = (apiProject: ApiProject): DisplayPro
         lastModifiedAt: apiProject.lastModifiedAt, 
         isPublic: apiProject.isPublic,
         likes: apiProject.likes,
+        pictureUrl: apiProject.pictureUrl,
     };
 };
 
