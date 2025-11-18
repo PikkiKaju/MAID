@@ -82,6 +82,8 @@ namespace backend_aspdotnet.Controllers
                     p.LastModifiedAt,
                     p.UserId,
                     p.IsPublic,
+                    p.PictureUrl,
+                    p.Description,
 
                     IsLiked = userId.HasValue
                         ? _context.LikesProjects.Any(lp => lp.ProjectId == p.Id && lp.UserId == userId.Value)
@@ -116,6 +118,8 @@ namespace backend_aspdotnet.Controllers
                     p.LastModifiedAt,
                     p.UserId,
                     p.IsPublic,
+                    p.PictureUrl,
+                    p.Description,
 
                     IsLiked = userId.HasValue
                         ? _context.LikesProjects.Any(lp => lp.ProjectId == p.Id && lp.UserId == userId.Value)
@@ -156,6 +160,8 @@ namespace backend_aspdotnet.Controllers
                     p.LastModifiedAt,
                     p.UserId,
                     p.IsPublic,
+                    p.PictureUrl,
+                    p.Description,
 
                     IsLiked = userId.HasValue
                         ? _context.LikesProjects.Any(lp => lp.ProjectId == p.Id && lp.UserId == userId.Value)
@@ -199,6 +205,7 @@ namespace backend_aspdotnet.Controllers
                 Id = projectId,
                 UserId = userId!,
                 Name = dto.Name,
+                Description = dto.Description ?? "",
                 PictureUrl = _context.ProjectPhotos.Skip(random.Next(count)).First().PhotoUrl ,
                 Status = ProjectStatus.Draft,
                 DatasetId = Guid.Empty,  // no dataset selected yet
