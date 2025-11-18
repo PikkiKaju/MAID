@@ -84,7 +84,8 @@ namespace backend_aspdotnet.Controllers
                     p.IsPublic,
                     p.PictureUrl,
                     p.Description,
-
+                    OwnerName = _context.Users.Where(u => u.Id == p.UserId).Select(u => u.Username).FirstOrDefault(),
+                    OwnerAvatar = _context.Users.Where(u => u.Id == p.UserId).Select(u => u.Avatar).FirstOrDefault(),
                     IsLiked = userId.HasValue
                         ? _context.LikesProjects.Any(lp => lp.ProjectId == p.Id && lp.UserId == userId.Value)
                         : false
@@ -120,7 +121,8 @@ namespace backend_aspdotnet.Controllers
                     p.IsPublic,
                     p.PictureUrl,
                     p.Description,
-
+                    OwnerName = _context.Users.Where(u => u.Id == p.UserId).Select(u => u.Username).FirstOrDefault(),
+                    OwnerAvatar = _context.Users.Where(u => u.Id == p.UserId).Select(u => u.Avatar).FirstOrDefault(),
                     IsLiked = userId.HasValue
                         ? _context.LikesProjects.Any(lp => lp.ProjectId == p.Id && lp.UserId == userId.Value)
                         : false
@@ -162,7 +164,8 @@ namespace backend_aspdotnet.Controllers
                     p.IsPublic,
                     p.PictureUrl,
                     p.Description,
-
+                    OwnerName = _context.Users.Where(u => u.Id == p.UserId).Select(u => u.Username).FirstOrDefault(),
+                    OwnerAvatar = _context.Users.Where(u => u.Id == p.UserId).Select(u => u.Avatar).FirstOrDefault(),
                     IsLiked = userId.HasValue
                         ? _context.LikesProjects.Any(lp => lp.ProjectId == p.Id && lp.UserId == userId.Value)
                         : false
