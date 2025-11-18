@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { Dataset } from "../../models/dataset";
-import { getFileIcon, getStatusColor } from "../../models/dataset";
+import { getFileIcon } from "../../models/dataset";
 import AttachedDatasets from "./AttachedDatasets";
 import { Database } from "lucide-react";
 import { fetchPublicDatasets } from "../../features/dataset/datasetThunks";
@@ -30,7 +30,6 @@ export default function PublicDatasetsSection() {
         id: dataset.id,
         name: dataset.name,
         type: fileType,
-        status: "Ready",
         uploadDate: uploadDate,
         author: dataset.username,
         likes: dataset.likes,
@@ -72,7 +71,6 @@ export default function PublicDatasetsSection() {
       <AttachedDatasets
         datasets={formattedPublicDatasets}
         getFileIcon={getFileIcon}
-        getStatusColor={getStatusColor}
         hideHeader={true}
         onLike={handleLike}
         showLikeOption={true}

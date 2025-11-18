@@ -9,7 +9,7 @@ import UploadDatasetDialog, {
 import DatasetDetailsDialog from "../components/datasets/DatasetDetailsDialog";
 import { handleDrag, handleDrop } from "../utilis/drag-and-drop";
 import { formatUploadDate } from "../utilis/functions";
-import { getFileIcon, getStatusColor } from "../models/dataset";
+import { getFileIcon } from "../models/dataset";
 import { useSelector, useDispatch } from "react-redux";
 import { AppDispatch, RootState } from "../store/store";
 import {
@@ -244,7 +244,6 @@ export default function DatasetsListPage() {
               id: dataset.id,
               name: dataset.name,
               type: fileType,
-              status: "Ready",
               uploadDate: uploadDate,
               author: dataset.username,
               likes: dataset.likes,
@@ -253,7 +252,6 @@ export default function DatasetsListPage() {
           });
         }, [userDatasets])}
         getFileIcon={getFileIcon}
-        getStatusColor={getStatusColor}
         onDelete={handleDelete}
         onViewDetails={handleViewDetails}
       />

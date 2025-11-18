@@ -1,7 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "../../ui/card";
-import { Badge } from "../../ui/badge";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -15,7 +14,6 @@ interface Dataset {
   id: string;
   name: string;
   type: string;
-  status: string;
   size?: string;
   rows?: number | string;
   uploadDate: string;
@@ -28,7 +26,6 @@ interface Dataset {
 interface Props {
   datasets: Dataset[];
   getFileIcon: (type: string) => React.ReactNode;
-  getStatusColor: (status: string) => string;
   hideHeader?: boolean; // Hide the default header
   onDelete?: (datasetId: string, datasetName: string) => void; // Callback for delete action
   onViewDetails?: (
@@ -43,7 +40,6 @@ interface Props {
 export default function AttachedDatasets({
   datasets,
   getFileIcon,
-  getStatusColor,
   hideHeader = false,
   onDelete,
   onViewDetails,
@@ -74,9 +70,6 @@ export default function AttachedDatasets({
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <h3 className="font-medium">{dataset.name}</h3>
-                      <Badge className={getStatusColor(dataset.status)}>
-                        {dataset.status}
-                      </Badge>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                       {dataset.size && dataset.size !== "N/A" && (
