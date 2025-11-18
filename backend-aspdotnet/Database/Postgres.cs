@@ -13,6 +13,8 @@ namespace backend_aspdotnet.Database
         public DbSet<LikeDatasets> LikesDatasets { get; set; }
         public DbSet<Avatars> Avatars { get; set; }
 
+        public DbSet<ProjectPhotos> ProjectPhotos { get; set; }
+
 
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
