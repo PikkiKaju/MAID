@@ -27,6 +27,7 @@ import { LanguageSwitcher } from "./language/LanguageSwitcher";
 import { cn } from "../utilis/tailwind";
 import { useEffect, useState } from "react";
 import { profileService } from "../api/profileService";
+import { isSvgAvatar } from "../utilis/functions";
 
 export default function Header() {
   const { t } = useTranslation();
@@ -82,16 +83,6 @@ export default function Header() {
       console.error("Error loading profile avatar for header:", err);
       setProfileAvatar(null);
     }
-  };
-
-  // Funkcja pomocnicza do sprawdzania, czy avatar to SVG
-  const isSvgAvatar = (avatar: string | null): boolean => {
-    if (!avatar) return false;
-    const trimmed = avatar.trim();
-    return (
-      trimmed.startsWith("<svg") ||
-      (trimmed.startsWith("<?xml") && trimmed.includes("<svg"))
-    );
   };
 
   return (

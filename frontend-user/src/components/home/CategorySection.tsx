@@ -12,6 +12,8 @@ export interface Project {
   createdAt: string;
   category: string;
   imageUrl: string;
+  ownerAvatar?: string;
+  isLiked?: boolean;
 }
 
 export interface ProjectListProps {

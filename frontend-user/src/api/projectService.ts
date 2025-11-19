@@ -76,5 +76,18 @@ export const projectService = {
     );
     return response.data;
   },
+
+  likeProject: async (projectId: string, userId: string, token: string): Promise<void> => {
+    await axiosInstance.put(
+      `/Project/${projectId}/like`,
+      JSON.stringify(userId),
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  },
 };
 

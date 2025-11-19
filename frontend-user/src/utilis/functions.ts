@@ -175,3 +175,63 @@ export const getProjectStatusColor = (status: string | number): string => {
       return "bg-gray-100 text-gray-800 border-gray-200";
   }
 };
+
+/**
+ * Checks if avatar string is an SVG
+ * @param avatar - Avatar string to check
+ * @returns True if avatar is SVG, false otherwise
+ */
+export const isSvgAvatar = (avatar: string | null | undefined): boolean => {
+  if (!avatar) return false;
+  const trimmed = avatar.trim();
+  return (
+    trimmed.startsWith("<svg") ||
+    (trimmed.startsWith("<?xml") && trimmed.includes("<svg"))
+  );
+};
+
+/**
+ * Formats project creation date
+ * For dates within a week: "wczoraj", "2 dni temu", "tydzień temu"
+ * For dates older than a week: formatted as "DD-MM-YYYY"
+ * @param dateString - Date string to format
+ * @returns Formatted date string
+ */
+export const formatProjectDate = (dateString: string | undefined): string => {
+  if (!dateString) return 'Brak daty';
+  
+  try {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+    // For dates within a week (0-7 days)
+    if (diffInDays === 0) {
+      return "dzisiaj";
+    } else if (diffInDays === 1) {
+      return "wczoraj";
+    } else if (diffInDays === 2) {
+      return "2 dni temu";
+    } else if (diffInDays === 3) {
+      return "3 dni temu";
+    } else if (diffInDays === 4) {
+      return "4 dni temu";
+    } else if (diffInDays === 5) {
+      return "5 dni temu";
+    } else if (diffInDays === 6) {
+      return "6 dni temu";
+    } else if (diffInDays === 7) {
+      return "tydzień temu";
+    } else {
+      // For dates older than a week: format as DD-MM-YYYY
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
+    }
+  } catch (e) {
+    console.error("Błąd formatowania daty projektu:", e);
+    return dateString;
+  }
+};

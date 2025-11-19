@@ -1,10 +1,12 @@
 import { Calendar, User, Heart } from "lucide-react";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader } from "../../ui/card";
 import { Button } from "../../ui/button";
 import { Badge } from "../../ui/badge";
 import { ImageWithFallback } from "../image/ImageWithFallback";
+import { Avatar, AvatarImage, AvatarFallback } from "../../ui/avatar";
+import { formatProjectDate, isSvgAvatar } from "../../utilis/functions";
 
 interface ProjectCardProps {
   id: string;
@@ -14,6 +16,7 @@ interface ProjectCardProps {
   createdAt: string;
   category: string;
   imageUrl: string;
+  ownerAvatar?: string;
   isFavorited?: boolean;
   onFavoriteToggle?: (id: string) => void;
 }
@@ -26,13 +29,20 @@ export function ProjectCard({
   createdAt,
   category,
   imageUrl,
+  ownerAvatar,
   isFavorited = false,
   onFavoriteToggle,
 }: ProjectCardProps) {
   const [favorited, setFavorited] = useState(isFavorited);
 
+  // Synchronize local state with prop changes
+  useEffect(() => {
+    setFavorited(isFavorited);
+  }, [isFavorited]);
+
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    // Optimistically update UI
     setFavorited(!favorited);
     onFavoriteToggle?.(id);
   };
@@ -76,13 +86,31 @@ export function ProjectCard({
         </p>
 
         <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <User className="h-3 w-3" />
+          <div className="flex items-center gap-2">
+            {ownerAvatar ? (
+              <div className="h-5 w-5 rounded-full overflow-hidden flex items-center justify-center bg-muted shrink-0">
+                {isSvgAvatar(ownerAvatar) ? (
+                  <div
+                    className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:object-contain"
+                    dangerouslySetInnerHTML={{ __html: ownerAvatar }}
+                  />
+                ) : (
+                  <Avatar className="h-5 w-5">
+                    <AvatarImage src={ownerAvatar} className="object-cover" />
+                    <AvatarFallback className="h-5 w-5">
+                      <User className="h-3 w-3" />
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+              </div>
+            ) : (
+              <User className="h-3 w-3" />
+            )}
             <span>{author}</span>
           </div>
           <div className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
-            <span>{createdAt}</span>
+            <span>{formatProjectDate(createdAt)}</span>
           </div>
         </div>
       </CardContent>

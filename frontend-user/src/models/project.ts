@@ -58,6 +58,10 @@ export interface ApiProject {
     isPublic: boolean;
     likes: number;
     pictureUrl?: string; // URL to project image
+    description?: string;
+    ownerName?: string;
+    ownerAvatar?: string;
+    isLiked?: boolean;
 }
 
 export interface DisplayProject {
@@ -68,6 +72,10 @@ export interface DisplayProject {
     isPublic: boolean;
     likes: number;
     pictureUrl?: string; // URL to project image
+    description?: string;
+    ownerName?: string;
+    ownerAvatar?: string;
+    isLiked?: boolean;
 }
 
 export interface ProjectDisplay extends Omit<Project, 'status'> {

@@ -1,6 +1,7 @@
 import { Calendar, User, Mail } from "lucide-react";
 import { Card, CardContent } from "../../ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "../../ui/avatar";
+import { isSvgAvatar } from "../../utilis/functions";
 
 type ProfileOverviewProps = {
   avatarUrl: string;
@@ -19,16 +20,6 @@ export function ProfileOverview({
   email,
   joined,
 }: ProfileOverviewProps) {
-  // Funkcja pomocnicza do sprawdzania, czy avatar to SVG
-  const isSvgAvatar = (avatar: string | null | undefined): boolean => {
-    if (!avatar) return false;
-    const trimmed = avatar.trim();
-    return (
-      trimmed.startsWith("<svg") ||
-      (trimmed.startsWith("<?xml") && trimmed.includes("<svg"))
-    );
-  };
-
   return (
     <Card>
       <CardContent className="pt-6">

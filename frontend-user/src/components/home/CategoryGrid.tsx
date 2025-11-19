@@ -9,6 +9,8 @@ export interface Project {
   createdAt: string;
   category: string;
   imageUrl: string;
+  ownerAvatar?: string;
+  isLiked?: boolean;
 }
 
 interface Props {
@@ -28,7 +30,7 @@ const CategoryGrid: React.FC<Props> = ({
         <ProjectCard
           key={project.id}
           {...project}
-          isFavorited={favorites.has(project.id)}
+          isFavorited={project.isLiked === true}
           onFavoriteToggle={handleFavoriteToggle}
         />
       ))}

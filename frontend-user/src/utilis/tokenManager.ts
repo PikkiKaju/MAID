@@ -131,3 +131,30 @@ export const getExpiryFromJWT = (token: string): number | null => {
   }
 };
 
+/**
+ * Dekoduje JWT token, aby uzyskać user ID z claimów
+ * @param token - Token JWT
+ * @returns User ID (NameIdentifier) lub null
+ */
+export const getUserIdFromToken = (token: string): string | null => {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      return null;
+    }
+    
+    const payload = parts[1];
+    const decoded = JSON.parse(atob(payload));
+    
+    // ClaimTypes.NameIdentifier w .NET odpowiada 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'
+    // lub może być zapisany jako 'nameid' lub 'sub'
+    return decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] 
+      || decoded.nameid 
+      || decoded.sub 
+      || null;
+  } catch (error) {
+    console.error('Błąd dekodowania JWT:', error);
+    return null;
+  }
+};
+
