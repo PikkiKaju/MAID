@@ -68,6 +68,7 @@
     "favoriteProjects": "Ulubione Projekty",
     "favoriteDatasets": "Ulubione Datasety",
     "categories": "Kategorie",
+    "allProjects": "Wszystkie Projekty",
     "searchResults": "Wyniki wyszukiwania",
     "noResults": "Brak wyników",
     "viewAll": "Zobacz wszystkie"
@@ -111,7 +112,11 @@
     "deleteConfirm": "Czy na pewno chcesz usunąć ten projekt?",
     "deleteConfirmDescription": "Czy na pewno chcesz usunąć \"{{name}}\"? Ta operacja jest nieodwracalna i trwale usunie wszystkie dane projektu, w tym zbiory danych i konfiguracje.",
     "public": "Publiczny",
-    "private": "Prywatny"
+    "private": "Prywatny",
+    "likeSuccess": "Projekt został dodany do ulubionych!",
+    "unlikeSuccess": "Projekt został usunięty z ulubionych.",
+    "likeError": "Błąd podczas dodawania projektu do ulubionych.",
+    "likeLoginRequired": "Musisz być zalogowany, aby dodać projekt do ulubionych."
   },
   "datasets": {
     "title": "Zbiory danych",

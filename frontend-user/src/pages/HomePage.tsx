@@ -85,7 +85,7 @@ export default function HomePage() {
 
   const handleFavoriteToggle = async (projectId: string) => {
     if (!isLoggedIn || !token) {
-      showError(t("datasets.likeLoginRequired"));
+      showError(t("projects.likeLoginRequired"));
       return;
     }
 
@@ -95,14 +95,24 @@ export default function HomePage() {
       return;
     }
 
+    // Check if project is currently liked before toggling
+    const currentProject = allProjects.find((p) => p.id === projectId);
+    const wasLiked = currentProject?.isLiked === true;
+
     try {
       await dispatch(likeProject({ projectId, userId })).unwrap();
       // Refresh projects to update like status
       refetch();
-      showSuccess(t("datasets.likeSuccess"));
+
+      // Show appropriate message based on previous state
+      if (wasLiked) {
+        showSuccess(t("projects.unlikeSuccess"));
+      } else {
+        showSuccess(t("projects.likeSuccess"));
+      }
     } catch (err: any) {
       console.error("Error liking project:", err);
-      showError(err || t("datasets.likeError"));
+      showError(err || t("projects.likeError"));
     }
   };
 
