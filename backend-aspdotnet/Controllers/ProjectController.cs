@@ -82,7 +82,10 @@ namespace backend_aspdotnet.Controllers
                     p.LastModifiedAt,
                     p.UserId,
                     p.IsPublic,
-
+                    p.PictureUrl,
+                    p.Description,
+                    OwnerName = _context.Users.Where(u => u.Id == p.UserId).Select(u => u.Username).FirstOrDefault(),
+                    OwnerAvatar = _context.Users.Where(u => u.Id == p.UserId).Select(u => u.Avatar).FirstOrDefault(),
                     IsLiked = userId.HasValue
                         ? _context.LikesProjects.Any(lp => lp.ProjectId == p.Id && lp.UserId == userId.Value)
                         : false
@@ -116,7 +119,10 @@ namespace backend_aspdotnet.Controllers
                     p.LastModifiedAt,
                     p.UserId,
                     p.IsPublic,
-
+                    p.PictureUrl,
+                    p.Description,
+                    OwnerName = _context.Users.Where(u => u.Id == p.UserId).Select(u => u.Username).FirstOrDefault(),
+                    OwnerAvatar = _context.Users.Where(u => u.Id == p.UserId).Select(u => u.Avatar).FirstOrDefault(),
                     IsLiked = userId.HasValue
                         ? _context.LikesProjects.Any(lp => lp.ProjectId == p.Id && lp.UserId == userId.Value)
                         : false
@@ -156,7 +162,10 @@ namespace backend_aspdotnet.Controllers
                     p.LastModifiedAt,
                     p.UserId,
                     p.IsPublic,
-
+                    p.PictureUrl,
+                    p.Description,
+                    OwnerName = _context.Users.Where(u => u.Id == p.UserId).Select(u => u.Username).FirstOrDefault(),
+                    OwnerAvatar = _context.Users.Where(u => u.Id == p.UserId).Select(u => u.Avatar).FirstOrDefault(),
                     IsLiked = userId.HasValue
                         ? _context.LikesProjects.Any(lp => lp.ProjectId == p.Id && lp.UserId == userId.Value)
                         : false
@@ -199,6 +208,7 @@ namespace backend_aspdotnet.Controllers
                 Id = projectId,
                 UserId = userId!,
                 Name = dto.Name,
+                Description = dto.Description ?? "",
                 PictureUrl = _context.ProjectPhotos.Skip(random.Next(count)).First().PhotoUrl ,
                 Status = ProjectStatus.Draft,
                 DatasetId = Guid.Empty,  // no dataset selected yet
