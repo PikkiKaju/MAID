@@ -95,7 +95,7 @@ export default function ProjectsGrid({
   const navigate = useNavigate();
 
   const handleProjectClick = (projectId: string) => {
-    navigate(`/projects/${projectId}`);
+    navigate(`/projects/${projectId}`, { state: { from: "/projects" } });
   };
 
   return (

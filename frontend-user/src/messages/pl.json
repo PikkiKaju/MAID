@@ -123,7 +123,8 @@
     "likeSuccess": "Projekt został dodany do ulubionych!",
     "unlikeSuccess": "Projekt został usunięty z ulubionych.",
     "likeError": "Błąd podczas dodawania projektu do ulubionych.",
-    "likeLoginRequired": "Musisz być zalogowany, aby dodać projekt do ulubionych."
+    "likeLoginRequired": "Musisz być zalogowany, aby dodać projekt do ulubionych.",
+    "viewLoginRequired": "Musisz być zalogowany, aby zobaczyć szczegóły projektu."
   },
   "datasets": {
     "title": "Zbiory danych",

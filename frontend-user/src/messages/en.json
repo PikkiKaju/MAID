@@ -123,7 +123,8 @@
     "likeSuccess": "Project added to favorites!",
     "unlikeSuccess": "Project removed from favorites.",
     "likeError": "Error adding project to favorites.",
-    "likeLoginRequired": "You must be logged in to add project to favorites."
+    "likeLoginRequired": "You must be logged in to add project to favorites.",
+    "viewLoginRequired": "You must be logged in to view project details."
   },
   "datasets": {
     "title": "Datasets",

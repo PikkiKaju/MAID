@@ -1,11 +1,16 @@
 import { Calendar, User, Heart } from "lucide-react";
 
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { RootState } from "../../store/store";
 import { Card, CardContent, CardHeader } from "../../ui/card";
 import { Button } from "../../ui/button";
 import { ImageWithFallback } from "../image/ImageWithFallback";
 import { Avatar, AvatarImage, AvatarFallback } from "../../ui/avatar";
 import { formatProjectDate, isSvgAvatar } from "../../utilis/functions";
+import { useToast } from "../toast/ToastProvider";
+import { useTranslation } from "react-i18next";
 
 interface ProjectCardProps {
   id: string;
@@ -32,6 +37,10 @@ export function ProjectCard({
   onFavoriteToggle,
 }: ProjectCardProps) {
   const [favorited, setFavorited] = useState(isFavorited);
+  const navigate = useNavigate();
+  const isLoggedIn = useSelector((state: RootState) => state.auth.isLoggedIn);
+  const { showError } = useToast();
+  const { t } = useTranslation();
 
   // Synchronize local state with prop changes
   useEffect(() => {
@@ -45,8 +54,22 @@ export function ProjectCard({
     onFavoriteToggle?.(id);
   };
 
+  const handleCardClick = () => {
+    if (!isLoggedIn) {
+      showError(
+        t("projects.viewLoginRequired") ||
+          "Musisz być zalogowany, aby zobaczyć szczegóły projektu."
+      );
+      return;
+    }
+    navigate(`/projects/${id}`, { state: { from: "/" } });
+  };
+
   return (
-    <Card className="group hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden h-full flex flex-col">
+    <Card
+      className="group hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden h-full flex flex-col"
+      onClick={handleCardClick}
+    >
       <div className="relative">
         <ImageWithFallback
           src={imageUrl}

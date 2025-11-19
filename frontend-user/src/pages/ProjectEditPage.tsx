@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 import { ProjectDetail, ProjectMeta } from "../models/project";
@@ -13,6 +13,7 @@ import "../styles/Loader.css";
 
 export default function ProjectEditPage() {
   const { id } = useParams();
+  const location = useLocation();
   const [meta, setMeta] = useState<ProjectMeta | null>(null);
   const [detail, setDetail] = useState<ProjectDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,6 +29,9 @@ export default function ProjectEditPage() {
   const navigate = useNavigate();
   const token = useSelector((state: RootState) => state.auth.token);
   const { showSuccess, showError } = useToast();
+
+  // Get the source page from location state, default to "/" if not provided
+  const fromPage = (location.state as { from?: string })?.from || "/";
 
   // Load project data
   useEffect(() => {
@@ -185,6 +189,7 @@ export default function ProjectEditPage() {
         onDetailChange={setDetail}
         onDatasetChange={handleDatasetChange}
         onHasUnsavedChanges={() => setHasUnsavedChanges(true)}
+        fromPage={fromPage}
       />
 
       <div className="flex-1 p-6 relative bg-background text-foreground overflow-y-auto">

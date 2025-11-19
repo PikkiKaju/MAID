@@ -79,7 +79,7 @@ function ProjectsPage() {
         setProjectName("");
         setProjectDescription("");
         setIsModalOpen(false);
-        navigate(`/projects/${result.id}`);
+        navigate(`/projects/${result.id}`, { state: { from: "/projects" } });
       } catch (err) {
         console.error("Błąd tworzenia projektu:", err);
       }

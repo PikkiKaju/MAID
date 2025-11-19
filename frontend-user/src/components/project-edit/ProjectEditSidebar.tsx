@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "../../ui/button";
 import { ProjectDetail, ProjectMeta } from "../../models/project";
@@ -20,6 +20,7 @@ interface ProjectEditSidebarProps {
   onDetailChange: (detail: ProjectDetail) => void;
   onDatasetChange: (value: string) => void;
   onHasUnsavedChanges: () => void;
+  fromPage?: string;
 }
 
 export default function ProjectEditSidebar({
@@ -32,23 +33,26 @@ export default function ProjectEditSidebar({
   onDetailChange,
   onDatasetChange,
   onHasUnsavedChanges,
+  fromPage = "/",
 }: ProjectEditSidebarProps) {
-  const navigate = useNavigate();
-
   const handleDetailChange = (updates: Partial<ProjectDetail>) => {
     onDetailChange({ ...detail, ...updates });
     onHasUnsavedChanges();
   };
 
+  const backPath = fromPage === "/projects" ? "/projects" : "/";
+  const backLabel =
+    fromPage === "/projects"
+      ? "Powrót do projektów"
+      : "Powrót do strony głównej";
+
   return (
     <div className="w-80 bg-card text-card-foreground p-6 shadow-md overflow-y-auto">
-      <Button
-        variant="ghost"
-        onClick={() => navigate("/projects")}
-        className="mb-4 flex items-center gap-2"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Powrót do projektów
+      <Button variant="ghost" asChild className="mb-4 flex items-center gap-2">
+        <Link to={backPath}>
+          <ArrowLeft className="h-4 w-4" />
+          {backLabel}
+        </Link>
       </Button>
       <h2 className="text-xl font-bold mb-6 text-foreground">
         Nazwa Projektu: {meta.name}
