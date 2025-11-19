@@ -48,7 +48,7 @@ export const CategorySection: React.FC<ProjectListProps> = ({
   }, [projects.length, currentPage, totalPages]);
 
   return (
-    <section>
+    <section id="all-projects-section">
       <div className="flex items-center gap-2 mb-6">
         <FolderKanban className="h-5 w-5 text-primary" />
         <h2 className="text-xl font-semibold">{t("home.allProjects")}</h2>

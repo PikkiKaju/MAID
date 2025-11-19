@@ -42,6 +42,13 @@ const RecentSection: React.FC<Props> = ({
     carouselRef.current?.goToNext();
   };
 
+  const handleViewAll = () => {
+    const allProjectsSection = document.getElementById("all-projects-section");
+    if (allProjectsSection) {
+      allProjectsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
     <section>
       <div className="flex items-center justify-between mb-6">
@@ -50,7 +57,7 @@ const RecentSection: React.FC<Props> = ({
           <h2 className="text-xl font-semibold">{t("home.recentProjects")}</h2>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" onClick={handleViewAll}>
             {t("home.viewAll")}
           </Button>
           {projects.length > 3 && (

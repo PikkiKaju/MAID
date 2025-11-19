@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import CategoryGrid from "./CategoryGrid";
 import { Star } from "lucide-react";
 import { Badge } from "../../ui/badge";
-import { Button } from "../../ui/button";
 import { Project } from "./CategorySection";
 import { Pagination } from "../../ui/pagination";
 
@@ -54,9 +53,6 @@ const FavoritesSection: React.FC<Props> = ({
             {count}
           </Badge>
         </div>
-        <Button variant="ghost" size="sm">
-          {t("home.viewAll")}
-        </Button>
       </div>
 
       <CategoryGrid
