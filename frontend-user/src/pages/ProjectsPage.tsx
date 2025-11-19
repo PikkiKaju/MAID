@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
+import { Pagination } from "../ui/pagination";
 import CreateProjectWindow from "../components/projects/CreateProjectWindow";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../store/store";
@@ -38,6 +39,8 @@ function ProjectsPage() {
     open: false,
     project: null,
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   // Map projects to display format
   const projectsData = useMemo(
@@ -121,6 +124,22 @@ function ProjectsPage() {
     [projectsData, filters.searchTerm, filters.statusFilter, filters.sortBy]
   );
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedProjects = useMemo(
+    () => filteredProjects.slice(startIndex, endIndex),
+    [filteredProjects, startIndex, endIndex]
+  );
+
+  // Reset to page 1 when filtered projects change
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [filteredProjects.length, currentPage, totalPages]);
+
   return (
     <div className="space-y-6">
       <HeaderProfile onNewProject={() => setIsModalOpen(true)} />
@@ -144,14 +163,23 @@ function ProjectsPage() {
       />
 
       {filteredProjects.length > 0 ? (
-        <ProjectsGrid
-          projects={filteredProjects}
-          getStatusColor={getProjectStatusColor}
-          onToggleVisibility={handleVisibilityToggle}
-          onDeleteRequest={(project) =>
-            setDeleteDialog({ open: true, project })
-          }
-        />
+        <>
+          <ProjectsGrid
+            projects={paginatedProjects}
+            getStatusColor={getProjectStatusColor}
+            onToggleVisibility={handleVisibilityToggle}
+            onDeleteRequest={(project) =>
+              setDeleteDialog({ open: true, project })
+            }
+          />
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={filteredProjects.length}
+          />
+        </>
       ) : (
         <EmptyState
           searchTerm={filters.searchTerm}

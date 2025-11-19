@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { Dataset } from "../../models/dataset";
 import { getFileIcon } from "../../models/dataset";
@@ -12,6 +12,7 @@ import { RootState } from "../../store/store";
 import { formatUploadDate } from "../../utilis/functions";
 import { useTranslation } from "react-i18next";
 import DatasetDetailsDialog from "./DatasetDetailsDialog";
+import { Pagination } from "../../ui/pagination";
 
 export default function PublicDatasetsSection() {
   const { t } = useTranslation();
@@ -28,6 +29,8 @@ export default function PublicDatasetsSection() {
     type: string;
   } | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 7;
 
   const formattedPublicDatasets = useMemo(() => {
     return publicDatasets.map((dataset: Dataset) => {
@@ -89,6 +92,19 @@ export default function PublicDatasetsSection() {
     }
   };
 
+  // Pagination logic
+  const totalPages = Math.ceil(formattedPublicDatasets.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedDatasets = formattedPublicDatasets.slice(startIndex, endIndex);
+
+  // Reset to page 1 when datasets change
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [formattedPublicDatasets.length, currentPage, totalPages]);
+
   if (formattedPublicDatasets.length === 0) {
     return null;
   }
@@ -102,12 +118,19 @@ export default function PublicDatasetsSection() {
         </div>
       </div>
       <AttachedDatasets
-        datasets={formattedPublicDatasets}
+        datasets={paginatedDatasets}
         getFileIcon={getFileIcon}
         hideHeader={true}
         onLike={handleLike}
         showLikeOption={true}
         onViewDetails={handleViewDetails}
+      />
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        itemsPerPage={itemsPerPage}
+        totalItems={formattedPublicDatasets.length}
       />
 
       {/* Dataset Details Dialog */}

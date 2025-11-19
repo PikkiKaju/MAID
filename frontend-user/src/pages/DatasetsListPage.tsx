@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { Pagination } from "../ui/pagination";
 import AttachedDatasets from "../components/datasets/AttachedDatasets";
 import Tips from "../components/datasets/Tips";
 import UploadArea from "../components/datasets/UploadArea";
@@ -35,6 +36,8 @@ export default function DatasetsListPage() {
     name: string;
     type: string;
   } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   // Validate file extension and pass only matches files that are .csv or .zip
   const validateFile = (
@@ -140,6 +143,40 @@ export default function DatasetsListPage() {
     }
   }, [dispatch, token]);
 
+  // Format datasets
+  const formattedDatasets = useMemo(() => {
+    return userDatasets.map((dataset) => {
+      // Determine file type (0 = CSV, 1 = ZIP)
+      const fileType = dataset.dataType === 0 ? "CSV" : "ZIP";
+
+      // Format date
+      const uploadDate = formatUploadDate(dataset.createdAt);
+
+      return {
+        id: dataset.id,
+        name: dataset.name,
+        type: fileType,
+        uploadDate: uploadDate,
+        author: dataset.username,
+        likes: dataset.likes,
+        isPublic: dataset.isPublic,
+      };
+    });
+  }, [userDatasets]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(formattedDatasets.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedDatasets = formattedDatasets.slice(startIndex, endIndex);
+
+  // Reset to page 1 when datasets change
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [formattedDatasets.length, currentPage, totalPages]);
+
   // Handle delete dataset from database and refresh datasets in Redux store after successful delete
   const handleDelete = async (id: string) => {
     if (!token) {
@@ -232,28 +269,17 @@ export default function DatasetsListPage() {
 
       {/* Attached Datasets - My Datasets */}
       <AttachedDatasets
-        datasets={useMemo(() => {
-          return userDatasets.map((dataset) => {
-            // Determine file type (0 = CSV, 1 = ZIP)
-            const fileType = dataset.dataType === 0 ? "CSV" : "ZIP";
-
-            // Format date
-            const uploadDate = formatUploadDate(dataset.createdAt);
-
-            return {
-              id: dataset.id,
-              name: dataset.name,
-              type: fileType,
-              uploadDate: uploadDate,
-              author: dataset.username,
-              likes: dataset.likes,
-              isPublic: dataset.isPublic,
-            };
-          });
-        }, [userDatasets])}
+        datasets={paginatedDatasets}
         getFileIcon={getFileIcon}
         onDelete={handleDelete}
         onViewDetails={handleViewDetails}
+      />
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        itemsPerPage={itemsPerPage}
+        totalItems={formattedDatasets.length}
       />
 
       {/* Dataset Details Dialog */}

@@ -1,6 +1,8 @@
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { FolderKanban } from "lucide-react";
 import CategoryGrid from "./CategoryGrid";
+import { Pagination } from "../../ui/pagination";
 
 export interface Project {
   id: string;
@@ -26,6 +28,24 @@ export const CategorySection: React.FC<ProjectListProps> = ({
   handleFavoriteToggle,
 }) => {
   const { t } = useTranslation();
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 9;
+
+  // Pagination logic
+  const totalPages = Math.ceil(projects.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedProjects = useMemo(
+    () => projects.slice(startIndex, endIndex),
+    [projects, startIndex, endIndex]
+  );
+
+  // Reset to page 1 when projects change
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [projects.length, currentPage, totalPages]);
 
   return (
     <section>
@@ -35,9 +55,16 @@ export const CategorySection: React.FC<ProjectListProps> = ({
       </div>
 
       <CategoryGrid
-        projects={projects}
+        projects={paginatedProjects}
         favorites={favorites}
         handleFavoriteToggle={handleFavoriteToggle}
+      />
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        itemsPerPage={itemsPerPage}
+        totalItems={projects.length}
       />
     </section>
   );

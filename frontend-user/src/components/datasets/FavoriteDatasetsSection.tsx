@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { Dataset } from "../../models/dataset";
 import { getFileIcon } from "../../models/dataset";
@@ -14,6 +14,7 @@ import { RootState } from "../../store/store";
 import { formatUploadDate } from "../../utilis/functions";
 import { useTranslation } from "react-i18next";
 import DatasetDetailsDialog from "./DatasetDetailsDialog";
+import { Pagination } from "../../ui/pagination";
 
 export default function FavoriteDatasetsSection() {
   const { t } = useTranslation();
@@ -30,6 +31,8 @@ export default function FavoriteDatasetsSection() {
     type: string;
   } | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 3;
 
   // Filter only liked datasets
   const favoriteDatasets = useMemo(() => {
@@ -98,6 +101,22 @@ export default function FavoriteDatasetsSection() {
     }
   };
 
+  // Pagination logic
+  const totalPages = Math.ceil(formattedFavoriteDatasets.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedDatasets = formattedFavoriteDatasets.slice(
+    startIndex,
+    endIndex
+  );
+
+  // Reset to page 1 when datasets change
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [formattedFavoriteDatasets.length, currentPage, totalPages]);
+
   // Don't show section if no favorite datasets
   if (formattedFavoriteDatasets.length === 0) {
     return null;
@@ -126,12 +145,19 @@ export default function FavoriteDatasetsSection() {
       </div>
 
       <AttachedDatasets
-        datasets={formattedFavoriteDatasets}
+        datasets={paginatedDatasets}
         getFileIcon={getFileIcon}
         hideHeader={true}
         onLike={handleLike}
         showLikeOption={true}
         onViewDetails={handleViewDetails}
+      />
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        itemsPerPage={itemsPerPage}
+        totalItems={formattedFavoriteDatasets.length}
       />
 
       {/* Dataset Details Dialog */}

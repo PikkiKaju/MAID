@@ -17,7 +17,9 @@
     "error": "Error",
     "success": "Success",
     "confirm": "Confirm",
-    "back": "Back"
+    "back": "Back",
+    "showing": "Showing",
+    "of": "of"
   },
   "header": {
     "searchPlaceholder": "Search projects, data...",

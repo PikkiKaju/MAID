@@ -17,7 +17,9 @@
     "error": "Błąd",
     "success": "Sukces",
     "confirm": "Potwierdź",
-    "back": "Wstecz"
+    "back": "Wstecz",
+    "showing": "Wyświetlanie",
+    "of": "z"
   },
   "header": {
     "searchPlaceholder": "Szukaj projektów, danych...",
