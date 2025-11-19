@@ -15,7 +15,7 @@ export const mapProjectToDisplay = (project: Project): ProjectDisplay => {
     title: project.name,
     description: project.description || "",
     status: getStatusString(project.status),
-    category: "ML",
+    category: undefined,
     lastModified: project.lastModifiedAt,
     imageUrl: project.pictureUrl || DEFAULT_PROJECT_IMAGE, // Use pictureUrl from API, fallback to default
   };

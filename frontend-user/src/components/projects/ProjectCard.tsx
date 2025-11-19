@@ -3,7 +3,6 @@ import { Calendar, User, Heart } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader } from "../../ui/card";
 import { Button } from "../../ui/button";
-import { Badge } from "../../ui/badge";
 import { ImageWithFallback } from "../image/ImageWithFallback";
 import { Avatar, AvatarImage, AvatarFallback } from "../../ui/avatar";
 import { formatProjectDate, isSvgAvatar } from "../../utilis/functions";
@@ -14,7 +13,7 @@ interface ProjectCardProps {
   description: string;
   author: string;
   createdAt: string;
-  category: string;
+  category?: string;
   imageUrl: string;
   ownerAvatar?: string;
   isFavorited?: boolean;
@@ -27,7 +26,6 @@ export function ProjectCard({
   description,
   author,
   createdAt,
-  category,
   imageUrl,
   ownerAvatar,
   isFavorited = false,
@@ -70,14 +68,9 @@ export function ProjectCard({
       </div>
 
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="font-semibold line-clamp-2 group-hover:text-primary transition-colors">
-            {title}
-          </h3>
-          <Badge variant="secondary" className="shrink-0">
-            {category}
-          </Badge>
-        </div>
+        <h3 className="font-semibold line-clamp-2 group-hover:text-primary transition-colors">
+          {title}
+        </h3>
       </CardHeader>
 
       <CardContent className="pt-0 flex-1 flex flex-col">

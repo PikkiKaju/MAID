@@ -3,9 +3,8 @@ import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { Dataset } from "../../models/dataset";
 import { getFileIcon } from "../../models/dataset";
 import AttachedDatasets from "./AttachedDatasets";
-import { Star } from "lucide-react";
+import { Star, Loader2 } from "lucide-react";
 import { Badge } from "../../ui/badge";
-import { Button } from "../../ui/button";
 import { fetchPublicDatasets } from "../../features/dataset/datasetThunks";
 import { datasetService } from "../../api/datasetService";
 import { useToast } from "../toast/ToastProvider";
@@ -25,6 +24,8 @@ export default function FavoriteDatasetsSection() {
   const publicDatasets = useAppSelector(
     (state) => state.dataset.publicDatasets
   );
+  const publicStatus = useAppSelector((state) => state.dataset.publicStatus);
+  const isLoading = publicStatus === "loading";
   const [selectedDataset, setSelectedDataset] = useState<{
     id: string;
     name: string;
@@ -139,26 +140,31 @@ export default function FavoriteDatasetsSection() {
             {count}
           </Badge>
         </div>
-        <Button variant="ghost" size="sm">
-          {t("home.viewAll")}
-        </Button>
       </div>
 
-      <AttachedDatasets
-        datasets={paginatedDatasets}
-        getFileIcon={getFileIcon}
-        hideHeader={true}
-        onLike={handleLike}
-        showLikeOption={true}
-        onViewDetails={handleViewDetails}
-      />
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-        itemsPerPage={itemsPerPage}
-        totalItems={formattedFavoriteDatasets.length}
-      />
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <>
+          <AttachedDatasets
+            datasets={paginatedDatasets}
+            getFileIcon={getFileIcon}
+            hideHeader={true}
+            onLike={handleLike}
+            showLikeOption={true}
+            onViewDetails={handleViewDetails}
+          />
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={formattedFavoriteDatasets.length}
+          />
+        </>
+      )}
 
       {/* Dataset Details Dialog */}
       {selectedDataset && token && (

@@ -73,7 +73,7 @@ interface ProjectItem {
   imageUrl: string;
   status: string;
   isPublic: boolean;
-  category: string;
+  category?: string;
   lastModified: string;
   createdAt: string;
 }
@@ -208,9 +208,6 @@ export default function ProjectsGrid({
             <h3 className="font-semibold line-clamp-1 group-hover:text-primary transition-colors">
               {project.title}
             </h3>
-            <Badge variant="outline" className="w-fit">
-              {project.category}
-            </Badge>
           </CardHeader>
 
           <CardContent className="pt-0">

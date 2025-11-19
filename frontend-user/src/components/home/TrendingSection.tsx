@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import ProjectsCarousel, { ProjectsCarouselRef } from "./ProjectsCarousel";
-import { TrendingUp, ChevronLeft, ChevronRight } from "lucide-react";
+import { TrendingUp, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Project } from "./CategorySection";
 
@@ -9,12 +9,14 @@ interface Props {
   projects: Project[];
   favorites: Set<string>;
   handleFavoriteToggle: (id: string) => void;
+  loading?: boolean;
 }
 
 const TrendingSection: React.FC<Props> = ({
   projects,
   favorites,
   handleFavoriteToggle,
+  loading = false,
 }) => {
   const { t } = useTranslation();
   const carouselRef = useRef<ProjectsCarouselRef>(null);
@@ -86,12 +88,18 @@ const TrendingSection: React.FC<Props> = ({
         </div>
       </div>
 
-      <ProjectsCarousel
-        ref={carouselRef}
-        projects={projects}
-        favorites={favorites}
-        handleFavoriteToggle={handleFavoriteToggle}
-      />
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <ProjectsCarousel
+          ref={carouselRef}
+          projects={projects}
+          favorites={favorites}
+          handleFavoriteToggle={handleFavoriteToggle}
+        />
+      )}
     </section>
   );
 };

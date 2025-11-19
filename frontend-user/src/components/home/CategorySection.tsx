@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { FolderKanban } from "lucide-react";
+import { FolderKanban, Loader2 } from "lucide-react";
 import CategoryGrid from "./CategoryGrid";
 import { Pagination } from "../../ui/pagination";
 
@@ -10,7 +10,7 @@ export interface Project {
   description: string;
   author: string;
   createdAt: string;
-  category: string;
+  category?: string;
   imageUrl: string;
   ownerAvatar?: string;
   isLiked?: boolean;
@@ -20,12 +20,14 @@ export interface ProjectListProps {
   projects: Project[];
   favorites: Set<string>;
   handleFavoriteToggle: (projectId: string) => void;
+  loading?: boolean;
 }
 
 export const CategorySection: React.FC<ProjectListProps> = ({
   projects,
   favorites,
   handleFavoriteToggle,
+  loading = false,
 }) => {
   const { t } = useTranslation();
   const [currentPage, setCurrentPage] = useState(1);
@@ -54,18 +56,26 @@ export const CategorySection: React.FC<ProjectListProps> = ({
         <h2 className="text-xl font-semibold">{t("home.allProjects")}</h2>
       </div>
 
-      <CategoryGrid
-        projects={paginatedProjects}
-        favorites={favorites}
-        handleFavoriteToggle={handleFavoriteToggle}
-      />
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-        itemsPerPage={itemsPerPage}
-        totalItems={projects.length}
-      />
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <>
+          <CategoryGrid
+            projects={paginatedProjects}
+            favorites={favorites}
+            handleFavoriteToggle={handleFavoriteToggle}
+          />
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={projects.length}
+          />
+        </>
+      )}
     </section>
   );
 };

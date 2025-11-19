@@ -84,7 +84,7 @@ export interface ProjectDisplay extends Omit<Project, 'status'> {
   title: string;
   description: string;
   status: string; // Display status as string (Draft, Running, Active)
-  category: string;
+  category?: string;
   lastModified: string;
   imageUrl: string;
 }

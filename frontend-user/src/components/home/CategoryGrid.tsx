@@ -7,7 +7,7 @@ export interface Project {
   description: string;
   author: string;
   createdAt: string;
-  category: string;
+  category?: string;
   imageUrl: string;
   ownerAvatar?: string;
   isLiked?: boolean;

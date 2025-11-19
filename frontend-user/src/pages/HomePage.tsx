@@ -27,7 +27,6 @@ const transformProject = (
     author: project.ownerName || "Unknown",
     // Use lastModifiedAt as createdAt since API doesn't return createdAt
     createdAt: project.lastModifiedAt || project.createdAt || "",
-    category: "ML", // Default category - can be enhanced later
     imageUrl:
       project.pictureUrl ||
       "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800",
@@ -141,12 +140,14 @@ export default function HomePage() {
             projects={recentProjects}
             favorites={new Set(favoriteProjects.map((p) => p.id))}
             handleFavoriteToggle={handleFavoriteToggle}
+            loading={loading}
           />
 
           <TrendingSection
             projects={trendingProjects}
             favorites={new Set(favoriteProjects.map((p) => p.id))}
             handleFavoriteToggle={handleFavoriteToggle}
+            loading={loading}
           />
 
           <PublicDatasetsSection />
@@ -156,6 +157,7 @@ export default function HomePage() {
               projects={favoriteProjects}
               favorites={new Set(favoriteProjects.map((p) => p.id))}
               handleFavoriteToggle={handleFavoriteToggle}
+              loading={loading}
             />
           )}
 
@@ -165,6 +167,7 @@ export default function HomePage() {
             projects={transformedAllProjects}
             favorites={new Set(favoriteProjects.map((p) => p.id))}
             handleFavoriteToggle={handleFavoriteToggle}
+            loading={loading}
           />
         </div>
       )}

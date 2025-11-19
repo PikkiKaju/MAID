@@ -3,7 +3,7 @@ import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { Dataset } from "../../models/dataset";
 import { getFileIcon } from "../../models/dataset";
 import AttachedDatasets from "./AttachedDatasets";
-import { Database } from "lucide-react";
+import { Database, Loader2 } from "lucide-react";
 import { fetchPublicDatasets } from "../../features/dataset/datasetThunks";
 import { datasetService } from "../../api/datasetService";
 import { useToast } from "../toast/ToastProvider";
@@ -23,6 +23,8 @@ export default function PublicDatasetsSection() {
   const publicDatasets = useAppSelector(
     (state) => state.dataset.publicDatasets
   );
+  const publicStatus = useAppSelector((state) => state.dataset.publicStatus);
+  const isLoading = publicStatus === "loading";
   const [selectedDataset, setSelectedDataset] = useState<{
     id: string;
     name: string;
@@ -117,21 +119,29 @@ export default function PublicDatasetsSection() {
           <h2 className="text-xl font-semibold">Publiczne Datasety</h2>
         </div>
       </div>
-      <AttachedDatasets
-        datasets={paginatedDatasets}
-        getFileIcon={getFileIcon}
-        hideHeader={true}
-        onLike={handleLike}
-        showLikeOption={true}
-        onViewDetails={handleViewDetails}
-      />
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-        itemsPerPage={itemsPerPage}
-        totalItems={formattedPublicDatasets.length}
-      />
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <>
+          <AttachedDatasets
+            datasets={paginatedDatasets}
+            getFileIcon={getFileIcon}
+            hideHeader={true}
+            onLike={handleLike}
+            showLikeOption={true}
+            onViewDetails={handleViewDetails}
+          />
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={formattedPublicDatasets.length}
+          />
+        </>
+      )}
 
       {/* Dataset Details Dialog */}
       {selectedDataset && token && (
