@@ -89,5 +89,22 @@ export const projectService = {
       }
     );
   },
+
+  updateProjectVisibility: async (
+    id: string,
+    isPublic: boolean,
+    token: string
+  ): Promise<void> => {
+    await axiosInstance.put(
+      `/Project/${id}/details`,
+      { isPublic },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  },
 };
 

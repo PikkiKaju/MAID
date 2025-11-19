@@ -124,7 +124,15 @@
     "unlikeSuccess": "Project removed from favorites.",
     "likeError": "Error adding project to favorites.",
     "likeLoginRequired": "You must be logged in to add project to favorites.",
-    "viewLoginRequired": "You must be logged in to view project details."
+    "viewLoginRequired": "You must be logged in to view project details.",
+    "shareProject": "Share project",
+    "shareDescription": "Copy the project link and share it with others.",
+    "projectLink": "Project link",
+    "linkCopied": "Link copied to clipboard!",
+    "visibilityChangedToPublic": "Project has been set to public.",
+    "visibilityChangedToPrivate": "Project has been set to private.",
+    "visibilityUpdateError": "Error updating project visibility.",
+    "loginRequired": "You must be logged in to perform this action."
   },
   "datasets": {
     "title": "Datasets",

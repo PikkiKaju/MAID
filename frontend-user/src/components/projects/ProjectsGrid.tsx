@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "../../ui/card";
 import { Badge } from "../../ui/badge";
 import { ImageWithFallback } from "../image/ImageWithFallback";
@@ -81,8 +82,9 @@ interface ProjectItem {
 interface Props {
   projects: ProjectItem[];
   getStatusColor: (status: string) => string;
-  onToggleVisibility: (id: string) => void;
+  onToggleVisibility: (id: string, newVisibility: boolean) => void;
   onDeleteRequest: (project: any) => void;
+  onShareRequest: (project: any) => void;
 }
 
 export default function ProjectsGrid({
@@ -90,12 +92,60 @@ export default function ProjectsGrid({
   getStatusColor,
   onToggleVisibility,
   onDeleteRequest,
+  onShareRequest,
 }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
+  // Local state to track visibility changes per project
+  const [localVisibility, setLocalVisibility] = useState<
+    Record<string, boolean>
+  >({});
+  const [openMenus, setOpenMenus] = useState<Set<string>>(new Set());
+
+  // Initialize local visibility state from projects
+  useEffect(() => {
+    const initialVisibility: Record<string, boolean> = {};
+    projects.forEach((project) => {
+      initialVisibility[project.id] = project.isPublic;
+    });
+    setLocalVisibility(initialVisibility);
+  }, [projects]);
+
   const handleProjectClick = (projectId: string) => {
     navigate(`/projects/${projectId}`, { state: { from: "/projects" } });
+  };
+
+  const handleLocalVisibilityToggle = (projectId: string) => {
+    setLocalVisibility((prev) => ({
+      ...prev,
+      [projectId]: !prev[projectId],
+    }));
+  };
+
+  const handleMenuOpenChange = (projectId: string, open: boolean) => {
+    if (open) {
+      setOpenMenus((prev) => new Set(prev).add(projectId));
+    } else {
+      // Menu is closing - save the change if visibility was modified
+      const originalVisibility = projects.find(
+        (p) => p.id === projectId
+      )?.isPublic;
+      const currentVisibility = localVisibility[projectId];
+
+      if (
+        originalVisibility !== undefined &&
+        currentVisibility !== originalVisibility
+      ) {
+        onToggleVisibility(projectId, currentVisibility);
+      }
+
+      setOpenMenus((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(projectId);
+        return newSet;
+      });
+    }
   };
 
   return (
@@ -138,7 +188,10 @@ export default function ProjectsGrid({
               </Badge>
             </div>
 
-            <DropdownMenu>
+            <DropdownMenu
+              open={openMenus.has(project.id)}
+              onOpenChange={(open) => handleMenuOpenChange(project.id, open)}
+            >
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
@@ -158,7 +211,12 @@ export default function ProjectsGrid({
                 >
                   <Edit className="h-4 w-4 mr-2" /> {t("projects.edit")}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onShareRequest(project);
+                  }}
+                >
                   <Share className="h-4 w-4 mr-2" /> {t("projects.share")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -168,24 +226,38 @@ export default function ProjectsGrid({
                 >
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-2">
-                      {project.isPublic ? (
+                      {localVisibility[project.id] !== undefined ? (
+                        localVisibility[project.id]
+                      ) : project.isPublic ? (
                         <Globe className="h-4 w-4" />
                       ) : (
                         <Lock className="h-4 w-4" />
                       )}{" "}
-                      {project.isPublic
+                      {localVisibility[project.id] !== undefined
+                        ? localVisibility[project.id]
+                          ? t("projects.public")
+                          : t("projects.private")
+                        : project.isPublic
                         ? t("projects.public")
                         : t("projects.private")}
                     </span>
                     <Switch
-                      checked={project.isPublic}
-                      onCheckedChange={(checked) => {
-                        onToggleVisibility(project.id);
+                      checked={
+                        localVisibility[project.id] !== undefined
+                          ? localVisibility[project.id]
+                          : project.isPublic
+                      }
+                      onCheckedChange={() => {
+                        handleLocalVisibilityToggle(project.id);
                       }}
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {project.isPublic
+                    {localVisibility[project.id] !== undefined
+                      ? localVisibility[project.id]
+                        ? t("projects.isPublic")
+                        : t("projects.isPrivate")
+                      : project.isPublic
                       ? t("projects.isPublic")
                       : t("projects.isPrivate")}
                   </p>

@@ -124,7 +124,15 @@
     "unlikeSuccess": "Projekt został usunięty z ulubionych.",
     "likeError": "Błąd podczas dodawania projektu do ulubionych.",
     "likeLoginRequired": "Musisz być zalogowany, aby dodać projekt do ulubionych.",
-    "viewLoginRequired": "Musisz być zalogowany, aby zobaczyć szczegóły projektu."
+    "viewLoginRequired": "Musisz być zalogowany, aby zobaczyć szczegóły projektu.",
+    "shareProject": "Udostępnij projekt",
+    "shareDescription": "Skopiuj link do projektu i udostępnij go innym.",
+    "projectLink": "Link do projektu",
+    "linkCopied": "Link skopiowany do schowka!",
+    "visibilityChangedToPublic": "Projekt został ustawiony jako publiczny.",
+    "visibilityChangedToPrivate": "Projekt został ustawiony jako prywatny.",
+    "visibilityUpdateError": "Błąd podczas zmiany widoczności projektu.",
+    "loginRequired": "Musisz być zalogowany, aby wykonać tę akcję."
   },
   "datasets": {
     "title": "Zbiory danych",

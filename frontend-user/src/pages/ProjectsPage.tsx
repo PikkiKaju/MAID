@@ -14,7 +14,11 @@ import FiltersAndSearch from "../components/projects/FiltersAndSearch";
 import ProjectsGrid from "../components/projects/ProjectsGrid";
 import EmptyState from "../components/projects/EmptyState";
 import DeleteConfirmationDialog from "../components/projects/DeleteConfirmationDialog";
+import ShareProjectDialog from "../components/projects/ShareProjectDialog";
 import type { DeleteDialogState, ProjectFilters } from "../models/project";
+import { projectService } from "../api/projectService";
+import { useToast } from "../components/toast/ToastProvider";
+import { useTranslation } from "react-i18next";
 import {
   mapProjectToDisplay,
   filterAndSortProjects,
@@ -31,6 +35,9 @@ function ProjectsPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const { deleteProject } = useProjectDelete();
+  const token = useSelector((state: RootState) => state.auth.token);
+  const { showSuccess, showError } = useToast();
+  const { t } = useTranslation();
 
   const [filters, setFilters] = useState<ProjectFilters>({
     searchTerm: "",
@@ -38,6 +45,13 @@ function ProjectsPage() {
     sortBy: "modified",
   });
   const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState>({
+    open: false,
+    project: null,
+  });
+  const [shareDialog, setShareDialog] = useState<{
+    open: boolean;
+    project: { id: string; title: string } | null;
+  }>({
     open: false,
     project: null,
   });
@@ -49,8 +63,6 @@ function ProjectsPage() {
     () => projects.map(mapProjectToDisplay),
     [projects]
   );
-
-  const token = useSelector((state: RootState) => state.auth.token);
 
   useEffect(() => {
     // Only fetch projects when token is available to avoid unauthorized requests
@@ -93,10 +105,40 @@ function ProjectsPage() {
     setProjectDescription("");
   };
 
-  const handleVisibilityToggle = (_projectId: string) => {
-    // This is a local UI update - actual visibility change should be handled via API
-    // For now, we'll just update the local state for immediate feedback
-    // TODO: Implement actual API call to update project visibility
+  const handleVisibilityToggle = async (
+    projectId: string,
+    newVisibility: boolean
+  ) => {
+    if (!token) {
+      showError(
+        t("projects.loginRequired") ||
+          "Musisz być zalogowany, aby zmienić widoczność projektu."
+      );
+      return;
+    }
+
+    try {
+      await projectService.updateProjectVisibility(
+        projectId,
+        newVisibility,
+        token
+      );
+      showSuccess(
+        newVisibility
+          ? t("projects.visibilityChangedToPublic") ||
+              "Projekt został ustawiony jako publiczny."
+          : t("projects.visibilityChangedToPrivate") ||
+              "Projekt został ustawiony jako prywatny."
+      );
+      // Refresh projects list
+      dispatch(fetchProjects());
+    } catch (err: any) {
+      console.error("Error updating project visibility:", err);
+      showError(
+        t("projects.visibilityUpdateError") ||
+          "Błąd podczas zmiany widoczności projektu."
+      );
+    }
   };
 
   const handleDeleteProject = async () => {
@@ -177,6 +219,12 @@ function ProjectsPage() {
             onDeleteRequest={(project) =>
               setDeleteDialog({ open: true, project })
             }
+            onShareRequest={(project) =>
+              setShareDialog({
+                open: true,
+                project: { id: project.id, title: project.title },
+              })
+            }
           />
           <Pagination
             currentPage={currentPage}
@@ -201,6 +249,15 @@ function ProjectsPage() {
         }
         projectName={deleteDialog.project?.title || ""}
         onConfirm={handleDeleteProject}
+      />
+
+      <ShareProjectDialog
+        open={shareDialog.open}
+        onOpenChange={(open) =>
+          setShareDialog({ open, project: shareDialog.project })
+        }
+        projectId={shareDialog.project?.id || ""}
+        projectName={shareDialog.project?.title || ""}
       />
 
       <CreateProjectWindow
