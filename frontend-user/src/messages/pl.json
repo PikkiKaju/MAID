@@ -66,6 +66,7 @@
     "trendingProjects": "Trending Projekty",
     "favorites": "Ulubione",
     "favoriteProjects": "Ulubione Projekty",
+    "favoriteDatasets": "Ulubione Datasety",
     "categories": "Kategorie",
     "searchResults": "Wyniki wyszukiwania",
     "noResults": "Brak wyników",
@@ -142,7 +143,9 @@
     "likeError": "Błąd podczas dodawania do ulubionych.",
     "likeLoginRequired": "Musisz być zalogowany, aby dodać dataset do ulubionych.",
     "addToFavorites": "Dodaj do ulubionych",
-    "removeFromFavorites": "Usuń z ulubionych"
+    "removeFromFavorites": "Usuń z ulubionych",
+    "previewLoginRequired": "Musisz się zalogować, aby zobaczyć podgląd datasetu.",
+    "preview": "Podgląd"
   },
   "profile": {
     "overview": "Przegląd",

@@ -7,6 +7,7 @@ import FavoritesSection from "../components/home/FavoritesSection";
 import CategorySection from "../components/home/CategorySection";
 import SearchResultsSection from "../components/home/SearchResultsSection";
 import PublicDatasetsSection from "../components/datasets/PublicDatasetsSection";
+import FavoriteDatasetsSection from "../components/datasets/FavoriteDatasetsSection";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { fetchPublicDatasets } from "../features/dataset/datasetThunks";
 import { useProjects } from "../hooks/useProjects";
@@ -86,6 +87,8 @@ export default function HomePage() {
               handleFavoriteToggle={handleFavoriteToggle}
             />
           )}
+
+          {isLoggedIn && <FavoriteDatasetsSection />}
 
           <CategorySection
             projects={sampleProjects}
