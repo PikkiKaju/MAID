@@ -48,7 +48,7 @@ export function ProjectCard({
   };
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden">
+    <Card className="group hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden h-full flex flex-col">
       <div className="relative">
         <ImageWithFallback
           src={imageUrl}
@@ -80,12 +80,12 @@ export function ProjectCard({
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0">
-        <p className="text-muted-foreground text-sm line-clamp-2 mb-4">
+      <CardContent className="pt-0 flex-1 flex flex-col">
+        <p className="text-muted-foreground text-sm line-clamp-2 mb-4 flex-1">
           {description}
         </p>
 
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <div className="flex items-center justify-between text-sm text-muted-foreground mt-auto">
           <div className="flex items-center gap-2">
             {ownerAvatar ? (
               <div className="h-5 w-5 rounded-full overflow-hidden flex items-center justify-center bg-muted shrink-0">

@@ -116,8 +116,8 @@ export default function HomePage() {
     }
   };
 
-  const recentProjects = transformedNewProjects.slice(0, 3);
-  const trendingProjects = transformedPopularProjects.slice(0, 3);
+  const recentProjects = transformedNewProjects.slice(0, 6);
+  const trendingProjects = transformedPopularProjects.slice(0, 6);
 
   return (
     <div>
