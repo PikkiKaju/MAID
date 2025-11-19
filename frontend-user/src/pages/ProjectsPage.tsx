@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
+import { Loader2 } from "lucide-react";
 import { Pagination } from "../ui/pagination";
 import CreateProjectWindow from "../components/projects/CreateProjectWindow";
 import { useDispatch, useSelector } from "react-redux";
@@ -22,7 +23,8 @@ import { getProjectStatusColor } from "../utilis/functions";
 import { useProjectDelete } from "../hooks/useProjectDelete";
 
 function ProjectsPage() {
-  const { projects } = useSelector((state: RootState) => state.project);
+  const { projects, status } = useSelector((state: RootState) => state.project);
+  const isLoading = status === "loading";
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
@@ -162,7 +164,11 @@ function ProjectsPage() {
         }
       />
 
-      {filteredProjects.length > 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : filteredProjects.length > 0 ? (
         <>
           <ProjectsGrid
             projects={paginatedProjects}

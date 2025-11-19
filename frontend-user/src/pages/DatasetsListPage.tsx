@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { Loader2 } from "lucide-react";
 import { Pagination } from "../ui/pagination";
 import AttachedDatasets from "../components/datasets/AttachedDatasets";
 import Tips from "../components/datasets/Tips";
@@ -127,9 +128,10 @@ export default function DatasetsListPage() {
   const token = useSelector((state: RootState) => state.auth.token);
 
   // Datasets from Redux store
-  const { userDatasets, uploadStatus } = useSelector(
+  const { userDatasets, uploadStatus, userStatus } = useSelector(
     (state: RootState) => state.dataset
   );
+  const isLoading = userStatus === "loading";
 
   // Fetch public datasets from Redux
   useEffect(() => {
@@ -268,19 +270,27 @@ export default function DatasetsListPage() {
       </div>
 
       {/* Attached Datasets - My Datasets */}
-      <AttachedDatasets
-        datasets={paginatedDatasets}
-        getFileIcon={getFileIcon}
-        onDelete={handleDelete}
-        onViewDetails={handleViewDetails}
-      />
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-        itemsPerPage={itemsPerPage}
-        totalItems={formattedDatasets.length}
-      />
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <>
+          <AttachedDatasets
+            datasets={paginatedDatasets}
+            getFileIcon={getFileIcon}
+            onDelete={handleDelete}
+            onViewDetails={handleViewDetails}
+          />
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={formattedDatasets.length}
+          />
+        </>
+      )}
 
       {/* Dataset Details Dialog */}
       {selectedDataset && token && (
