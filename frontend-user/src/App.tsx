@@ -1,15 +1,33 @@
 import { RouterProvider } from "react-router-dom";
 import { Provider } from "react-redux";
+import { useEffect } from "react";
 import { store } from "./store/store";
 import router from "./router/router";
 import { ToastProvider } from "./components/toast/ToastProvider";
+import { startTokenExpiryChecker } from "./utilis/tokenExpiryChecker";
+
+function AppContent() {
+  useEffect(() => {
+    // Uruchom okresowe sprawdzanie ważności tokenu (co minutę)
+    const stopChecker = startTokenExpiryChecker(60 * 1000);
+
+    // Zatrzymaj sprawdzanie przy unmount
+    return () => {
+      stopChecker();
+    };
+  }, []);
+
+  return (
+    <ToastProvider>
+      <RouterProvider router={router} />
+    </ToastProvider>
+  );
+}
 
 function App() {
   return (
     <Provider store={store}>
-      <ToastProvider>
-        <RouterProvider router={router} />
-      </ToastProvider>
+      <AppContent />
     </Provider>
   );
 }

@@ -9,45 +9,7 @@ import SearchResultsSection from "../components/home/SearchResultsSection";
 import PublicDatasetsSection from "../components/datasets/PublicDatasetsSection";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { fetchPublicDatasets } from "../features/dataset/datasetThunks";
-// import { useNavigate } from "react-router-dom";
 import { useProjects } from "../hooks/useProjects";
-
-//   const handleLike = async (projectId: string) => {
-//     if (!token) return;
-//     try {
-//       await axiosInstance.put(
-//         `/Project/${projectId}/like`,
-//         "00000000-0000-0000-0000-000000000000", // Placeholder for project ID
-//         {
-//           headers: { Authorization: `Bearer ${token}` },
-//         }
-//       );
-//       setLikedProjects((prev) => {
-//         const updated = [...prev, projectId];
-//         localStorage.setItem("likedProjects", JSON.stringify(updated));
-//         return updated;
-//       });
-//       refetch();
-//     } catch (e) {
-//       alert("Nie udało się dodać polubienia.");
-//     }
-//   };
-
-//   const formatDate = (dateString: string | undefined): string => {
-//     if (!dateString) return "Brak daty";
-//     try {
-//       return new Date(dateString).toLocaleDateString("pl-PL", {
-//         year: "numeric",
-//         month: "long",
-//         day: "numeric",
-//         hour: "2-digit",
-//         minute: "2-digit",
-//       });
-//     } catch (e) {
-//       console.error("Błąd formatowania daty:", e);
-//       return dateString;
-//     }
-//   };
 
 export default function HomePage() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set(["1", "3"]));
