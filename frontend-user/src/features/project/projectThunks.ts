@@ -7,13 +7,13 @@ export const createProject = createAsyncThunk<
   CreateProjectResponse,
   CreateProjectInput,
   ThunkConfig
->("project/create", async ({ name }, { getState, rejectWithValue }) => {
+>("project/create", async ({ name, description }, { getState, rejectWithValue }) => {
   try {
     const { token } = getState().auth;
 
     const response = await axiosInstance.post(
       "/Project",
-      { name },
+      { name, description },
       {
         headers: {
           Authorization: `Bearer ${token}`,

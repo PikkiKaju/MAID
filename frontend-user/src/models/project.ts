@@ -11,10 +11,12 @@ export interface Project {
   likes: number;
   status?: number; // 0 = draft, 1 = completed, 2 = active
   pictureUrl?: string; // URL to project image
+  description?: string; // Project description
 }
 
 export interface CreateProjectInput {
   name: string;
+  description: string;
 }
 
 export interface CreateProjectResponse {

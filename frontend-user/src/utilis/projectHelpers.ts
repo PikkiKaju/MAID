@@ -13,7 +13,7 @@ export const mapProjectToDisplay = (project: Project): ProjectDisplay => {
   return {
     ...project,
     title: project.name,
-    description: "Opis domyślny",
+    description: project.description || "",
     status: getStatusString(project.status),
     category: "ML",
     lastModified: project.lastModifiedAt,

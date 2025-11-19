@@ -24,6 +24,7 @@ function ProjectsPage() {
   const { projects } = useSelector((state: RootState) => state.project);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [projectName, setProjectName] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const { deleteProject } = useProjectDelete();
@@ -64,16 +65,27 @@ function ProjectsPage() {
   // }
 
   const handleConfirm = async () => {
-    if (projectName.length >= 4) {
+    if (projectName.length >= 4 && projectDescription.length >= 10) {
       try {
         const result = await dispatch(
-          createProject({ name: projectName })
+          createProject({ name: projectName, description: projectDescription })
         ).unwrap();
+        // Reset form
+        setProjectName("");
+        setProjectDescription("");
+        setIsModalOpen(false);
         navigate(`/projects/${result.id}`);
       } catch (err) {
         console.error("Błąd tworzenia projektu:", err);
       }
     }
+  };
+
+  const handleClose = () => {
+    setIsModalOpen(false);
+    // Reset form when closing
+    setProjectName("");
+    setProjectDescription("");
   };
 
   const handleVisibilityToggle = (_projectId: string) => {
@@ -160,8 +172,10 @@ function ProjectsPage() {
       <CreateProjectWindow
         isOpen={isModalOpen}
         projectName={projectName}
-        onChange={setProjectName}
-        onClose={() => setIsModalOpen(false)}
+        projectDescription={projectDescription}
+        onNameChange={setProjectName}
+        onDescriptionChange={setProjectDescription}
+        onClose={handleClose}
         onConfirm={handleConfirm}
       />
     </div>
