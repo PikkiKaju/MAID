@@ -1,6 +1,21 @@
 import axios from 'axios';
 
 const DJANGO_API_URL = String(import.meta.env.VITE_DJANGO_BASE_URL).concat("/api");
+const USE_PRESIGNED_UPLOADS = String(import.meta.env.VITE_USE_PRESIGNED_UPLOADS).toLowerCase() === 'true';
+const PRESIGNED_UPLOAD_EXTRA_HEADERS: Record<string, string> = (() => {
+  const raw = import.meta.env.VITE_PRESIGN_UPLOAD_HEADERS;
+  if (typeof raw === 'string' && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return parsed as Record<string, string>;
+      }
+    } catch (err) {
+      console.warn('Failed to parse VITE_PRESIGN_UPLOAD_HEADERS', err);
+    }
+  }
+  return { 'x-ms-blob-type': 'BlockBlob' };
+})();
 
 const djangoClient = axios.create({
   baseURL: DJANGO_API_URL,
@@ -27,6 +42,14 @@ djangoClient.interceptors.request.use((config) => {
   }
   return config;
 });
+
+const uploadToPresignedUrl = async (url: string, file: File) => {
+  const headers = {
+    'Content-Type': file.type || 'application/octet-stream',
+    ...PRESIGNED_UPLOAD_EXTRA_HEADERS,
+  };
+  await axios.put(url, file, { headers });
+};
 
 // Minimal types for payloads returned/accepted by the Django API
 export type GraphNode = {
@@ -228,34 +251,70 @@ const networkGraphService = {
       rlrop_min_lr?: number;
     }
   ) => {
+    const payload: Record<string, unknown> = {
+      x_columns: options.x_columns,
+      y_column: options.y_column,
+    };
+
+    const assign = (key: string, value: unknown) => {
+      if (value !== undefined && value !== null) {
+        payload[key] = value;
+      }
+    };
+
+    assign('optimizer', options.optimizer);
+    assign('loss', options.loss);
+    if (options.metrics && options.metrics.length > 0) {
+      assign('metrics', options.metrics);
+    }
+    assign('epochs', options.epochs);
+    assign('batch_size', options.batch_size);
+    assign('validation_split', options.validation_split);
+    assign('test_split', options.test_split);
+    assign('y_one_hot', options.y_one_hot);
+    assign('learning_rate', options.learning_rate);
+    assign('shuffle', options.shuffle);
+    assign('validation_batch_size', options.validation_batch_size);
+    assign('early_stopping', options.early_stopping);
+    assign('es_monitor', options.es_monitor);
+    assign('es_mode', options.es_mode);
+    assign('es_patience', options.es_patience);
+    assign('es_min_delta', options.es_min_delta);
+    assign('es_restore_best_weights', options.es_restore_best_weights);
+    assign('reduce_lr', options.reduce_lr);
+    assign('rlrop_monitor', options.rlrop_monitor);
+    assign('rlrop_factor', options.rlrop_factor);
+    assign('rlrop_patience', options.rlrop_patience);
+    assign('rlrop_min_lr', options.rlrop_min_lr);
+
+    if (USE_PRESIGNED_UPLOADS) {
+      const presignResp = await djangoClient.post(`network/graphs/${graphId}/presign-upload/`, payload, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (presignResp.status !== 201 || !presignResp.data) {
+        throw new Error('Failed to request presigned upload');
+      }
+      const jobId = presignResp.data.job_id || presignResp.data.id;
+      const uploadUrl = presignResp.data.upload_url;
+      if (!jobId || !uploadUrl) {
+        throw new Error('Presigned upload response missing required data');
+      }
+      await uploadToPresignedUrl(uploadUrl, csvFile);
+      const startResp = await djangoClient.post(`network/training-jobs/${jobId}/start/`);
+      if (startResp.status === 202) return startResp.data;
+      throw new Error('Failed to start training job after uploading dataset');
+    }
+
     const form = new FormData();
     form.append('file', csvFile);
-    form.append('x_columns', JSON.stringify(options.x_columns));
-    form.append('y_column', options.y_column);
-    if (options.optimizer) form.append('optimizer', options.optimizer);
-    if (options.loss) form.append('loss', options.loss);
-    if (options.metrics) form.append('metrics', JSON.stringify(options.metrics));
-    if (options.epochs != null) form.append('epochs', String(options.epochs));
-    if (options.batch_size != null) form.append('batch_size', String(options.batch_size));
-    if (options.validation_split != null) form.append('validation_split', String(options.validation_split));
-    if (options.test_split != null) form.append('test_split', String(options.test_split));
-  if (options.y_one_hot != null) form.append('y_one_hot', String(!!options.y_one_hot));
-    if (options.learning_rate != null) form.append('learning_rate', String(options.learning_rate));
-    if (options.shuffle != null) form.append('shuffle', String(!!options.shuffle));
-    if (options.validation_batch_size != null) form.append('validation_batch_size', String(options.validation_batch_size));
-    if (options.early_stopping != null) form.append('early_stopping', String(!!options.early_stopping));
-    if (options.es_monitor) form.append('es_monitor', options.es_monitor);
-    if (options.es_mode) form.append('es_mode', String(options.es_mode));
-    if (options.es_patience != null) form.append('es_patience', String(options.es_patience));
-    if (options.es_min_delta != null) form.append('es_min_delta', String(options.es_min_delta));
-    if (options.es_restore_best_weights != null) form.append('es_restore_best_weights', String(!!options.es_restore_best_weights));
-    if (options.reduce_lr != null) form.append('reduce_lr', String(!!options.reduce_lr));
-    if (options.rlrop_monitor) form.append('rlrop_monitor', options.rlrop_monitor);
-    if (options.rlrop_factor != null) form.append('rlrop_factor', String(options.rlrop_factor));
-    if (options.rlrop_patience != null) form.append('rlrop_patience', String(options.rlrop_patience));
-    if (options.rlrop_min_lr != null) form.append('rlrop_min_lr', String(options.rlrop_min_lr));
+    Object.entries(payload).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        form.append(key, JSON.stringify(value));
+      } else {
+        form.append(key, String(value));
+      }
+    });
 
-    // Let the browser/axios set the Content-Type (including boundary)
     const resp = await djangoClient.post(`network/graphs/${graphId}/train/`, form);
     if (resp.status === 202) return resp.data;
     throw new Error('Failed to start training job');
