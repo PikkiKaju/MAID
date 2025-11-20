@@ -5,6 +5,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../ui/select";
+import { isValidDatasetId } from "../../utilis/projectHelpers";
 
 interface ColumnSelectProps {
   label: string;
@@ -57,7 +58,7 @@ export default function ColumnSelect({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={
-            datasetId === "00000000-0000-0000-0000-000000000000"
+            !isValidDatasetId(datasetId)
               ? "Wybierz dataset, aby załadować kolumny"
               : loading
               ? "Ładowanie kolumn..."

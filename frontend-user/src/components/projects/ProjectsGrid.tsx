@@ -23,68 +23,15 @@ import {
   Trash2,
   User,
 } from "lucide-react";
-
-// Helper function to format date as "X days ago"
-const formatDaysAgo = (dateString: string): string => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInMs = now.getTime() - date.getTime();
-  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
-  if (diffInDays === 0) {
-    return "dzisiaj";
-  } else if (diffInDays === 1) {
-    return "1 dzień temu";
-  } else if (diffInDays < 5) {
-    return `${diffInDays} dni temu`;
-  } else if (diffInDays < 30) {
-    const weeks = Math.floor(diffInDays / 7);
-    if (weeks === 1) {
-      return "1 tydzień temu";
-    }
-    return `${weeks} tygodni temu`;
-  } else if (diffInDays < 365) {
-    const months = Math.floor(diffInDays / 30);
-    if (months === 1) {
-      return "1 miesiąc temu";
-    }
-    return `${months} miesięcy temu`;
-  } else {
-    const years = Math.floor(diffInDays / 365);
-    if (years === 1) {
-      return "1 rok temu";
-    }
-    return `${years} lat temu`;
-  }
-};
-
-// Helper function to format date as "DD-MM-YYYY"
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-  return `${day}-${month}-${year}`;
-};
-
-interface ProjectItem {
-  id: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-  status: string;
-  isPublic: boolean;
-  category?: string;
-  lastModified: string;
-  createdAt: string;
-}
+import { formatDaysAgo, formatDateShort } from "../../utilis/functions";
+import type { ProjectGridItem } from "../../models/project";
 
 interface Props {
-  projects: ProjectItem[];
+  projects: ProjectGridItem[];
   getStatusColor: (status: string) => string;
   onToggleVisibility: (id: string, newVisibility: boolean) => void;
-  onDeleteRequest: (project: any) => void;
-  onShareRequest: (project: any) => void;
+  onDeleteRequest: (project: ProjectGridItem) => void;
+  onShareRequest: (project: ProjectGridItem) => void;
 }
 
 export default function ProjectsGrid({
@@ -298,7 +245,7 @@ export default function ProjectsGrid({
               <div className="flex items-center gap-1">
                 <User className="h-3 w-3" />{" "}
                 <span>
-                  {t("projects.createdAt")} {formatDate(project.createdAt)}
+                  {t("projects.createdAt")} {formatDateShort(project.createdAt)}
                 </span>
               </div>
             </div>

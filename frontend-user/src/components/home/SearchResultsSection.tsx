@@ -1,10 +1,10 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import CategoryGrid from "./CategoryGrid";
-import { Project } from "./CategorySection";
+import type { HomeProject } from "../../models/project";
 
 interface Props {
-  projects: Project[];
+  projects: HomeProject[];
   favorites: Set<string>;
   handleFavoriteToggle: (id: string) => void;
   loading: boolean;

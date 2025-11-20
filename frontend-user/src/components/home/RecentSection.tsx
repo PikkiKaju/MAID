@@ -4,10 +4,10 @@ import ProjectsCarousel, { ProjectsCarouselRef } from "./ProjectsCarousel";
 import { Clock, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "../../ui/button";
 
-import { Project } from "./CategorySection";
+import type { HomeProject } from "../../models/project";
 
 interface Props {
-  projects: Project[];
+  projects: HomeProject[];
   favorites: Set<string>;
   handleFavoriteToggle: (id: string) => void;
   loading?: boolean;

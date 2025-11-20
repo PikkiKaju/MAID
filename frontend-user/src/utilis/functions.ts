@@ -235,3 +235,54 @@ export const formatProjectDate = (dateString: string | undefined): string => {
     return dateString;
   }
 };
+
+/**
+ * Formats date as "X days ago" with detailed time units
+ * @param dateString - Date string to format
+ * @returns Formatted date string (e.g., "dzisiaj", "1 dzień temu", "2 tygodnie temu")
+ */
+export const formatDaysAgo = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInMs = now.getTime() - date.getTime();
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+  if (diffInDays === 0) {
+    return "dzisiaj";
+  } else if (diffInDays === 1) {
+    return "1 dzień temu";
+  } else if (diffInDays < 5) {
+    return `${diffInDays} dni temu`;
+  } else if (diffInDays < 30) {
+    const weeks = Math.floor(diffInDays / 7);
+    if (weeks === 1) {
+      return "1 tydzień temu";
+    }
+    return `${weeks} tygodni temu`;
+  } else if (diffInDays < 365) {
+    const months = Math.floor(diffInDays / 30);
+    if (months === 1) {
+      return "1 miesiąc temu";
+    }
+    return `${months} miesięcy temu`;
+  } else {
+    const years = Math.floor(diffInDays / 365);
+    if (years === 1) {
+      return "1 rok temu";
+    }
+    return `${years} lat temu`;
+  }
+};
+
+/**
+ * Formats date as "DD-MM-YYYY"
+ * @param dateString - Date string to format
+ * @returns Formatted date string
+ */
+export const formatDateShort = (dateString: string): string => {
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
+};

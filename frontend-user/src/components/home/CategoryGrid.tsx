@@ -1,20 +1,9 @@
 import React from "react";
 import { ProjectCard } from "../projects/ProjectCard";
-
-export interface Project {
-  id: string;
-  title: string;
-  description: string;
-  author: string;
-  createdAt: string;
-  category?: string;
-  imageUrl: string;
-  ownerAvatar?: string;
-  isLiked?: boolean;
-}
+import type { HomeProject } from "../../models/project";
 
 interface Props {
-  projects: Project[];
+  projects: HomeProject[];
   favorites: Set<string>;
   handleFavoriteToggle: (projectId: string) => void;
 }

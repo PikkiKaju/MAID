@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import CategoryGrid from "./CategoryGrid";
 import { Star, Loader2 } from "lucide-react";
 import { Badge } from "../../ui/badge";
-import { Project } from "./CategorySection";
 import { Pagination } from "../../ui/pagination";
+import { calculatePagination } from "../../utilis/projectHelpers";
+import type { HomeProject } from "../../models/project";
 
 interface Props {
-  projects: Project[];
+  projects: HomeProject[];
   favorites: Set<string>;
   handleFavoriteToggle: (id: string) => void;
   loading?: boolean;
@@ -25,12 +26,10 @@ const FavoritesSection: React.FC<Props> = ({
   const count = projects.length;
 
   // Pagination logic
-  const totalPages = Math.ceil(projects.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedProjects = useMemo(
-    () => projects.slice(startIndex, endIndex),
-    [projects, startIndex, endIndex]
+  const { totalPages, paginatedItems: paginatedProjects } = calculatePagination(
+    projects,
+    currentPage,
+    itemsPerPage
   );
 
   // Reset to page 1 when projects change

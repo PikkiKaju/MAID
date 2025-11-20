@@ -1,23 +1,13 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { FolderKanban, Loader2 } from "lucide-react";
 import CategoryGrid from "./CategoryGrid";
 import { Pagination } from "../../ui/pagination";
-
-export interface Project {
-  id: string;
-  title: string;
-  description: string;
-  author: string;
-  createdAt: string;
-  category?: string;
-  imageUrl: string;
-  ownerAvatar?: string;
-  isLiked?: boolean;
-}
+import { calculatePagination } from "../../utilis/projectHelpers";
+import type { HomeProject } from "../../models/project";
 
 export interface ProjectListProps {
-  projects: Project[];
+  projects: HomeProject[];
   favorites: Set<string>;
   handleFavoriteToggle: (projectId: string) => void;
   loading?: boolean;
@@ -34,12 +24,10 @@ export const CategorySection: React.FC<ProjectListProps> = ({
   const itemsPerPage = 9;
 
   // Pagination logic
-  const totalPages = Math.ceil(projects.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedProjects = useMemo(
-    () => projects.slice(startIndex, endIndex),
-    [projects, startIndex, endIndex]
+  const { totalPages, paginatedItems: paginatedProjects } = calculatePagination(
+    projects,
+    currentPage,
+    itemsPerPage
   );
 
   // Reset to page 1 when projects change

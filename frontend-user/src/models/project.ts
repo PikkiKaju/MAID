@@ -99,3 +99,26 @@ export interface ProjectFilters {
   statusFilter: string;
   sortBy: "name" | "created" | "modified";
 }
+
+/**
+ * Project item interface for ProjectsGrid component
+ * Extends ProjectDisplay with additional properties
+ */
+export interface ProjectGridItem extends ProjectDisplay {
+  // All properties from ProjectDisplay are already included
+}
+
+/**
+ * Project interface for home page components (CategorySection, etc.)
+ */
+export interface HomeProject {
+  id: string;
+  title: string;
+  description: string;
+  author: string;
+  createdAt: string;
+  category?: string;
+  imageUrl: string;
+  ownerAvatar?: string;
+  isLiked?: boolean;
+}

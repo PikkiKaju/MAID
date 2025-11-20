@@ -5,6 +5,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../ui/select";
+import { algorithms } from "../../data/algorithms";
 
 interface AlgorithmSelectProps {
   value: string;
@@ -25,14 +26,11 @@ export default function AlgorithmSelect({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="linear">Regresja liniowa</SelectItem>
-          <SelectItem value="ridge">Regresja grzbietowa</SelectItem>
-          <SelectItem value="lasso">Lasso</SelectItem>
-          <SelectItem value="svr">SVR</SelectItem>
-          <SelectItem value="decision-tree">Drzewo decyzyjne</SelectItem>
-          <SelectItem value="elasticnet">Elastic Net</SelectItem>
-          <SelectItem value="random-forest">Random Forest</SelectItem>
-          <SelectItem value="polynomial">Wielomianowa</SelectItem>
+          {algorithms.map((algorithm) => (
+            <SelectItem key={algorithm.value} value={algorithm.value}>
+              {algorithm.label}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
     </div>
