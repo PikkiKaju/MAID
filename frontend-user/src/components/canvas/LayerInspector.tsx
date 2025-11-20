@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { Info } from 'lucide-react';
 import { useModelCanvasStore, ModelCanvasState } from '../../store/modelCanvasStore';
 import { Node } from 'reactflow';
@@ -88,6 +88,10 @@ export default function LayerInspector() {
     return () => clearTimeout(t);
   }, [highlightedParamName, setHighlightedParam]);
 
+  const stopKeyPropagation = (event: KeyboardEvent<HTMLInputElement | HTMLSelectElement>) => {
+    event.stopPropagation();
+  };
+
   const coerce = (raw: string, t?: string): string | number | boolean => {
     const type = (t || '').toLowerCase();
     // If the input is emptied, preserve it as an empty string (required validation will surface separately)
@@ -137,6 +141,7 @@ export default function LayerInspector() {
                   className={`mt-1 w-full border rounded px-2 py-1 text-xs bg-white ${isEmptyRequired ? 'border-rose-400 ring-1 ring-rose-200' : ''}`}
                   value={String(v)}
                   onChange={(e) => handleParamChange(p.name, e.target.value, typeHint)}
+                  onKeyDown={stopKeyPropagation}
                 >
                   {!p.required && <option value=''>—</option>}
                   {p.enum.map((opt) => (
@@ -151,6 +156,7 @@ export default function LayerInspector() {
                     className='h-3 w-3'
                     checked={Boolean(v)}
                     onChange={(e) => handleParamChange(p.name, e.target.checked, typeHint)}
+                    onKeyDown={stopKeyPropagation}
                   />
                   <label htmlFor={`chk-${p.name}`} className='text-[11px] text-slate-600'>Enable</label>
                 </div>
@@ -159,6 +165,7 @@ export default function LayerInspector() {
                   className={`mt-1 w-full border rounded px-2 py-1 text-xs ${isEmptyRequired ? 'border-rose-400 ring-1 ring-rose-200 placeholder:text-rose-400' : ''}`}
                   value={String(v)}
                   onChange={e => handleParamChange(p.name, e.target.value, typeHint)}
+                  onKeyDown={stopKeyPropagation}
                   placeholder={isEmptyRequired ? 'Required' : undefined}
                 />
               )}
@@ -181,6 +188,7 @@ export default function LayerInspector() {
                 className='mt-1 w-full border rounded px-2 py-1 text-xs'
                 value={String(v)}
                 onChange={e => handleParamChange(k, e.target.value)}
+                onKeyDown={stopKeyPropagation}
               />
             </label>
           ))}

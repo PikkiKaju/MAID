@@ -1,6 +1,8 @@
 import { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import ReactFlow, {
   addEdge,
+  applyEdgeChanges,
+  applyNodeChanges,
   Background,
   BackgroundVariant,
   Controls,
@@ -8,6 +10,8 @@ import ReactFlow, {
   Node,
   Edge,
   Connection,
+  NodeChange,
+  EdgeChange,
   useNodesState,
   useEdgesState,
   MarkerType,
@@ -42,8 +46,8 @@ const initialEdges: Edge[] = [];
 export default function ModelCanvas() {
   const { nodes: storeNodes, edges: storeEdges, setGraph } = useModelCanvasStore();
   const { setGraphId } = useGraph();
-  const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes.length ? storeNodes : initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges.length ? storeEdges : initialEdges);
+  const [nodes, setNodes] = useNodesState(storeNodes.length ? storeNodes : initialNodes);
+  const [edges, setEdges] = useEdgesState(storeEdges.length ? storeEdges : initialEdges);
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const [persistedGraphId, setPersistedGraphId] = useState<string | null>(null);
   const [modelName, setModelName] = useState('Untitled graph');
@@ -58,6 +62,12 @@ export default function ModelCanvas() {
   const edgeTypes = useMemo(() => ({ removable: RemovableEdge }), []);
   const setSelected = useModelCanvasStore(s => s.setSelected);
   const setHighlightedParam = useModelCanvasStore(s => s.setHighlightedParam);
+  const MAX_EDGE_RAW_LENGTH = 27;
+  const ensureEdgeRawId = (raw: string | null | undefined): string => {
+    if (!raw) return `edge-${nanoid(10)}`;
+    if (raw.length <= MAX_EDGE_RAW_LENGTH) return raw;
+    return `edge-${nanoid(10)}`;
+  };
 
   // Edge creation handler (adds edge with arrow marker)
   const onConnect = useCallback((connection: Edge | Connection) => {
@@ -75,11 +85,29 @@ export default function ModelCanvas() {
 
   // Keep ReactFlow internal state in sync when store changes externally (e.g. removeNode)
   useEffect(() => {
+    if (storeNodes === nodes) return;
     setNodes(storeNodes);
-  }, [storeNodes, setNodes]);
+  }, [storeNodes, setNodes, nodes]);
   useEffect(() => {
+    if (storeEdges === edges) return;
     setEdges(storeEdges);
-  }, [storeEdges, setEdges]);
+  }, [storeEdges, setEdges, edges]);
+
+  const handleNodesChange = useCallback((changes: NodeChange[]) => {
+    setNodes((nds) => {
+      const updated = applyNodeChanges(changes, nds);
+      setGraph(updated, edges);
+      return updated;
+    });
+  }, [edges, setGraph, setNodes]);
+
+  const handleEdgesChange = useCallback((changes: EdgeChange[]) => {
+    setEdges((eds) => {
+      const updated = applyEdgeChanges(changes, eds);
+      setGraph(nodes, updated);
+      return updated;
+    });
+  }, [nodes, setGraph, setEdges]);
 
   // (removed old string-only formatter in favor of structured items)
 
@@ -215,6 +243,13 @@ export default function ModelCanvas() {
     }
   }, [setNodes, setEdges, setGraph, setGraphId]);
 
+  const sanitizeEdgesForPersist = (currentEdges: Edge[]): Edge[] => {
+    return currentEdges.map((edge) => {
+      const safeId = ensureEdgeRawId(edge.id);
+      return safeId === edge.id ? edge : { ...edge, id: safeId };
+    });
+  };
+
   const handlePersist = () => {
     setGraph(nodes, edges); // persist latest working copy
     setSaveErrors(null);
@@ -236,7 +271,12 @@ export default function ModelCanvas() {
             notes: data?.notes || {},
           } as GraphNode;
         });
-        const edgesPayload: GraphEdge[] = edges.map(e => ({
+        const sanitizedEdges = sanitizeEdgesForPersist(edges);
+        if (sanitizedEdges.some((edge, index) => edge.id !== edges[index].id)) {
+          setEdges(sanitizedEdges);
+          setGraph(nodes, sanitizedEdges);
+        }
+        const edgesPayload: GraphEdge[] = sanitizedEdges.map(e => ({
           id: e.id!,
           source: e.source,
           target: e.target,
@@ -411,8 +451,8 @@ export default function ModelCanvas() {
               return n;
             }), [nodes, errorNodeIds])}
             edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
+            onNodesChange={handleNodesChange}
+            onEdgesChange={handleEdgesChange}
             onConnect={onConnect}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
