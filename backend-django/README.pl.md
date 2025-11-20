@@ -26,6 +26,51 @@ Backend w Django udostępnia REST API do budowania i kompilowania grafów sieci 
    python manage.py test
    ```
 
+
+## Lokalny development z Docker Redis i Celery
+
+Możesz odpalić serwer Django na hoście Windows używając kontenera Redis odpalonego przez `docker-compose`. Kluczem jest wskazanie Celery/Django poprawnego URL (w .env) w zależności od tego, czy proces działa wewnątrz Dockera czy na hoście.
+
+- Jeśli odpalasz Django/Celery wewnątrz Docker compose, użyj nazwy serwisu compose: `redis://redis:6379/0`.
+- Jeśli odpalasz Django/Celery na hoście Windows (np. przy developmencie), użyj `redis://localhost:6379/0`, bo `docker-compose` wystawia port kontenera na hosta.
+
+Przykładowy workflow PowerShell (Django + Celery na hoście, zakładając że masz virtualenv w `.venv`):
+
+```powershell
+cd "C:/Dysk F/Studia/ProjektInzynierski/MAID/backend-django"
+# Aktywuj venv (Windows PowerShell)
+.\.venv\Scripts\activate
+
+# Upewnij się, że Redis działa (przez docker-compose w root repo) albo odpal standalone kontener redis:
+docker compose up -d redis
+# Albo: docker run --rm -p 6379:6379 redis:7-alpine
+
+# Wyeksportuj ustawienia brokera dla serwisów na hoście
+$env:CELERY_BROKER_URL = "redis://localhost:6379/0"
+$env:CELERY_RESULT_BACKEND = "redis://localhost:6379/1"
+$env:DJANGO_SETTINGS_MODULE = "config.settings"
+# Albo ustaw zmienne w .env
+
+# Przygotuj DB i odpal Django
+python manage.py migrate
+python manage.py loadmanifests
+python manage.py runserver 0.0.0.0:8000
+
+# W innym terminalu (z aktywnym venv), odpal workera Celery (Windows wymaga --pool=solo):
+celery -A config worker -l info --pool=solo
+
+# Jeszcze nie zaimplementowy, ale jest jeszcze opcja włączenia okresowego schedulera:
+celery -A config beat -l info
+```
+
+Uwagi i rozwiązywanie problemów:
+
+- Na hoście używaj `localhost` w URL brokera. Hostname `redis` rozwiązuje się tylko wewnątrz sieci Docker.
+- Jeśli widzisz "Connection refused" z Celery, sprawdź `docker ps` czy Redis działa i czy port `6379` jest zmapowany i niezajęty.
+- Na Windowsie trzeba dodać flagę `--pool=solo` dla Celery, chyba że ma się środowisko workera wspierające preforking.
+- Ewentulanie dla szybkiego testowania można ustawić `CELERY_TASK_ALWAYS_EAGER=True` (w `.env`), co odpala taski synchronicznie w procesie i nie wymaga działającego workera.
+
+
 ## Uwagi
 
 - Kompilator wymaga Keras/TensorFlow w runtime'ie. Bez tego endpoint kompilacji wywali błąd.
@@ -103,49 +148,6 @@ Invoke-RestMethod -Method Post -Uri "http://localhost:8000/api/network/training-
 - Endpointy presign obecnie zwracają goły URL. Dla uploadów Azure Blob zazwyczaj trzeba ustawić `x-ms-blob-type: BlockBlob`. Można zmienić API, żeby zwracało jawny obiekt `headers` (i przykładową komendę dla klienta) obok URL.
 - Przydałoby się dodać testy integracyjne używając emulatora Azurite (dla Azure) albo mockowania `network.storage` w unit testach, żeby zwalidować flow presign i streamowania.
 - Jeśli wolicie automatyczną weryfikację po stronie serwera i auto-start po uploadzie (zamiast wołania `start` przez klienta), mogę zaimplementować endpoint weryfikacyjny albo async poller, który wykrywa kiedy presigned upload się zakończy i kolejkuje joba.
-
-## Lokalny development z Docker Redis i Celery
-
-Możesz odpalić serwer Django na hoście Windows używając kontenera Redis odpalonego przez `docker-compose`. Kluczem jest wskazanie Celery/Django poprawnego URL (w .env) w zależności od tego, czy proces działa wewnątrz Dockera czy na hoście.
-
-- Jeśli odpalasz Django/Celery wewnątrz Docker compose, użyj nazwy serwisu compose: `redis://redis:6379/0`.
-- Jeśli odpalasz Django/Celery na hoście Windows (np. przy developmencie), użyj `redis://localhost:6379/0`, bo `docker-compose` wystawia port kontenera na hosta.
-
-Przykładowy workflow PowerShell (Django + Celery na hoście, zakładając że masz virtualenv w `.venv`):
-
-```powershell
-cd "C:/Dysk F/Studia/ProjektInzynierski/MAID/backend-django"
-# Aktywuj venv (Windows PowerShell)
-.\.venv\Scripts\activate
-
-# Upewnij się, że Redis działa (przez docker-compose w root repo) albo odpal standalone kontener redis:
-docker compose up -d redis
-# Albo: docker run --rm -p 6379:6379 redis:7-alpine
-
-# Wyeksportuj ustawienia brokera dla serwisów na hoście
-$env:CELERY_BROKER_URL = "redis://localhost:6379/0"
-$env:CELERY_RESULT_BACKEND = "redis://localhost:6379/1"
-$env:DJANGO_SETTINGS_MODULE = "config.settings"
-# Albo ustaw zmienne w .env
-
-# Przygotuj DB i odpal Django
-python manage.py migrate
-python manage.py loadmanifests
-python manage.py runserver 0.0.0.0:8000
-
-# W innym terminalu (z aktywnym venv), odpal workera Celery (Windows wymaga --pool=solo):
-celery -A config worker -l info --pool=solo
-
-# Jeszcze nie zaimplementowy, ale jest jeszcze opcja włączenia okresowego schedulera:
-celery -A config beat -l info
-```
-
-Uwagi i rozwiązywanie problemów:
-
-- Na hoście używaj `localhost` w URL brokera. Hostname `redis` rozwiązuje się tylko wewnątrz sieci Docker.
-- Jeśli widzisz "Connection refused" z Celery, sprawdź `docker ps` czy Redis działa i czy port `6379` jest zmapowany i niezajęty.
-- Na Windowsie trzeba dodać flagę `--pool=solo` dla Celery, chyba że ma się środowisko workera wspierające preforking.
-- Ewentulanie dla szybkiego testowania można ustawić `CELERY_TASK_ALWAYS_EAGER=True` (w `.env`), co odpala taski synchronicznie w procesie i nie wymaga działającego workera.
 
 ## Workflow importu jobów
 
