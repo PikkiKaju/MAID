@@ -3,41 +3,41 @@ import { logout } from '../features/auth/authSlice';
 import { isTokenValid, getTimeUntilExpiry } from './tokenManager';
 
 /**
- * Sprawdza ważność tokenu i wylogowuje użytkownika, jeśli token wygasł
- * Powinno być wywoływane okresowo (np. co minutę) lub przy starcie aplikacji
+ * Checks token validity and logs out user if token has expired
+ * Should be called periodically (e.g. every minute) or at startup
  */
 export const checkTokenExpiry = (): void => {
   if (!isTokenValid()) {
-    // Token wygasł - wyloguj użytkownika
+    // Token expired - log out user
     store.dispatch(logout());
   }
 };
 
 /**
- * Uruchamia okresowe sprawdzanie ważności tokenu
- * @param intervalMs - Interwał sprawdzania w milisekundach (domyślnie 1 minuta)
- * @returns Funkcja do zatrzymania sprawdzania
+ * Starts periodic token validity check
+ * @param intervalMs - Check interval in milliseconds (default 1 minute)
+ * @returns Function to stop the check
  */
 export const startTokenExpiryChecker = (intervalMs: number = 60 * 1000): (() => void) => {
-  // Sprawdź od razu przy starcie
+  // Check immediately at startup
   checkTokenExpiry();
 
-  // Uruchom okresowe sprawdzanie
+  // Start periodic check
   const intervalId = setInterval(() => {
     checkTokenExpiry();
   }, intervalMs);
 
-  // Zwróć funkcję do zatrzymania
+  // Return function to stop the check
   return () => {
     clearInterval(intervalId);
   };
 };
 
 /**
- * Sprawdza, czy token wkrótce wygaśnie (np. w ciągu 5 minut)
- * Może być użyte do pokazania użytkownikowi ostrzeżenia
- * @param warningThresholdMs - Próg ostrzeżenia w milisekundach (domyślnie 5 minut)
- * @returns true, jeśli token wkrótce wygaśnie
+ * Checks if token is expiring soon (e.g. within 5 minutes)
+ * Can be used to show a warning to the user
+ * @param warningThresholdMs - Warning threshold in milliseconds (default 5 minutes)
+ * @returns true if token is expiring soon
  */
 export const isTokenExpiringSoon = (warningThresholdMs: number = 5 * 60 * 1000): boolean => {
   const timeUntilExpiry = getTimeUntilExpiry();

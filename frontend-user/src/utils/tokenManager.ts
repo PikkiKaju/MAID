@@ -1,22 +1,22 @@
 /**
- * Token Manager - zarządza tokenem autoryzacji z obsługą wygaśnięcia
+ * Token Manager - manages authorization token with expiration handling
  * 
- * Token jest przechowywany w localStorage, aby przetrwał zamknięcie przeglądarki.
- * Domyślny czas wygaśnięcia: 2 godziny (można zmienić)
+ * Token is stored in localStorage to survive browser close.
+ * Default expiration time: 2 hours (can be changed)
  */
 
 const TOKEN_KEY = 'token';
 const TOKEN_EXPIRY_KEY = 'tokenExpiry';
 const DISPLAY_NAME_KEY = 'displayName';
 
-// Domyślny czas wygaśnięcia tokenu: 2 godziny (w milisekundach)
+// Default token expiration time: 2 hours (in milliseconds)
 const DEFAULT_TOKEN_EXPIRY_MS = 2 * 60 * 60 * 1000; // 2 godziny
 
 /**
- * Zapisuje token wraz z timestamp wygaśnięcia
+ * Saves token with expiration timestamp
  * @param token - Token JWT
- * @param displayName - Nazwa użytkownika
- * @param expiryMs - Czas wygaśnięcia w milisekundach (opcjonalny, domyślnie 2 godziny)
+ * @param displayName - Username
+ * @param expiryMs - Expiration time in milliseconds (optional, default 2 hours)
  */
 export const saveToken = (token: string, displayName: string, expiryMs: number = DEFAULT_TOKEN_EXPIRY_MS): void => {
   const expiryTime = Date.now() + expiryMs;
@@ -27,24 +27,24 @@ export const saveToken = (token: string, displayName: string, expiryMs: number =
 };
 
 /**
- * Pobiera token z localStorage
- * @returns Token lub null, jeśli nie istnieje lub wygasł
+ * Gets token from localStorage
+ * @returns Token or null if it doesn't exist or has expired
  */
 export const getToken = (): string | null => {
   const token = localStorage.getItem(TOKEN_KEY);
   const expiryTime = localStorage.getItem(TOKEN_EXPIRY_KEY);
   
-  // Jeśli nie ma tokenu lub timestamp wygaśnięcia
+  // If there is no token or expiration timestamp
   if (!token || !expiryTime) {
     return null;
   }
   
-  // Sprawdź, czy token wygasł
+  // Check if token has expired
   const now = Date.now();
   const expiry = parseInt(expiryTime, 10);
   
   if (now >= expiry) {
-    // Token wygasł - usuń go
+    // Token expired - delete it
     clearToken();
     return null;
   }
@@ -53,14 +53,14 @@ export const getToken = (): string | null => {
 };
 
 /**
- * Pobiera nazwę użytkownika z localStorage
+ * Gets username from localStorage
  */
 export const getDisplayName = (): string | null => {
   return localStorage.getItem(DISPLAY_NAME_KEY);
 };
 
 /**
- * Sprawdza, czy token jest ważny (istnieje i nie wygasł)
+  * Checks if token is valid (exists and has not expired)
  */
 export const isTokenValid = (): boolean => {
   const token = getToken();
@@ -68,7 +68,7 @@ export const isTokenValid = (): boolean => {
 };
 
 /**
- * Pobiera czas wygaśnięcia tokenu
+ * Gets token expiration time
  */
 export const getTokenExpiry = (): number | null => {
   const expiryTime = localStorage.getItem(TOKEN_EXPIRY_KEY);
@@ -76,7 +76,7 @@ export const getTokenExpiry = (): number | null => {
 };
 
 /**
- * Sprawdza, ile czasu pozostało do wygaśnięcia tokenu (w milisekundach)
+ * Checks how much time is left until token expiration (in milliseconds)
  */
 export const getTimeUntilExpiry = (): number | null => {
   const expiry = getTokenExpiry();
@@ -88,39 +88,39 @@ export const getTimeUntilExpiry = (): number | null => {
 };
 
 /**
- * Usuwa token i związane dane z localStorage
+ * Deletes token and related data from localStorage
  */
 export const clearToken = (): void => {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(TOKEN_EXPIRY_KEY);
   localStorage.removeItem(DISPLAY_NAME_KEY);
   
-  // Usuń też z sessionStorage dla kompatybilności wstecznej
+  // Delete from sessionStorage for backward compatibility
   sessionStorage.removeItem(TOKEN_KEY);
   sessionStorage.removeItem(DISPLAY_NAME_KEY);
 };
 
 /**
- * Próbuje dekodować JWT token, aby uzyskać informacje o wygaśnięciu
- * Jeśli token zawiera 'exp', używa go zamiast domyślnego czasu
+ * Tries to decode JWT token to get expiration information
+ * If token contains 'exp', uses it instead of default time
  * @param token - Token JWT
- * @returns Timestamp wygaśnięcia w milisekundach lub null
+ * @returns Timestamp expiration in milliseconds or null
  */
 export const getExpiryFromJWT = (token: string): number | null => {
   try {
-    // JWT składa się z 3 części oddzielonych kropkami: header.payload.signature
+    // JWT consists of 3 parts separated by dots: header.payload.signature
     const parts = token.split('.');
     if (parts.length !== 3) {
       return null;
     }
     
-    // Dekoduj payload (base64)
+    // Decode payload (base64)
     const payload = parts[1];
     const decoded = JSON.parse(atob(payload));
     
-    // 'exp' to timestamp w sekundach (Unix timestamp)
+    // 'exp' to timestamp in seconds (Unix timestamp)
     if (decoded.exp) {
-      // Konwertuj na milisekundy
+      // Convert to milliseconds
       return decoded.exp * 1000;
     }
     
@@ -132,9 +132,9 @@ export const getExpiryFromJWT = (token: string): number | null => {
 };
 
 /**
- * Dekoduje JWT token, aby uzyskać user ID z claimów
+ * Decodes JWT token to get user ID from claims
  * @param token - Token JWT
- * @returns User ID (NameIdentifier) lub null
+ * @returns User ID (NameIdentifier) or null
  */
 export const getUserIdFromToken = (token: string): string | null => {
   try {
@@ -146,8 +146,8 @@ export const getUserIdFromToken = (token: string): string | null => {
     const payload = parts[1];
     const decoded = JSON.parse(atob(payload));
     
-    // ClaimTypes.NameIdentifier w .NET odpowiada 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'
-    // lub może być zapisany jako 'nameid' lub 'sub'
+    // ClaimTypes.NameIdentifier in .NET corresponds to 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'
+    // or it can be written as 'nameid' or 'sub'
     return decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] 
       || decoded.nameid 
       || decoded.sub 
