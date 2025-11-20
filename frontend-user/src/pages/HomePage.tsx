@@ -10,30 +10,10 @@ import FavoriteDatasetsSection from "../components/datasets/FavoriteDatasetsSect
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { fetchPublicDatasets } from "../features/dataset/datasetThunks";
 import { useProjects } from "../hooks/useProjects";
-import { DisplayProject } from "../models/project";
 import { likeProject } from "../features/project/projectThunks";
 import { getUserIdFromToken } from "../utilis/tokenManager";
 import { useToast } from "../components/toast/ToastProvider";
-import { Project } from "../components/home/CategorySection";
-
-// Transform DisplayProject to Project format used by components
-const transformProject = (
-  project: DisplayProject
-): Project & { isLiked?: boolean; ownerAvatar?: string } => {
-  return {
-    id: project.id,
-    title: project.name,
-    description: project.description || "",
-    author: project.ownerName || "Unknown",
-    // Use lastModifiedAt as createdAt since API doesn't return createdAt
-    createdAt: project.lastModifiedAt || project.createdAt || "",
-    imageUrl:
-      project.pictureUrl ||
-      "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800",
-    ownerAvatar: project.ownerAvatar,
-    isLiked: project.isLiked,
-  };
-};
+import { transformProject } from "../utilis/projectHelpers";
 
 export default function HomePage() {
   // All hooks must be called at the top level, in the same order

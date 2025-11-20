@@ -11,8 +11,8 @@ import {
   SidebarMenuItem,
 } from "../ui/sidebar";
 import { cn } from "../utilis/tailwind";
-import { Database, FolderOpen, Home, Network } from "lucide-react";
 import Logo from "./Logo";
+import { getNavigationItems } from "../data/navigationItems";
 
 function AppSidebar() {
   const { t } = useTranslation();
@@ -20,38 +20,9 @@ function AppSidebar() {
   const location = useLocation();
   const isLoggedIn = useSelector((state: RootState) => state.auth.isLoggedIn);
 
-  const allNavigationItems = [
-    {
-      id: "home",
-      label: t("sidebar.home"),
-      icon: Home,
-      path: "/",
-      requiresAuth: false,
-    },
-    {
-      id: "projects",
-      label: t("sidebar.myProjects"),
-      icon: FolderOpen,
-      path: "/projects",
-      requiresAuth: true,
-    },
-    {
-      id: "datasets",
-      label: t("sidebar.datasets"),
-      icon: Database,
-      path: "/datasets-regresja",
-      requiresAuth: true,
-    },
-    {
-      id: "canvas",
-      label: t("sidebar.canvas"),
-      icon: Network,
-      path: "/canvas",
-      requiresAuth: true,
-    },
-  ];
+  const allNavigationItems = getNavigationItems(t);
 
-  // Filtruj elementy nawigacji na podstawie stanu zalogowania
+  // Filter navigation items based on login status
   const navigationItems = allNavigationItems.filter(
     (item) => !item.requiresAuth || isLoggedIn
   );

@@ -1,4 +1,3 @@
-import React from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./button";
 import { ChevronLeft, ChevronRight } from "lucide-react";

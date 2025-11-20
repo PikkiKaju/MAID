@@ -10,7 +10,11 @@ import UploadDatasetDialog, {
 } from "../components/datasets/UploadDatasetDialog";
 import DatasetDetailsDialog from "../components/datasets/DatasetDetailsDialog";
 import { handleDrag, handleDrop } from "../utilis/drag-and-drop";
-import { formatUploadDate } from "../utilis/functions";
+import {
+  validateFile,
+  formatDatasets,
+  calculatePagination,
+} from "../utilis/datasetHelpers";
 import { getFileIcon } from "../models/dataset";
 import { useSelector, useDispatch } from "react-redux";
 import { AppDispatch, RootState } from "../store/store";
@@ -40,32 +44,12 @@ export default function DatasetsListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
-  // Validate file extension and pass only matches files that are .csv or .zip
-  const validateFile = (
-    file: File
-  ): { valid: boolean; type: "csv" | "zip" | null; error?: string } => {
-    const fileName = file.name.toLowerCase();
-    const extension = fileName.substring(fileName.lastIndexOf("."));
-
-    if (extension === ".csv") {
-      return { valid: true, type: "csv" };
-    } else if (extension === ".zip") {
-      return { valid: true, type: "zip" };
-    } else {
-      return {
-        valid: false,
-        type: null,
-        error: t("datasets.invalidFileFormat"),
-      };
-    }
-  };
-
   // Handle file upload to global state
   const handleFileUpload = (files: FileList) => {
     if (files.length === 0) return;
 
     const file = files[0];
-    const validation = validateFile(file);
+    const validation = validateFile(file, t("datasets.invalidFileFormat"));
 
     if (!validation.valid) {
       const errorMessage = validation.error || t("datasets.invalidFile");
@@ -146,31 +130,16 @@ export default function DatasetsListPage() {
   }, [dispatch, token]);
 
   // Format datasets
-  const formattedDatasets = useMemo(() => {
-    return userDatasets.map((dataset) => {
-      // Determine file type (0 = CSV, 1 = ZIP)
-      const fileType = dataset.dataType === 0 ? "CSV" : "ZIP";
-
-      // Format date
-      const uploadDate = formatUploadDate(dataset.createdAt);
-
-      return {
-        id: dataset.id,
-        name: dataset.name,
-        type: fileType,
-        uploadDate: uploadDate,
-        author: dataset.username,
-        likes: dataset.likes,
-        isPublic: dataset.isPublic,
-      };
-    });
-  }, [userDatasets]);
+  const formattedDatasets = useMemo(
+    () => formatDatasets(userDatasets),
+    [userDatasets]
+  );
 
   // Pagination logic
-  const totalPages = Math.ceil(formattedDatasets.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedDatasets = formattedDatasets.slice(startIndex, endIndex);
+  const { totalPages, paginatedItems: paginatedDatasets } = useMemo(
+    () => calculatePagination(formattedDatasets, currentPage, itemsPerPage),
+    [formattedDatasets, currentPage, itemsPerPage]
+  );
 
   // Reset to page 1 when datasets change
   useEffect(() => {

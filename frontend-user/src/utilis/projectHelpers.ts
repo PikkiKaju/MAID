@@ -1,4 +1,4 @@
-import type { Project, ProjectDisplay } from "../models/project";
+import type { Project, ProjectDisplay, DisplayProject } from "../models/project";
 import { getStatusString } from "./functions";
 
 const DEFAULT_PROJECT_IMAGE =
@@ -58,5 +58,37 @@ export const filterAndSortProjects = (
         new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime()
       );
     });
+};
+
+/**
+ * Transforms DisplayProject to Project format used by home page components
+ * @param project - DisplayProject to transform
+ * @returns Project with additional properties (isLiked, ownerAvatar)
+ */
+export const transformProject = (
+  project: DisplayProject
+): {
+  id: string;
+  title: string;
+  description: string;
+  author: string;
+  createdAt: string;
+  imageUrl: string;
+  ownerAvatar?: string;
+  isLiked?: boolean;
+} => {
+  return {
+    id: project.id,
+    title: project.name,
+    description: project.description || "",
+    author: project.ownerName || "Unknown",
+    // Use lastModifiedAt as createdAt since API doesn't return createdAt
+    createdAt: project.lastModifiedAt || project.createdAt || "",
+    imageUrl:
+      project.pictureUrl ||
+      "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800",
+    ownerAvatar: project.ownerAvatar,
+    isLiked: project.isLiked,
+  };
 };
 
