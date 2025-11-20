@@ -315,7 +315,9 @@ const networkGraphService = {
       }
     });
 
-    const resp = await djangoClient.post(`network/graphs/${graphId}/train/`, form);
+    const resp = await djangoClient.post(`network/graphs/${graphId}/train/`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     if (resp.status === 202) return resp.data;
     throw new Error('Failed to start training job');
   },
@@ -348,7 +350,9 @@ const networkGraphService = {
     const form = new FormData();
     form.append('file', file);
     // Let the browser/axios set the Content-Type (including boundary)
-    const resp = await djangoClient.post(`network/training-jobs/${jobId}/predict/`, form);
+    const resp = await djangoClient.post(`network/training-jobs/${jobId}/predict/`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     if (resp.status === 200) return resp.data;
     throw new Error('Prediction failed');
   },
