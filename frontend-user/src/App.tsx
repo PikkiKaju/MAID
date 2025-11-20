@@ -7,11 +7,10 @@ import { ToastProvider } from "./components/toast/ToastProvider";
 import { startTokenExpiryChecker } from "./utilis/tokenExpiryChecker";
 
 function AppContent() {
+  // Check token expiry every minute
   useEffect(() => {
-    // Uruchom okresowe sprawdzanie ważności tokenu (co minutę)
     const stopChecker = startTokenExpiryChecker(60 * 1000);
 
-    // Zatrzymaj sprawdzanie przy unmount
     return () => {
       stopChecker();
     };

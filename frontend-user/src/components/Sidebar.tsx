@@ -11,7 +11,8 @@ import {
   SidebarMenuItem,
 } from "../ui/sidebar";
 import { cn } from "../utilis/tailwind";
-import { Database, FolderOpen, Home, Sparkles, Network } from "lucide-react";
+import { Database, FolderOpen, Home, Network } from "lucide-react";
+import Logo from "./Logo";
 
 function AppSidebar() {
   const { t } = useTranslation();
@@ -58,14 +59,7 @@ function AppSidebar() {
   return (
     <Sidebar className="border-none">
       <SidebarHeader className="shadow-md px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
-            <Sparkles className="h-4 w-4 text-white" />
-          </div>
-          <span className="font-semibold text-lg bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Maid
-          </span>
-        </div>
+        <Logo />
       </SidebarHeader>
 
       <SidebarContent className="px-4 py-6 light:bg-gray-200 dark:bg-sidebar-accent/30">
