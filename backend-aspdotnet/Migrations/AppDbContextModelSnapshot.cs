@@ -64,6 +64,10 @@ namespace backend_aspdotnet.Migrations
                     b.Property<Guid>("DatasetId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<bool>("IsPublic")
                         .HasColumnType("boolean");
 
@@ -76,6 +80,13 @@ namespace backend_aspdotnet.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("PictureUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -149,6 +160,21 @@ namespace backend_aspdotnet.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("LikesProjects");
+                });
+
+            modelBuilder.Entity("backend_aspdotnet.Models.ProjectPhotos", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PhotoUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ProjectPhotos");
                 });
 
             modelBuilder.Entity("backend_aspdotnet.Models.User", b =>

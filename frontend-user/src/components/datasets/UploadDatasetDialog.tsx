@@ -45,7 +45,7 @@ export default function UploadDatasetDialog({
 }: UploadDatasetDialogProps) {
   const [name, setName] = useState("");
   const [isPublic, setIsPublic] = useState(true);
-  const [columnTransform, setColumnTransform] = useState("convert");
+  const [columnTransform, setColumnTransform] = useState("remove");
   const [emptyTransform, setEmptyTransform] = useState("average");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -58,7 +58,7 @@ export default function UploadDatasetDialog({
         fileName.substring(0, fileName.lastIndexOf(".")) || fileName;
       setName(nameWithoutExt);
       setIsPublic(true);
-      setColumnTransform("convert");
+      setColumnTransform("remove");
       setEmptyTransform("average");
       setErrors({});
     }
@@ -158,7 +158,6 @@ export default function UploadDatasetDialog({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="average">Average</SelectItem>
-                    <SelectItem value="median">Median</SelectItem>
                     <SelectItem value="remove">Remove</SelectItem>
                   </SelectContent>
                 </Select>

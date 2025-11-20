@@ -1,89 +1,102 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { sampleProjects } from "../data";
 import RecentSection from "../components/home/RecentSection";
 import TrendingSection from "../components/home/TrendingSection";
 import FavoritesSection from "../components/home/FavoritesSection";
 import CategorySection from "../components/home/CategorySection";
 import SearchResultsSection from "../components/home/SearchResultsSection";
 import PublicDatasetsSection from "../components/datasets/PublicDatasetsSection";
+import FavoriteDatasetsSection from "../components/datasets/FavoriteDatasetsSection";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { fetchPublicDatasets } from "../features/dataset/datasetThunks";
-// import { useNavigate } from "react-router-dom";
 import { useProjects } from "../hooks/useProjects";
-
-//   const handleLike = async (projectId: string) => {
-//     if (!token) return;
-//     try {
-//       await axiosInstance.put(
-//         `/Project/${projectId}/like`,
-//         "00000000-0000-0000-0000-000000000000", // Placeholder for project ID
-//         {
-//           headers: { Authorization: `Bearer ${token}` },
-//         }
-//       );
-//       setLikedProjects((prev) => {
-//         const updated = [...prev, projectId];
-//         localStorage.setItem("likedProjects", JSON.stringify(updated));
-//         return updated;
-//       });
-//       refetch();
-//     } catch (e) {
-//       alert("Nie udało się dodać polubienia.");
-//     }
-//   };
-
-//   const formatDate = (dateString: string | undefined): string => {
-//     if (!dateString) return "Brak daty";
-//     try {
-//       return new Date(dateString).toLocaleDateString("pl-PL", {
-//         year: "numeric",
-//         month: "long",
-//         day: "numeric",
-//         hour: "2-digit",
-//         minute: "2-digit",
-//       });
-//     } catch (e) {
-//       console.error("Błąd formatowania daty:", e);
-//       return dateString;
-//     }
-//   };
+import { likeProject } from "../features/project/projectThunks";
+import { getUserIdFromToken } from "../utils/tokenManager";
+import { useToast } from "../components/toast/ToastProvider";
+import { transformProject } from "../utils/projectHelpers";
 
 export default function HomePage() {
-  const [favorites, setFavorites] = useState<Set<string>>(new Set(["1", "3"]));
-  // const [isLoggedIn] = useState(true); // Simulate login state - change to false to test logged out state
-
   // All hooks must be called at the top level, in the same order
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
+  const { showSuccess, showError } = useToast();
   const searchTerm = useAppSelector((state) => state.search.term.toLowerCase());
-  // const navigate = useNavigate();
-  const { loading, error } = useProjects();
+  const { newProjects, popularProjects, allProjects, loading, error, refetch } =
+    useProjects();
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
-  // const token = useAppSelector((state) => state.auth.token);
+  const token = useAppSelector((state) => state.auth.token);
 
   // Fetch public datasets on mount
   useEffect(() => {
     dispatch(fetchPublicDatasets());
   }, [dispatch]);
 
-  const filteredProjects = sampleProjects.filter((project) =>
-    project.title.toLowerCase().includes(searchTerm)
+  // Transform projects to the format expected by components
+  const transformedNewProjects = useMemo(
+    () => newProjects.map(transformProject),
+    [newProjects]
+  );
+  const transformedPopularProjects = useMemo(
+    () => popularProjects.map(transformProject),
+    [popularProjects]
+  );
+  const transformedAllProjects = useMemo(
+    () => allProjects.map(transformProject),
+    [allProjects]
   );
 
-  const handleFavoriteToggle = (projectId: string) => {
-    const newFavorites = new Set(favorites);
-    if (newFavorites.has(projectId)) {
-      newFavorites.delete(projectId);
-    } else {
-      newFavorites.add(projectId);
+  // Filter projects by search term
+  const filteredProjects = useMemo(() => {
+    return transformedAllProjects.filter(
+      (project) =>
+        project.title.toLowerCase().includes(searchTerm) ||
+        project.description.toLowerCase().includes(searchTerm)
+    );
+  }, [transformedAllProjects, searchTerm]);
+
+  // Get favorite projects (liked projects)
+  const favoriteProjects = useMemo(() => {
+    return transformedAllProjects.filter((p) => {
+      const originalProject = allProjects.find((proj) => proj.id === p.id);
+      return originalProject?.isLiked === true;
+    });
+  }, [transformedAllProjects, allProjects]);
+
+  const handleFavoriteToggle = async (projectId: string) => {
+    if (!isLoggedIn || !token) {
+      showError(t("projects.likeLoginRequired"));
+      return;
     }
-    setFavorites(newFavorites);
+
+    const userId = getUserIdFromToken(token);
+    if (!userId) {
+      showError("Nie udało się pobrać ID użytkownika.");
+      return;
+    }
+
+    // Check if project is currently liked before toggling
+    const currentProject = allProjects.find((p) => p.id === projectId);
+    const wasLiked = currentProject?.isLiked === true;
+
+    try {
+      await dispatch(likeProject({ projectId, userId })).unwrap();
+      // Refresh projects to update like status
+      refetch();
+
+      // Show appropriate message based on previous state
+      if (wasLiked) {
+        showSuccess(t("projects.unlikeSuccess"));
+      } else {
+        showSuccess(t("projects.likeSuccess"));
+      }
+    } catch (err: any) {
+      console.error("Error liking project:", err);
+      showError(err || t("projects.likeError"));
+    }
   };
 
-  const recentProjects = sampleProjects.slice(0, 3);
-  const trendingProjects = sampleProjects.slice(1, 4);
-  const favoriteProjects = sampleProjects.filter((p) => favorites.has(p.id));
+  const recentProjects = transformedNewProjects.slice(0, 6);
+  const trendingProjects = transformedPopularProjects.slice(0, 6);
 
   return (
     <div>
@@ -94,7 +107,7 @@ export default function HomePage() {
           </h2>
           <SearchResultsSection
             projects={filteredProjects}
-            favorites={favorites}
+            favorites={new Set(favoriteProjects.map((p) => p.id))}
             handleFavoriteToggle={handleFavoriteToggle}
             loading={loading}
             error={error}
@@ -105,14 +118,16 @@ export default function HomePage() {
         <div className="space-y-8">
           <RecentSection
             projects={recentProjects}
-            favorites={favorites}
+            favorites={new Set(favoriteProjects.map((p) => p.id))}
             handleFavoriteToggle={handleFavoriteToggle}
+            loading={loading}
           />
 
           <TrendingSection
             projects={trendingProjects}
-            favorites={favorites}
+            favorites={new Set(favoriteProjects.map((p) => p.id))}
             handleFavoriteToggle={handleFavoriteToggle}
+            loading={loading}
           />
 
           <PublicDatasetsSection />
@@ -120,15 +135,19 @@ export default function HomePage() {
           {isLoggedIn && favoriteProjects.length > 0 && (
             <FavoritesSection
               projects={favoriteProjects}
-              favorites={favorites}
+              favorites={new Set(favoriteProjects.map((p) => p.id))}
               handleFavoriteToggle={handleFavoriteToggle}
+              loading={loading}
             />
           )}
 
+          {isLoggedIn && <FavoriteDatasetsSection />}
+
           <CategorySection
-            projects={sampleProjects}
-            favorites={favorites}
+            projects={transformedAllProjects}
+            favorites={new Set(favoriteProjects.map((p) => p.id))}
             handleFavoriteToggle={handleFavoriteToggle}
+            loading={loading}
           />
         </div>
       )}

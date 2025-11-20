@@ -156,6 +156,14 @@ class DatasetService {
     });
     return response.data;
   }
+
+  async likeDataset(id: string, token: string): Promise<void> {
+    await axiosInstance.put(`/Dataset/${id}/like`, null, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
 }
 
 export const datasetService = new DatasetService();

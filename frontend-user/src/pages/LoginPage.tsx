@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../store/store";
 import { clearAuthStatus } from "../features/auth/authSlice";
 import { loginUser } from "../features/auth/loginThunks";
 import { useNavigate } from "react-router-dom";
 import LoginForm from "../components/forms/LoginForm";
+import { validateLoginForm } from "../utils/authHelpers";
 
 function LoginPage() {
+  const { t } = useTranslation();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -32,23 +35,6 @@ function LoginPage() {
     };
   }, [dispatch]);
 
-  // Client-side validation
-  const validateForm = (): string | null => {
-    if (!username.trim()) {
-      return "Nazwa użytkownika jest wymagana.";
-    }
-    if (!password.trim()) {
-      return "Hasło jest wymagane.";
-    }
-    if (username.trim().length < 3) {
-      return "Nazwa użytkownika musi mieć co najmniej 3 znaki.";
-    }
-    if (password.length < 4) {
-      return "Hasło musi mieć co najmniej 4 znaki.";
-    }
-    return null;
-  };
-
   // function to submit button
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,9 +48,9 @@ function LoginPage() {
     dispatch(clearAuthStatus());
 
     // Client-side validation
-    const validationErr = validateForm();
-    if (validationErr) {
-      setValidationError(validationErr);
+    const validation = validateLoginForm(username, password, t);
+    if (!validation.isValid) {
+      setValidationError(validation.error);
       return;
     }
 

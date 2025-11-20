@@ -8,6 +8,7 @@ import RegisterForm from "../components/forms/RegisterForm";
 import { RegisterUserForm } from "../models/auth";
 import { registerUser } from "../features/auth/registerThunks";
 import { useToast } from "../components/toast/ToastProvider";
+import { validatePasswordMatch } from "../utils/authHelpers";
 
 function RegisterPage() {
   const [userToRegister, setUserToRegister] = useState<RegisterUserForm>({
@@ -35,10 +36,8 @@ function RegisterPage() {
       setTimeout(() => {
         navigate("/");
         dispatch(clearAuthStatus());
-      }, 2000); // Czeka 2 sekundy przed przekierowaniem, aby użytkownik zobaczył toast
+      }, 2000); // Wait 2 seconds before redirecting
     }
-    //  TODO
-    //  inne informacje np o tym, że użytkownik się wylogował
   }, [isLoggedIn, status, showSuccess, t, navigate, dispatch]);
 
   // Effect to to clear old status
@@ -61,8 +60,14 @@ function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (userToRegister.password !== userToRegister.confirmPassword) {
-      setPasswordError(t("auth.passwordMismatch"));
+    // Validate password match
+    const passwordMatchError = validatePasswordMatch(
+      userToRegister.password,
+      userToRegister.confirmPassword,
+      t
+    );
+    if (passwordMatchError) {
+      setPasswordError(passwordMatchError);
       return;
     } else {
       setPasswordError("");

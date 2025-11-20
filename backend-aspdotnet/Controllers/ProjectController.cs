@@ -58,21 +58,38 @@ namespace backend_aspdotnet.Controllers
         }
 
 
+
+
             [HttpGet("All")]
             [AllowAnonymous]
             public async Task<IActionResult> GetAllPublic()
         {
-            /*
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdString))
-                return Unauthorized("User ID not found in token.");
-
-            if (!Guid.TryParse(userIdString, out Guid userId))
-                return Unauthorized("Invalid user ID format.");
-            */
+            Guid? userId = null;
+             if (User.Identity?.IsAuthenticated == true)
+            {
+                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (Guid.TryParse(userIdString, out Guid parsedId))
+                {
+                    userId = parsedId;
+                }
+            }
+    
             var projects = await _context.Projects
-                    .Where(p => p.IsPublic == true)
-                    .ToListAsync();
+                    .Where(p => p.IsPublic == true).Select(p => new
+                {
+                    p.Id,
+                    p.Name,
+                    p.LastModifiedAt,
+                    p.UserId,
+                    p.IsPublic,
+                    p.PictureUrl,
+                    p.Description,
+                    OwnerName = _context.Users.Where(u => u.Id == p.UserId).Select(u => u.Username).FirstOrDefault(),
+                    OwnerAvatar = _context.Users.Where(u => u.Id == p.UserId).Select(u => u.Avatar).FirstOrDefault(),
+                    IsLiked = userId.HasValue
+                        ? _context.LikesProjects.Any(lp => lp.ProjectId == p.Id && lp.UserId == userId.Value)
+                        : false
+                }).ToListAsync();
             return Ok(projects);
         }
 
@@ -83,7 +100,6 @@ namespace backend_aspdotnet.Controllers
         {
             Guid? userId = null;
 
-            // ✅ Detect logged-in user
             if (User.Identity?.IsAuthenticated == true)
             {
                 var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -93,7 +109,6 @@ namespace backend_aspdotnet.Controllers
                 }
             }
 
-            // ✅ Base query for public projects
             var query = _context.Projects
                 .Where(p => p.IsPublic)
                 .OrderByDescending(p => p.LastModifiedAt)
@@ -104,14 +119,15 @@ namespace backend_aspdotnet.Controllers
                     p.LastModifiedAt,
                     p.UserId,
                     p.IsPublic,
-
-                    // ✅ Add IsLiked field only if user is logged in
+                    p.PictureUrl,
+                    p.Description,
+                    OwnerName = _context.Users.Where(u => u.Id == p.UserId).Select(u => u.Username).FirstOrDefault(),
+                    OwnerAvatar = _context.Users.Where(u => u.Id == p.UserId).Select(u => u.Avatar).FirstOrDefault(),
                     IsLiked = userId.HasValue
                         ? _context.LikesProjects.Any(lp => lp.ProjectId == p.Id && lp.UserId == userId.Value)
                         : false
                 });
 
-            // ✅ Exclude the logged-in user's own projects if desired
             if (userId.HasValue)
             {
                 query = query.Where(p => p.UserId != userId.Value);
@@ -127,7 +143,6 @@ namespace backend_aspdotnet.Controllers
           {
             Guid? userId = null;
 
-            // ✅ Detect logged-in user
             if (User.Identity?.IsAuthenticated == true)
             {
                 var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -137,7 +152,6 @@ namespace backend_aspdotnet.Controllers
                 }
             }
 
-            // ✅ Base query for public projects
             var query = _context.Projects
                 .Where(p => p.IsPublic)
                 .OrderByDescending(p => p.Likes)
@@ -148,14 +162,15 @@ namespace backend_aspdotnet.Controllers
                     p.LastModifiedAt,
                     p.UserId,
                     p.IsPublic,
-
-                    // ✅ Add IsLiked field only if user is logged in
+                    p.PictureUrl,
+                    p.Description,
+                    OwnerName = _context.Users.Where(u => u.Id == p.UserId).Select(u => u.Username).FirstOrDefault(),
+                    OwnerAvatar = _context.Users.Where(u => u.Id == p.UserId).Select(u => u.Avatar).FirstOrDefault(),
                     IsLiked = userId.HasValue
                         ? _context.LikesProjects.Any(lp => lp.ProjectId == p.Id && lp.UserId == userId.Value)
                         : false
                 });
 
-            // ✅ Exclude the logged-in user's own projects if desired
             if (userId.HasValue)
             {
                 query = query.Where(p => p.UserId != userId.Value);
@@ -185,11 +200,17 @@ namespace backend_aspdotnet.Controllers
             var projectId = Guid.NewGuid();
 
             // Set defaults here:
+            var count = _context.ProjectPhotos.Count();
+            var random = new Random();
+
             var meta = new ProjectMeta
             {
                 Id = projectId,
                 UserId = userId!,
                 Name = dto.Name,
+                Description = dto.Description ?? "",
+                PictureUrl = _context.ProjectPhotos.Skip(random.Next(count)).First().PhotoUrl ,
+                Status = ProjectStatus.Draft,
                 DatasetId = Guid.Empty,  // no dataset selected yet
                 CreatedAt = DateTime.UtcNow,
                 LastModifiedAt = DateTime.UtcNow
@@ -269,6 +290,15 @@ namespace backend_aspdotnet.Controllers
     if (dto.isPublic != null)
     {
         projectMeta.IsPublic = dto.isPublic.Value;
+    }
+
+    if(dto.Status != null)
+    {
+        if (!Enum.IsDefined(typeof(ProjectStatus), dto.Status.Value))
+        {
+            return BadRequest("Invalid status specified.");
+        }
+        projectMeta.Status = dto.Status.Value;
     }
 
     projectMeta.LastModifiedAt = DateTime.UtcNow;

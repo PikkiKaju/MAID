@@ -1,5 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useSelector } from "react-redux";
+import { RootState } from "../store/store";
 import {
   Sidebar,
   SidebarContent,
@@ -8,47 +10,27 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "../ui/sidebar";
-import { cn } from "../utilis/tailwind";
-import { Database, FolderOpen, Home, Sparkles, Network } from "lucide-react";
+import { cn } from "../utils/tailwind";
+import Logo from "./Logo";
+import { getNavigationItems } from "../data/navigationItems";
 
 function AppSidebar() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const isLoggedIn = useSelector((state: RootState) => state.auth.isLoggedIn);
 
-  const navigationItems = [
-    { id: "home", label: t("sidebar.home"), icon: Home, path: "/" },
-    {
-      id: "projects",
-      label: t("sidebar.myProjects"),
-      icon: FolderOpen,
-      path: "/projects",
-    },
-    {
-      id: "datasets",
-      label: t("sidebar.datasets"),
-      icon: Database,
-      path: "/datasets-regresja",
-    },
-    {
-      id: "canvas",
-      label: t("sidebar.canvas"),
-      icon: Network,
-      path: "/canvas",
-    },
-  ];
+  const allNavigationItems = getNavigationItems(t);
+
+  // Filter navigation items based on login status
+  const navigationItems = allNavigationItems.filter(
+    (item) => !item.requiresAuth || isLoggedIn
+  );
 
   return (
     <Sidebar className="border-none">
       <SidebarHeader className="shadow-md px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
-            <Sparkles className="h-4 w-4 text-white" />
-          </div>
-          <span className="font-semibold text-lg bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Maid
-          </span>
-        </div>
+        <Logo />
       </SidebarHeader>
 
       <SidebarContent className="px-4 py-6 light:bg-gray-200 dark:bg-sidebar-accent/30">

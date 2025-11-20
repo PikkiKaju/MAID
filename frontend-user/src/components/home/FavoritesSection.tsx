@@ -1,24 +1,43 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import CategoryGrid from "./CategoryGrid";
-import { Star } from "lucide-react";
+import { Star, Loader2 } from "lucide-react";
 import { Badge } from "../../ui/badge";
-import { Button } from "../../ui/button";
-import { Project } from "./CategorySection";
+import { Pagination } from "../../ui/pagination";
+import { calculatePagination } from "../../utils/projectHelpers";
+import type { HomeProject } from "../../models/project";
 
 interface Props {
-  projects: Project[];
+  projects: HomeProject[];
   favorites: Set<string>;
   handleFavoriteToggle: (id: string) => void;
+  loading?: boolean;
 }
 
 const FavoritesSection: React.FC<Props> = ({
   projects,
   favorites,
   handleFavoriteToggle,
+  loading = false,
 }) => {
   const { t } = useTranslation();
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 3;
   const count = projects.length;
+
+  // Pagination logic
+  const { totalPages, paginatedItems: paginatedProjects } = calculatePagination(
+    projects,
+    currentPage,
+    itemsPerPage
+  );
+
+  // Reset to page 1 when projects change
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [projects.length, currentPage, totalPages]);
 
   return (
     <section className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 rounded-xl p-6">
@@ -35,16 +54,28 @@ const FavoritesSection: React.FC<Props> = ({
             {count}
           </Badge>
         </div>
-        <Button variant="ghost" size="sm">
-          {t("home.viewAll")}
-        </Button>
       </div>
 
-      <CategoryGrid
-        projects={projects}
-        favorites={favorites}
-        handleFavoriteToggle={handleFavoriteToggle}
-      />
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <>
+          <CategoryGrid
+            projects={paginatedProjects}
+            favorites={favorites}
+            handleFavoriteToggle={handleFavoriteToggle}
+          />
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={projects.length}
+          />
+        </>
+      )}
     </section>
   );
 };

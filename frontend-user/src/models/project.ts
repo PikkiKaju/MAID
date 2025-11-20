@@ -9,10 +9,14 @@ export interface Project {
   lastModifiedAt: string; 
   isPublic: boolean;
   likes: number;
+  status?: number; // 0 = draft, 1 = completed, 2 = active
+  pictureUrl?: string; // URL to project image
+  description?: string; // Project description
 }
 
 export interface CreateProjectInput {
   name: string;
+  description: string;
 }
 
 export interface CreateProjectResponse {
@@ -32,6 +36,7 @@ export interface ProjectDetail {
   algorithm: string;
   parameters: Record<string, any>;
   isPublic: boolean;
+  status?: number; // 0 = draft, 1 = completed, 2 = active
 }
 
 export interface ProjectMeta {
@@ -42,6 +47,7 @@ export interface ProjectMeta {
   createdAt: string;
   lastModifiedAt: string;
   isPublic: boolean;
+  status?: number; // 0 = draft, 1 = completed, 2 = active
 }
 
 export interface ApiProject {
@@ -53,6 +59,11 @@ export interface ApiProject {
     lastModifiedAt: string;
     isPublic: boolean;
     likes: number;
+    pictureUrl?: string; // URL to project image
+    description?: string;
+    ownerName?: string;
+    ownerAvatar?: string;
+    isLiked?: boolean;
 }
 
 export interface DisplayProject {
@@ -62,4 +73,52 @@ export interface DisplayProject {
     lastModifiedAt: string;
     isPublic: boolean;
     likes: number;
+    pictureUrl?: string; // URL to project image
+    description?: string;
+    ownerName?: string;
+    ownerAvatar?: string;
+    isLiked?: boolean;
+}
+
+export interface ProjectDisplay extends Omit<Project, 'status'> {
+  title: string;
+  description: string;
+  status: string; // Display status as string (Draft, Running, Active)
+  category?: string;
+  lastModified: string;
+  imageUrl: string;
+}
+
+export interface DeleteDialogState {
+  open: boolean;
+  project: ProjectDisplay | null;
+}
+
+export interface ProjectFilters {
+  searchTerm: string;
+  statusFilter: string;
+  sortBy: "name" | "created" | "modified";
+}
+
+/**
+ * Project item interface for ProjectsGrid component
+ * Extends ProjectDisplay with additional properties
+ */
+export interface ProjectGridItem extends ProjectDisplay {
+  // All properties from ProjectDisplay are already included
+}
+
+/**
+ * Project interface for home page components (CategorySection, etc.)
+ */
+export interface HomeProject {
+  id: string;
+  title: string;
+  description: string;
+  author: string;
+  createdAt: string;
+  category?: string;
+  imageUrl: string;
+  ownerAvatar?: string;
+  isLiked?: boolean;
 }

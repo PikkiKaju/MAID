@@ -10,6 +10,7 @@ import { Textarea } from "../../ui/textarea";
 import type { PersonalInfo } from "../../models/profile";
 import { AvatarPicker } from "./AvatarPicker";
 import { profileService } from "../../api/profileService";
+import { isSvgAvatar, validateEmail } from "../../utils/functions";
 
 type PersonalInfoFormProps = {
   formData: PersonalInfo & { title?: string };
@@ -51,34 +52,11 @@ export function PersonalInfoForm({
     }
   };
 
-  // Funkcja pomocnicza do sprawdzania, czy avatar to SVG
-  const isSvgAvatar = (avatar: string | null | undefined): boolean => {
-    if (!avatar) return false;
-    const trimmed = avatar.trim();
-    return (
-      trimmed.startsWith("<svg") ||
-      (trimmed.startsWith("<?xml") && trimmed.includes("<svg"))
-    );
-  };
-
-  // Funkcja walidacji emaila
-  const validateEmail = (email: string): string | null => {
-    if (!email) {
-      return null; // Pusty email jest OK (opcjonalne pole)
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return t("profile.invalidEmail");
-    }
-
-    return null;
-  };
-
   const handleEmailChange = (value: string) => {
     onChange("email", value);
     const error = validateEmail(value);
-    setEmailError(error);
+    // Mapowanie błędu z funkcji pomocniczej na tłumaczenie
+    setEmailError(error ? t("profile.invalidEmail") : null);
   };
 
   const handleAvatarSelect = async (avatarId: string) => {

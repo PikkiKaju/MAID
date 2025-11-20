@@ -1,100 +1,69 @@
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Filter } from "lucide-react";
-import { Button } from "../../ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../ui/tabs";
+import { FolderKanban, Loader2 } from "lucide-react";
 import CategoryGrid from "./CategoryGrid";
-
-export interface Project {
-  id: string;
-  title: string;
-  description: string;
-  author: string;
-  createdAt: string;
-  category: string;
-  imageUrl: string;
-}
+import { Pagination } from "../../ui/pagination";
+import { calculatePagination } from "../../utils/projectHelpers";
+import type { HomeProject } from "../../models/project";
 
 export interface ProjectListProps {
-  projects: Project[];
+  projects: HomeProject[];
   favorites: Set<string>;
   handleFavoriteToggle: (projectId: string) => void;
+  loading?: boolean;
 }
 
 export const CategorySection: React.FC<ProjectListProps> = ({
   projects,
   favorites,
   handleFavoriteToggle,
+  loading = false,
 }) => {
   const { t } = useTranslation();
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 9;
+
+  // Pagination logic
+  const { totalPages, paginatedItems: paginatedProjects } = calculatePagination(
+    projects,
+    currentPage,
+    itemsPerPage
+  );
+
+  // Reset to page 1 when projects change
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [projects.length, currentPage, totalPages]);
 
   return (
-    <section>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold">{t("home.categories")}</h2>
-        <Button variant="outline" size="sm">
-          <Filter className="h-4 w-4 mr-2" />
-          {t("projects.filter")}
-        </Button>
+    <section id="all-projects-section">
+      <div className="flex items-center gap-2 mb-6">
+        <FolderKanban className="h-5 w-5 text-primary" />
+        <h2 className="text-xl font-semibold">{t("home.allProjects")}</h2>
       </div>
 
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:grid-cols-6">
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="ml">ML</TabsTrigger>
-          <TabsTrigger value="dl">Deep Learning</TabsTrigger>
-          <TabsTrigger value="cv">Computer Vision</TabsTrigger>
-          <TabsTrigger value="nlp">NLP</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="all" className="mt-6">
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <>
           <CategoryGrid
-            projects={projects}
+            projects={paginatedProjects}
             favorites={favorites}
             handleFavoriteToggle={handleFavoriteToggle}
           />
-        </TabsContent>
-
-        <TabsContent value="ml" className="mt-6">
-          <CategoryGrid
-            projects={projects.filter((p) => p.category === "ML")}
-            favorites={favorites}
-            handleFavoriteToggle={handleFavoriteToggle}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={projects.length}
           />
-        </TabsContent>
-
-        <TabsContent value="dl" className="mt-6">
-          <CategoryGrid
-            projects={projects.filter((p) => p.category === "Deep Learning")}
-            favorites={favorites}
-            handleFavoriteToggle={handleFavoriteToggle}
-          />
-        </TabsContent>
-
-        <TabsContent value="cv" className="mt-6">
-          <CategoryGrid
-            projects={projects.filter((p) => p.category === "Computer Vision")}
-            favorites={favorites}
-            handleFavoriteToggle={handleFavoriteToggle}
-          />
-        </TabsContent>
-
-        <TabsContent value="nlp" className="mt-6">
-          <CategoryGrid
-            projects={projects.filter((p) => p.category === "NLP")}
-            favorites={favorites}
-            handleFavoriteToggle={handleFavoriteToggle}
-          />
-        </TabsContent>
-
-        <TabsContent value="analytics" className="mt-6">
-          <CategoryGrid
-            projects={projects.filter((p) => p.category === "Analytics")}
-            favorites={favorites}
-            handleFavoriteToggle={handleFavoriteToggle}
-          />
-        </TabsContent>
-      </Tabs>
+        </>
+      )}
     </section>
   );
 };

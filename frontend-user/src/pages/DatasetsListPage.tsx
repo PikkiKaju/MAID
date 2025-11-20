@@ -1,4 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
+import { Loader2 } from "lucide-react";
+import { Pagination } from "../ui/pagination";
 import AttachedDatasets from "../components/datasets/AttachedDatasets";
 import Tips from "../components/datasets/Tips";
 import UploadArea from "../components/datasets/UploadArea";
@@ -7,8 +9,13 @@ import UploadDatasetDialog, {
   UploadFormData,
 } from "../components/datasets/UploadDatasetDialog";
 import DatasetDetailsDialog from "../components/datasets/DatasetDetailsDialog";
-import { handleDrag, handleDrop } from "../utilis/drag-and-drop";
-import { getFileIcon, getStatusColor } from "../models/dataset";
+import { handleDrag, handleDrop } from "../utils/drag-and-drop";
+import {
+  validateFile,
+  formatDatasets,
+  calculatePagination,
+} from "../utils/datasetHelpers";
+import { getFileIcon } from "../models/dataset";
 import { useSelector, useDispatch } from "react-redux";
 import { AppDispatch, RootState } from "../store/store";
 import {
@@ -18,61 +25,48 @@ import {
   uploadPhoto,
 } from "../features/dataset/datasetThunks";
 import { datasetService } from "../api/datasetService";
+import { useToast } from "../components/toast/ToastProvider";
+import { useTranslation } from "react-i18next";
 
 export default function DatasetsListPage() {
+  const { t } = useTranslation();
+  const { showSuccess, showError, showInfo } = useToast();
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [fileType, setFileType] = useState<"csv" | "zip" | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedDataset, setSelectedDataset] = useState<{
     id: string;
     name: string;
     type: string;
   } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
-  const validateFile = (
-    file: File
-  ): { valid: boolean; type: "csv" | "zip" | null; error?: string } => {
-    const fileName = file.name.toLowerCase();
-    const extension = fileName.substring(fileName.lastIndexOf("."));
-
-    if (extension === ".csv") {
-      return { valid: true, type: "csv" };
-    } else if (extension === ".zip") {
-      return { valid: true, type: "zip" };
-    } else {
-      return {
-        valid: false,
-        type: null,
-        error:
-          "Nieprawidłowy format pliku. Dozwolone są tylko pliki .csv lub .zip",
-      };
-    }
-  };
-
+  // Handle file upload to global state
   const handleFileUpload = (files: FileList) => {
     if (files.length === 0) return;
 
     const file = files[0];
-    const validation = validateFile(file);
+    const validation = validateFile(file, t("datasets.invalidFileFormat"));
 
     if (!validation.valid) {
-      setUploadError(validation.error || "Nieprawidłowy plik");
-      setTimeout(() => setUploadError(null), 5000);
+      const errorMessage = validation.error || t("datasets.invalidFile");
+      showError(errorMessage);
       return;
     }
 
     setSelectedFile(file);
     setFileType(validation.type);
     setDialogOpen(true);
-    setUploadError(null);
   };
 
+  // Handle file upload to database and refresh datasets in Redux store after successful upload
   const handleDialogUpload = async (formData: UploadFormData) => {
     if (!selectedFile || !fileType || !token) {
-      setUploadError("Brak wymaganych danych do przesłania pliku.");
+      const errorMessage = t("datasets.missingUploadData");
+      showError(errorMessage);
       return;
     }
 
@@ -82,7 +76,7 @@ export default function DatasetsListPage() {
           uploadCsv({
             file: selectedFile,
             name: formData.name,
-            columnTransform: formData.columnTransform || "convert",
+            columnTransform: formData.columnTransform || "remove",
             emptyTransform: formData.emptyTransform || "average",
             isPublic: formData.isPublic,
           })
@@ -105,21 +99,23 @@ export default function DatasetsListPage() {
       setDialogOpen(false);
       setSelectedFile(null);
       setFileType(null);
-      alert("Plik został przesłany pomyślnie!");
+      showSuccess(t("datasets.uploadSuccess"));
     } catch (error: any) {
-      setUploadError(error || "Błąd podczas przesyłania pliku.");
+      const errorMessage = error?.message || t("datasets.uploadError");
+      showError(errorMessage);
     }
   };
 
+  // Dispatch to Redux store
   const dispatch = useDispatch<AppDispatch>();
+  // Token from Redux store
   const token = useSelector((state: RootState) => state.auth.token);
 
   // Datasets from Redux store
-  const { userDatasets, uploadStatus } = useSelector(
+  const { userDatasets, uploadStatus, userStatus } = useSelector(
     (state: RootState) => state.dataset
   );
-
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const isLoading = userStatus === "loading";
 
   // Fetch public datasets from Redux
   useEffect(() => {
@@ -133,29 +129,47 @@ export default function DatasetsListPage() {
     }
   }, [dispatch, token]);
 
-  const handleDelete = async (id: string, name: string) => {
+  // Format datasets
+  const formattedDatasets = useMemo(
+    () => formatDatasets(userDatasets),
+    [userDatasets]
+  );
+
+  // Pagination logic
+  const { totalPages, paginatedItems: paginatedDatasets } = useMemo(
+    () => calculatePagination(formattedDatasets, currentPage, itemsPerPage),
+    [formattedDatasets, currentPage, itemsPerPage]
+  );
+
+  // Reset to page 1 when datasets change
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [formattedDatasets.length, currentPage, totalPages]);
+
+  // Handle delete dataset from database and refresh datasets in Redux store after successful delete
+  const handleDelete = async (id: string) => {
     if (!token) {
-      alert("Musisz być zalogowany, aby usunąć dataset.");
+      showError(t("datasets.loginRequiredDelete"));
       return;
     }
 
     try {
-      setDeletingId(id);
       await datasetService.deleteDataset(id, token);
       // Refresh both datasets from Redux
       dispatch(fetchUserDatasets());
       dispatch(fetchPublicDatasets());
-      alert("Dataset został usunięty pomyślnie.");
+      showSuccess(t("datasets.deleteSuccess"));
     } catch (err: any) {
-      alert(
-        "Błąd podczas usuwania datasetu: " +
-          (err.response?.data?.message || err.message)
-      );
-    } finally {
-      setDeletingId(null);
+      const errorMessage = t("datasets.deleteError", {
+        message: err.response?.data?.message || err.message,
+      });
+      showError(errorMessage);
     }
   };
 
+  // Handle view details for dataset
   const handleViewDetails = (
     datasetId: string,
     datasetName: string,
@@ -170,7 +184,7 @@ export default function DatasetsListPage() {
       });
       setDetailsDialogOpen(true);
     } else {
-      alert("Podgląd szczegółów jest dostępny tylko dla plików CSV.");
+      showInfo(t("datasets.csvOnlyDetails"));
     }
   };
 
@@ -225,39 +239,27 @@ export default function DatasetsListPage() {
       </div>
 
       {/* Attached Datasets - My Datasets */}
-      <AttachedDatasets
-        datasets={useMemo(() => {
-          return userDatasets.map((dataset) => {
-            // Determine file type based on dataType (0 = CSV, assume ZIP for photos)
-            const fileType = dataset.dataType === 0 ? "CSV" : "ZIP";
-
-            // Format date
-            const uploadDate = new Date(dataset.createdAt).toLocaleDateString(
-              "pl-PL",
-              {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-              }
-            );
-
-            return {
-              id: dataset.id,
-              name: dataset.name,
-              type: fileType,
-              status: "Ready",
-              uploadDate: uploadDate,
-              author: dataset.username,
-              likes: dataset.likes,
-              isPublic: dataset.isPublic,
-            };
-          });
-        }, [userDatasets])}
-        getFileIcon={getFileIcon}
-        getStatusColor={getStatusColor}
-        onDelete={handleDelete}
-        onViewDetails={handleViewDetails}
-      />
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <>
+          <AttachedDatasets
+            datasets={paginatedDatasets}
+            getFileIcon={getFileIcon}
+            onDelete={handleDelete}
+            onViewDetails={handleViewDetails}
+          />
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={formattedDatasets.length}
+          />
+        </>
+      )}
 
       {/* Dataset Details Dialog */}
       {selectedDataset && token && (

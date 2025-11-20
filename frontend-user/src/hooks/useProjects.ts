@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ApiProject, DisplayProject } from '../models/project';
 import axiosInstance from '../api/axiosConfig';
+import { getToken } from '../utils/tokenManager';
 
 interface UseProjectsResult {
     allProjects: DisplayProject[];
@@ -15,10 +16,16 @@ const transformApiProjectToDisplayProject = (apiProject: ApiProject): DisplayPro
     return {
         id: apiProject.id,
         name: apiProject.name, 
-        createdAt: apiProject.createdAt, 
+        // API returns lastModifiedAt but not createdAt, so use lastModifiedAt as createdAt
+        createdAt: apiProject.createdAt || apiProject.lastModifiedAt || "", 
         lastModifiedAt: apiProject.lastModifiedAt, 
         isPublic: apiProject.isPublic,
         likes: apiProject.likes,
+        pictureUrl: apiProject.pictureUrl,
+        description: apiProject.description,
+        ownerName: apiProject.ownerName,
+        ownerAvatar: apiProject.ownerAvatar,
+        isLiked: apiProject.isLiked,
     };
 };
 
@@ -33,10 +40,14 @@ export const useProjects = (): UseProjectsResult => {
         setLoading(true);
         setError(null);
         try {
+            // Get token if user is logged in (needed for IsLiked field)
+            const token = getToken();
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
             const [allRes, newRes, popularRes] = await Promise.all([
-                axiosInstance.get<ApiProject[]>('/Project/All'),
-                axiosInstance.get<ApiProject[]>('/Project/New'),
-                axiosInstance.get<ApiProject[]>('/Project/Popular'),
+                axiosInstance.get<ApiProject[]>('/Project/All', { headers }),
+                axiosInstance.get<ApiProject[]>('/Project/New', { headers }),
+                axiosInstance.get<ApiProject[]>('/Project/Popular', { headers }),
             ]);
 
             setAllProjects(allRes.data.map(transformApiProjectToDisplayProject));

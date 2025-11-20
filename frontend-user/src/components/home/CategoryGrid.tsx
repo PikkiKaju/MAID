@@ -1,18 +1,9 @@
 import React from "react";
 import { ProjectCard } from "../projects/ProjectCard";
-
-export interface Project {
-  id: string;
-  title: string;
-  description: string;
-  author: string;
-  createdAt: string;
-  category: string;
-  imageUrl: string;
-}
+import type { HomeProject } from "../../models/project";
 
 interface Props {
-  projects: Project[];
+  projects: HomeProject[];
   favorites: Set<string>;
   handleFavoriteToggle: (projectId: string) => void;
 }
@@ -28,7 +19,7 @@ const CategoryGrid: React.FC<Props> = ({
         <ProjectCard
           key={project.id}
           {...project}
-          isFavorited={favorites.has(project.id)}
+          isFavorited={project.isLiked === true}
           onFavoriteToggle={handleFavoriteToggle}
         />
       ))}

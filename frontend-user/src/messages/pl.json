@@ -17,7 +17,9 @@
     "error": "Błąd",
     "success": "Sukces",
     "confirm": "Potwierdź",
-    "back": "Wstecz"
+    "back": "Wstecz",
+    "showing": "Wyświetlanie",
+    "of": "z"
   },
   "header": {
     "searchPlaceholder": "Szukaj projektów, danych...",
@@ -53,7 +55,11 @@
     "loginError": "Błąd logowania",
     "registerError": "Błąd rejestracji",
     "registrationSuccess": "Rejestracja zakończona sukcesem!",
-    "userAlreadyExists": "Użytkownik o tej nazwie już istnieje."
+    "userAlreadyExists": "Użytkownik o tej nazwie już istnieje.",
+    "usernameRequired": "Nazwa użytkownika jest wymagana.",
+    "passwordRequired": "Hasło jest wymagane.",
+    "usernameMinLength": "Nazwa użytkownika musi mieć co najmniej 3 znaki.",
+    "passwordMinLength": "Hasło musi mieć co najmniej 4 znaki."
   },
   "home": {
     "recent": "Ostatnie",
@@ -62,7 +68,9 @@
     "trendingProjects": "Trending Projekty",
     "favorites": "Ulubione",
     "favoriteProjects": "Ulubione Projekty",
+    "favoriteDatasets": "Ulubione Datasety",
     "categories": "Kategorie",
+    "allProjects": "Wszystkie Projekty",
     "searchResults": "Wyniki wyszukiwania",
     "noResults": "Brak wyników",
     "viewAll": "Zobacz wszystkie"
@@ -75,6 +83,11 @@
     "projectNameLabel": "Nazwa projektu",
     "projectNamePlaceholder": "Wpisz nazwę projektu...",
     "projectNameHint": "Podaj nazwę projektu. Nazwa powinna mieć przynajmniej 4 znaki.",
+    "projectNameMinLength": "Nazwa projektu musi mieć co najmniej 4 znaki.",
+    "projectDescriptionLabel": "Opis projektu",
+    "projectDescriptionPlaceholder": "Wpisz opis projektu...",
+    "projectDescriptionHint": "Opis projektu powinien mieć co najmniej 10 znaków.",
+    "projectDescriptionMinLength": "Opis projektu musi mieć co najmniej 10 znaków.",
     "myProjects": "Moje Projekty",
     "publicProjects": "Publiczne Projekty",
     "searchProjects": "Szukaj projektów...",
@@ -84,6 +97,7 @@
     "allStatus": "Wszystkie statusy",
     "active": "Aktywny",
     "draft": "Szkic",
+    "running": "Uruchomiony",
     "completed": "Zakończony",
     "sortBy": "Sortuj według",
     "lastModified": "Zmodyfikowano",
@@ -105,7 +119,20 @@
     "deleteConfirm": "Czy na pewno chcesz usunąć ten projekt?",
     "deleteConfirmDescription": "Czy na pewno chcesz usunąć \"{{name}}\"? Ta operacja jest nieodwracalna i trwale usunie wszystkie dane projektu, w tym zbiory danych i konfiguracje.",
     "public": "Publiczny",
-    "private": "Prywatny"
+    "private": "Prywatny",
+    "likeSuccess": "Projekt został dodany do ulubionych!",
+    "unlikeSuccess": "Projekt został usunięty z ulubionych.",
+    "likeError": "Błąd podczas dodawania projektu do ulubionych.",
+    "likeLoginRequired": "Musisz być zalogowany, aby dodać projekt do ulubionych.",
+    "viewLoginRequired": "Musisz być zalogowany, aby zobaczyć szczegóły projektu.",
+    "shareProject": "Udostępnij projekt",
+    "shareDescription": "Skopiuj link do projektu i udostępnij go innym.",
+    "projectLink": "Link do projektu",
+    "linkCopied": "Link skopiowany do schowka!",
+    "visibilityChangedToPublic": "Projekt został ustawiony jako publiczny.",
+    "visibilityChangedToPrivate": "Projekt został ustawiony jako prywatny.",
+    "visibilityUpdateError": "Błąd podczas zmiany widoczności projektu.",
+    "loginRequired": "Musisz być zalogowany, aby wykonać tę akcję."
   },
   "datasets": {
     "title": "Zbiory danych",
@@ -123,7 +150,23 @@
     "attachedDatasets": "Załączone zbiory danych",
     "tips": "Wskazówki",
     "emptyState": "Brak zbiorów danych",
-    "emptyStateDescription": "Prześlij swój pierwszy zbiór danych"
+    "emptyStateDescription": "Prześlij swój pierwszy zbiór danych",
+    "invalidFileFormat": "Nieprawidłowy format pliku. Dozwolone są tylko pliki .csv lub .zip",
+    "invalidFile": "Nieprawidłowy plik",
+    "missingUploadData": "Brak wymaganych danych do przesłania pliku.",
+    "uploadSuccess": "Plik został przesłany pomyślnie!",
+    "uploadError": "Błąd podczas przesyłania pliku.",
+    "loginRequiredDelete": "Musisz być zalogowany, aby usunąć dataset.",
+    "deleteSuccess": "Dataset został usunięty pomyślnie.",
+    "deleteError": "Błąd podczas usuwania datasetu: {{message}}",
+    "csvOnlyDetails": "Podgląd szczegółów jest dostępny tylko dla plików CSV.",
+    "likeSuccess": "Dataset został dodany do ulubionych!",
+    "likeError": "Błąd podczas dodawania do ulubionych.",
+    "likeLoginRequired": "Musisz być zalogowany, aby dodać dataset do ulubionych.",
+    "addToFavorites": "Dodaj do ulubionych",
+    "removeFromFavorites": "Usuń z ulubionych",
+    "previewLoginRequired": "Musisz się zalogować, aby zobaczyć podgląd datasetu.",
+    "preview": "Podgląd"
   },
   "profile": {
     "overview": "Przegląd",
@@ -193,6 +236,11 @@
     "switchTo": "Przełącz na",
     "polish": "Polski",
     "english": "Angielski"
+  },
+  "notFound": {
+    "title": "Strona nie znaleziona",
+    "description": "Przepraszamy, nie mogliśmy znaleźć strony, której szukasz.",
+    "backToHome": "Powrót do strony głównej"
   }
 }
 

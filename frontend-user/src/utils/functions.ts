@@ -1,0 +1,288 @@
+/**
+ * Capitalizes the first letter of a string
+ * @param str - String to capitalize
+ * @returns Capitalized string
+ */
+export const capitalizeFirstLetter = (str: string | null): string | null => {
+  if (!str) return null;
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+/**
+ * Formats upload date
+ * @param dateString - Date to format
+ * @returns Formatted date string in format "DD-MM-YYYY HH:MM"
+ */
+export const formatDate = (dateString: string | undefined): string => {
+    if (!dateString) return 'Brak daty';
+    try {
+      return new Date(dateString).toLocaleDateString('pl-PL', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch (e) {
+      console.error("Błąd formatowania daty:", e);
+      return dateString;
+    }
+  };
+
+/**
+ * Formats upload date
+ */  
+export const formatUploadDate = (dateString: string | Date): string => {
+  try {
+    return new Date(dateString).toLocaleDateString('pl-PL', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  } catch (e) {
+    console.error("Błąd formatowania daty uploadu:", e);
+    return typeof dateString === 'string' ? dateString : 'Brak daty';
+  }
+};
+
+/**
+ * Formats full name from name and surname, with fallback to user label
+ */
+export const formatFullName = (
+  name: string | null | undefined,
+  surname: string | null | undefined,
+  userLabel: string
+): string => {
+  if (name && surname) {
+    return `${name} ${surname}`;
+  }
+  return name || surname || userLabel;
+};
+
+/**
+ * Formats joined date with translated month name
+ */
+export const formatJoinedDate = (
+  dateString: string,
+  t: (key: string) => string,
+  i18n: { exists: (key: string) => boolean }
+): string => {
+  const monthNames = [
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december",
+  ];
+
+  try {
+    const joinedDate = new Date(dateString);
+    const monthIndex = joinedDate.getMonth();
+    const monthKey = monthNames[monthIndex];
+    const year = joinedDate.getFullYear();
+    
+    const monthTranslationKey = `profile.months.${monthKey}`;
+    const monthName = i18n.exists(monthTranslationKey)
+      ? t(monthTranslationKey)
+      : monthKey;
+    
+    const joinedText = t("profile.joined");
+    return `${joinedText} ${monthName} ${year}`;
+  } catch (e) {
+    console.error("Błąd formatowania daty dołączenia:", e);
+    return dateString;
+  }
+};
+
+/**
+ * Validates email format
+ * @param email - Email to validate
+ * @returns Error message if invalid, null if valid or empty (optional field)
+ */
+export const validateEmail = (email: string): string | null => {
+  if (!email) {
+    return null; // Empty email is OK (optional field)
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return "Invalid email format";
+  }
+
+  return null;
+};
+
+/**
+ * Converts status number to status string
+ * @param status - Status number (0 = draft, 1 = completed, 2 = active)
+ * @returns Status string
+ */
+export const getStatusString = (status?: number): string => {
+  switch (status) {
+    case 0:
+      return "Draft";
+    case 1:
+      return "Completed";
+    case 2:
+      return "Active";
+    default:
+      return "Draft";
+  }
+};
+
+/**
+ * Converts status string to status number
+ * @param status - Status string (draft, completed, active)
+ * @returns Status number (0, 1, 2)
+ */
+export const getStatusNumber = (status: string): number => {
+  switch (status.toLowerCase()) {
+    case "draft":
+      return 0;
+    case "completed":
+      return 1;
+    case "active":
+      return 2;
+    default:
+      return 0;
+  }
+};
+
+/**
+ * Gets color classes for project status badge
+ * @param status - Project status (string or number)
+ * @returns Tailwind CSS classes for status badge
+ */
+export const getProjectStatusColor = (status: string | number): string => {
+  // Handle both string and number status
+  const statusStr = typeof status === "number" ? getStatusString(status) : status;
+  
+  switch (statusStr) {
+    case "Active":
+      return "bg-green-100 text-green-800 border-green-200";
+    case "Draft":
+      return "bg-yellow-100 text-yellow-800 border-yellow-200";
+    case "Completed":
+      return "bg-blue-100 text-blue-800 border-blue-200";
+    default:
+      return "bg-gray-100 text-gray-800 border-gray-200";
+  }
+};
+
+/**
+ * Checks if avatar string is an SVG
+ * @param avatar - Avatar string to check
+ * @returns True if avatar is SVG, false otherwise
+ */
+export const isSvgAvatar = (avatar: string | null | undefined): boolean => {
+  if (!avatar) return false;
+  const trimmed = avatar.trim();
+  return (
+    trimmed.startsWith("<svg") ||
+    (trimmed.startsWith("<?xml") && trimmed.includes("<svg"))
+  );
+};
+
+/**
+ * Formats project creation date
+ * For dates within a week: "wczoraj", "2 dni temu", "tydzień temu"
+ * For dates older than a week: formatted as "DD-MM-YYYY"
+ * @param dateString - Date string to format
+ * @returns Formatted date string
+ */
+export const formatProjectDate = (dateString: string | undefined): string => {
+  if (!dateString) return 'Brak daty';
+  
+  try {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+    // For dates within a week (0-7 days)
+    if (diffInDays === 0) {
+      return "dzisiaj";
+    } else if (diffInDays === 1) {
+      return "wczoraj";
+    } else if (diffInDays === 2) {
+      return "2 dni temu";
+    } else if (diffInDays === 3) {
+      return "3 dni temu";
+    } else if (diffInDays === 4) {
+      return "4 dni temu";
+    } else if (diffInDays === 5) {
+      return "5 dni temu";
+    } else if (diffInDays === 6) {
+      return "6 dni temu";
+    } else if (diffInDays === 7) {
+      return "tydzień temu";
+    } else {
+      // For dates older than a week: format as DD-MM-YYYY
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
+    }
+  } catch (e) {
+    console.error("Błąd formatowania daty projektu:", e);
+    return dateString;
+  }
+};
+
+/**
+ * Formats date as "X days ago" with detailed time units
+ * @param dateString - Date string to format
+ * @returns Formatted date string (e.g., "dzisiaj", "1 dzień temu", "2 tygodnie temu")
+ */
+export const formatDaysAgo = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInMs = now.getTime() - date.getTime();
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+  if (diffInDays === 0) {
+    return "dzisiaj";
+  } else if (diffInDays === 1) {
+    return "1 dzień temu";
+  } else if (diffInDays < 5) {
+    return `${diffInDays} dni temu`;
+  } else if (diffInDays < 30) {
+    const weeks = Math.floor(diffInDays / 7);
+    if (weeks === 1) {
+      return "1 tydzień temu";
+    }
+    return `${weeks} tygodni temu`;
+  } else if (diffInDays < 365) {
+    const months = Math.floor(diffInDays / 30);
+    if (months === 1) {
+      return "1 miesiąc temu";
+    }
+    return `${months} miesięcy temu`;
+  } else {
+    const years = Math.floor(diffInDays / 365);
+    if (years === 1) {
+      return "1 rok temu";
+    }
+    return `${years} lat temu`;
+  }
+};
+
+/**
+ * Formats date as "DD-MM-YYYY"
+ * @param dateString - Date string to format
+ * @returns Formatted date string
+ */
+export const formatDateShort = (dateString: string): string => {
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
+};

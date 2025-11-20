@@ -1,5 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { Loader2 } from "lucide-react";
+import { Pagination } from "../ui/pagination";
 import CreateProjectWindow from "../components/projects/CreateProjectWindow";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../store/store";
@@ -12,88 +14,57 @@ import FiltersAndSearch from "../components/projects/FiltersAndSearch";
 import ProjectsGrid from "../components/projects/ProjectsGrid";
 import EmptyState from "../components/projects/EmptyState";
 import DeleteConfirmationDialog from "../components/projects/DeleteConfirmationDialog";
+import ShareProjectDialog from "../components/projects/ShareProjectDialog";
+import type { DeleteDialogState, ProjectFilters } from "../models/project";
+import { projectService } from "../api/projectService";
+import { useToast } from "../components/toast/ToastProvider";
+import { useTranslation } from "react-i18next";
+import {
+  mapProjectToDisplay,
+  filterAndSortProjects,
+  validateProjectForm,
+  calculatePagination,
+} from "../utils/projectHelpers";
+import { getProjectStatusColor } from "../utils/functions";
+import { useProjectDelete } from "../hooks/useProjectDelete";
 
 function ProjectsPage() {
-  const { projects } = useSelector((state: RootState) => state.project);
-
-  {
-    /* ----------- TYMCZASOWY TWÓR PROJEKTOWY ---------------- */
-  }
-
-  type TabTemp = {
-    id: string;
-    userId: string;
-    name: string;
-    datasetId: string;
-    createdAt: string;
-    lastModifiedAt: string;
-    isPublic: boolean;
-    likes: number;
-    title: string;
-    description: string;
-    status: string;
-    lastModified: string;
-    category: string;
-    imageUrl: string;
-  };
-
-  const projectsMixed: TabTemp[] = projects.map((originalProject) => {
-    return {
-      ...originalProject,
-      title: originalProject.name,
-      description: "Opis domyślny",
-      status: "Active",
-      category: "ML",
-      lastModified: originalProject.lastModifiedAt,
-      imageUrl:
-        "https://images.unsplash.com/photo-1653564142048-d5af2cf9b50f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkYXRhJTIwc2NpZW5jZSUyMG1hY2hpbmUlMjBsZWFybmluZ3xlbnwxfHx8fDE3NTk3NjYyMDR8MA&ixlib=rb-4.1.0&q=80&w=1080",
-    } as TabTemp;
-  });
-  {
-    /* ------------------------------------------------------ */
-  }
-
-  // const isLoggedIn = useSelector((state: any) => state.auth.isLoggedIn);
+  const { projects, status } = useSelector((state: RootState) => state.project);
+  const isLoading = status === "loading";
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [projectName, setProjectName] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
-
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("modified");
-  const [deleteDialog, setDeleteDialog] = useState<{
-    open: boolean;
-    project: any;
-  }>({ open: false, project: null });
-  const [projectsData, setProjectsData] = useState(projectsMixed);
-
+  const { deleteProject } = useProjectDelete();
   const token = useSelector((state: RootState) => state.auth.token);
+  const { showSuccess, showError } = useToast();
+  const { t } = useTranslation();
 
-  useEffect(() => {
-    {
-      /* ----------- TYMCZASOWY TWÓR PROJEKTOWY ---------------- */
-    }
+  const [filters, setFilters] = useState<ProjectFilters>({
+    searchTerm: "",
+    statusFilter: "all",
+    sortBy: "modified",
+  });
+  const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState>({
+    open: false,
+    project: null,
+  });
+  const [shareDialog, setShareDialog] = useState<{
+    open: boolean;
+    project: { id: string; title: string } | null;
+  }>({
+    open: false,
+    project: null,
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
-    const mapped: TabTemp[] = projects.map(
-      (originalProject) =>
-        ({
-          ...originalProject,
-          title: originalProject.name,
-          description: "Opis domyślny",
-          status: "Active",
-          category: "ML",
-          lastModified: originalProject.lastModifiedAt,
-          imageUrl:
-            "https://images.unsplash.com/photo-1653564142048-d5af2cf9b50f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkYXRhJTIwc2NpZW5jZSUyMG1hY2hpbmUlMjBsZWFybmluZ3xlbnwxfHx8fDE3NTk3NjYyMDR8MA&ixlib=rb-4.1.0&q=80&w=1080",
-        } as TabTemp)
-    );
-    setProjectsData(mapped);
-  }, [projects]);
-
-  {
-    /* ------------------------------------------------------ */
-  }
+  // Map projects to display format
+  const projectsData = useMemo(
+    () => projects.map(mapProjectToDisplay),
+    [projects]
+  );
 
   useEffect(() => {
     // Only fetch projects when token is available to avoid unauthorized requests
@@ -102,148 +73,162 @@ function ProjectsPage() {
     }
   }, [dispatch, token]);
 
-  // if (!isLoggedIn) {
-  //   return (
-  //     <div className="p-6">
-  //       <h2 className="text-xl font-semibold">
-  //         Musisz być zalogowany, aby zobaczyć swoje projekty.
-  //       </h2>
-  //     </div>
-  //   );
-  // }
-
   const handleConfirm = async () => {
-    if (projectName.length >= 4) {
-      try {
-        const result = await dispatch(
-          createProject({ name: projectName })
-        ).unwrap();
-        navigate(`/projects/${result.id}`);
-      } catch (err) {
-        console.error("Błąd tworzenia projektu:", err);
-      }
+    if (!validateProjectForm(projectName, projectDescription)) {
+      return;
+    }
+
+    try {
+      const result = await dispatch(
+        createProject({ name: projectName, description: projectDescription })
+      ).unwrap();
+      // Reset form
+      setProjectName("");
+      setProjectDescription("");
+      setIsModalOpen(false);
+      navigate(`/projects/${result.id}`, { state: { from: "/projects" } });
+    } catch (err) {
+      console.error("Błąd tworzenia projektu:", err);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Active":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "Draft":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "Completed":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+  const handleClose = () => {
+    setIsModalOpen(false);
+    // Reset form when closing
+    setProjectName("");
+    setProjectDescription("");
+  };
+
+  const handleVisibilityToggle = async (
+    projectId: string,
+    newVisibility: boolean
+  ) => {
+    if (!token) {
+      showError(
+        t("projects.loginRequired") ||
+          "Musisz być zalogowany, aby zmienić widoczność projektu."
+      );
+      return;
+    }
+
+    try {
+      await projectService.updateProjectVisibility(
+        projectId,
+        newVisibility,
+        token
+      );
+      showSuccess(
+        newVisibility
+          ? t("projects.visibilityChangedToPublic") ||
+              "Projekt został ustawiony jako publiczny."
+          : t("projects.visibilityChangedToPrivate") ||
+              "Projekt został ustawiony jako prywatny."
+      );
+      // Refresh projects list
+      dispatch(fetchProjects());
+    } catch (err: any) {
+      console.error("Error updating project visibility:", err);
+      showError(
+        t("projects.visibilityUpdateError") ||
+          "Błąd podczas zmiany widoczności projektu."
+      );
     }
   };
 
-  const handleVisibilityToggle = (projectId: string) => {
-    setProjectsData((prev) =>
-      prev.map((project) =>
-        project.id === projectId
-          ? { ...project, isPublic: !project.isPublic }
-          : project
-      )
-    );
-  };
-
-  {
-    /* ----------- TYMCZASOWY TWÓR PROJEKTOWY ---------------- */
-  }
-
-  const handleDeleteProject = () => {
+  const handleDeleteProject = async () => {
     if (!deleteDialog.project) return;
     const id = deleteDialog.project.id;
     if (!id) return;
 
-    // require token for API call
-    if (!token) {
-      alert("Musisz być zalogowany, aby usunąć projekt.");
+    try {
+      await deleteProject(id, () => {
+        setDeleteDialog({ open: false, project: null });
+      });
+    } catch (err) {
+      // Error is already handled in useProjectDelete hook
       setDeleteDialog({ open: false, project: null });
-      return;
     }
-
-    (async () => {
-      try {
-        // call backend delete endpoint
-        const axios = await import("../api/axiosConfig");
-        await axios.default.delete(`/Project/${id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        // remove locally for immediate feedback
-        setProjectsData((prev) => prev.filter((p) => p.id !== id));
-
-        // also refresh redux list in background
-        try {
-          await dispatch(fetchProjects() as any);
-        } catch {}
-
-        setDeleteDialog({ open: false, project: null });
-      } catch (err: any) {
-        console.error("Error deleting project:", err);
-        alert("Wystąpił błąd podczas usuwania projektu.");
-        setDeleteDialog({ open: false, project: null });
-      }
-    })();
   };
 
-  {
-    /* ------------------------------------------------------ */
-  }
+  // Filter and sort projects
+  const filteredProjects = useMemo(
+    () =>
+      filterAndSortProjects(
+        projectsData,
+        filters.searchTerm,
+        filters.statusFilter,
+        filters.sortBy
+      ),
+    [projectsData, filters.searchTerm, filters.statusFilter, filters.sortBy]
+  );
 
-  const filteredProjects = projectsData
-    .filter((project) => {
-      const matchesSearch =
-        project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.description.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus =
-        statusFilter === "all" || project.status.toLowerCase() === statusFilter;
-      return matchesSearch && matchesStatus;
-    })
-    .sort((a, b) => {
-      if (sortBy === "name") {
-        return a.title.localeCompare(b.title);
-      } else if (sortBy === "created") {
-        return (
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-      }
-      // Default: sort by modified
-      return (
-        new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime()
-      );
-    });
+  // Pagination logic
+  const { totalPages, paginatedItems: paginatedProjects } = useMemo(
+    () => calculatePagination(filteredProjects, currentPage, itemsPerPage),
+    [filteredProjects, currentPage, itemsPerPage]
+  );
+
+  // Reset to page 1 when filtered projects change
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [filteredProjects.length, currentPage, totalPages]);
 
   return (
     <div className="space-y-6">
       <HeaderProfile onNewProject={() => setIsModalOpen(true)} />
 
       <FiltersAndSearch
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
+        searchTerm={filters.searchTerm}
+        setSearchTerm={(value) =>
+          setFilters((prev) => ({ ...prev, searchTerm: value }))
+        }
+        statusFilter={filters.statusFilter}
+        setStatusFilter={(value) =>
+          setFilters((prev) => ({ ...prev, statusFilter: value }))
+        }
+        sortBy={filters.sortBy}
+        setSortBy={(value) =>
+          setFilters((prev) => ({
+            ...prev,
+            sortBy: value as "name" | "created" | "modified",
+          }))
+        }
       />
 
-      {filteredProjects.length > 0 ? (
-        <ProjectsGrid
-          projects={filteredProjects}
-          getStatusColor={getStatusColor}
-          onToggleVisibility={handleVisibilityToggle}
-          onDeleteRequest={(project) =>
-            setDeleteDialog({ open: true, project })
-          }
-        />
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : filteredProjects.length > 0 ? (
+        <>
+          <ProjectsGrid
+            projects={paginatedProjects}
+            getStatusColor={getProjectStatusColor}
+            onToggleVisibility={handleVisibilityToggle}
+            onDeleteRequest={(project) =>
+              setDeleteDialog({ open: true, project })
+            }
+            onShareRequest={(project) =>
+              setShareDialog({
+                open: true,
+                project: { id: project.id, title: project.title },
+              })
+            }
+          />
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={filteredProjects.length}
+          />
+        </>
       ) : (
         <EmptyState
-          searchTerm={searchTerm}
-          statusFilter={statusFilter}
+          searchTerm={filters.searchTerm}
+          statusFilter={filters.statusFilter}
           onCreate={() => setIsModalOpen(true)}
         />
       )}
@@ -257,11 +242,22 @@ function ProjectsPage() {
         onConfirm={handleDeleteProject}
       />
 
+      <ShareProjectDialog
+        open={shareDialog.open}
+        onOpenChange={(open) =>
+          setShareDialog({ open, project: shareDialog.project })
+        }
+        projectId={shareDialog.project?.id || ""}
+        projectName={shareDialog.project?.title || ""}
+      />
+
       <CreateProjectWindow
         isOpen={isModalOpen}
         projectName={projectName}
-        onChange={setProjectName}
-        onClose={() => setIsModalOpen(false)}
+        projectDescription={projectDescription}
+        onNameChange={setProjectName}
+        onDescriptionChange={setProjectDescription}
+        onClose={handleClose}
         onConfirm={handleConfirm}
       />
     </div>

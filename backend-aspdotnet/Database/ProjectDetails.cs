@@ -13,5 +13,7 @@ namespace backend_aspdotnet.Database
         public string YColumn { get; set; } = string.Empty;
         public string Algorithm { get; set; } = string.Empty;
         public Dictionary<string, string> Parameters { get; set; } = new();
+
+        public Dictionary<string, string> Results { get; set; } = new();
     }
 }

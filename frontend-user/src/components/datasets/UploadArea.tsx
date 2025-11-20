@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "../../ui/card";
-import { CloudUpload, Upload, ExternalLink } from "lucide-react";
+import { CloudUpload, Upload } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Progress } from "../../ui/progress";
 
@@ -17,7 +17,7 @@ export default function UploadArea({
   uploading,
   uploadProgress,
   onBrowseClick,
-  onFileSelected,
+  onFileSelected: _onFileSelected, // Used by parent component via drag-and-drop
 }: Props) {
   const { t } = useTranslation();
 

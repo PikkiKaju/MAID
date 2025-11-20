@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "../../ui/card";
 import { Badge } from "../../ui/badge";
 import { ImageWithFallback } from "../image/ImageWithFallback";
@@ -22,67 +23,15 @@ import {
   Trash2,
   User,
 } from "lucide-react";
-
-// Helper function to format date as "X days ago"
-const formatDaysAgo = (dateString: string): string => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInMs = now.getTime() - date.getTime();
-  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
-  if (diffInDays === 0) {
-    return "dzisiaj";
-  } else if (diffInDays === 1) {
-    return "1 dzień temu";
-  } else if (diffInDays < 5) {
-    return `${diffInDays} dni temu`;
-  } else if (diffInDays < 30) {
-    const weeks = Math.floor(diffInDays / 7);
-    if (weeks === 1) {
-      return "1 tydzień temu";
-    }
-    return `${weeks} tygodni temu`;
-  } else if (diffInDays < 365) {
-    const months = Math.floor(diffInDays / 30);
-    if (months === 1) {
-      return "1 miesiąc temu";
-    }
-    return `${months} miesięcy temu`;
-  } else {
-    const years = Math.floor(diffInDays / 365);
-    if (years === 1) {
-      return "1 rok temu";
-    }
-    return `${years} lat temu`;
-  }
-};
-
-// Helper function to format date as "DD-MM-YYYY"
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-  return `${day}-${month}-${year}`;
-};
-
-interface ProjectItem {
-  id: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-  status: string;
-  isPublic: boolean;
-  category: string;
-  lastModified: string;
-  createdAt: string;
-}
+import { formatDaysAgo, formatDateShort } from "../../utils/functions";
+import type { ProjectGridItem } from "../../models/project";
 
 interface Props {
-  projects: ProjectItem[];
+  projects: ProjectGridItem[];
   getStatusColor: (status: string) => string;
-  onToggleVisibility: (id: string) => void;
-  onDeleteRequest: (project: any) => void;
+  onToggleVisibility: (id: string, newVisibility: boolean) => void;
+  onDeleteRequest: (project: ProjectGridItem) => void;
+  onShareRequest: (project: ProjectGridItem) => void;
 }
 
 export default function ProjectsGrid({
@@ -90,12 +39,60 @@ export default function ProjectsGrid({
   getStatusColor,
   onToggleVisibility,
   onDeleteRequest,
+  onShareRequest,
 }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
+  // Local state to track visibility changes per project
+  const [localVisibility, setLocalVisibility] = useState<
+    Record<string, boolean>
+  >({});
+  const [openMenus, setOpenMenus] = useState<Set<string>>(new Set());
+
+  // Initialize local visibility state from projects
+  useEffect(() => {
+    const initialVisibility: Record<string, boolean> = {};
+    projects.forEach((project) => {
+      initialVisibility[project.id] = project.isPublic;
+    });
+    setLocalVisibility(initialVisibility);
+  }, [projects]);
+
   const handleProjectClick = (projectId: string) => {
-    navigate(`/projects/${projectId}`);
+    navigate(`/projects/${projectId}`, { state: { from: "/projects" } });
+  };
+
+  const handleLocalVisibilityToggle = (projectId: string) => {
+    setLocalVisibility((prev) => ({
+      ...prev,
+      [projectId]: !prev[projectId],
+    }));
+  };
+
+  const handleMenuOpenChange = (projectId: string, open: boolean) => {
+    if (open) {
+      setOpenMenus((prev) => new Set(prev).add(projectId));
+    } else {
+      // Menu is closing - save the change if visibility was modified
+      const originalVisibility = projects.find(
+        (p) => p.id === projectId
+      )?.isPublic;
+      const currentVisibility = localVisibility[projectId];
+
+      if (
+        originalVisibility !== undefined &&
+        currentVisibility !== originalVisibility
+      ) {
+        onToggleVisibility(projectId, currentVisibility);
+      }
+
+      setOpenMenus((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(projectId);
+        return newSet;
+      });
+    }
   };
 
   return (
@@ -114,7 +111,13 @@ export default function ProjectsGrid({
             />
             <div className="absolute top-3 left-3 flex gap-2">
               <Badge className={getStatusColor(project.status)}>
-                {project.status}
+                {project.status === "Draft"
+                  ? t("projects.draft")
+                  : project.status === "Completed"
+                  ? t("projects.completed")
+                  : project.status === "Active"
+                  ? t("projects.active")
+                  : project.status}
               </Badge>
               <Badge
                 variant="outline"
@@ -132,7 +135,10 @@ export default function ProjectsGrid({
               </Badge>
             </div>
 
-            <DropdownMenu>
+            <DropdownMenu
+              open={openMenus.has(project.id)}
+              onOpenChange={(open) => handleMenuOpenChange(project.id, open)}
+            >
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
@@ -140,7 +146,7 @@ export default function ProjectsGrid({
                   className="absolute top-3 right-3 h-8 w-8 backdrop-blur-sm bg-card/80 hover:bg-card/90"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <MoreVertical className="h-4 w-4" />
+                  <MoreVertical className="h-4 w-4 text-white" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
@@ -152,7 +158,12 @@ export default function ProjectsGrid({
                 >
                   <Edit className="h-4 w-4 mr-2" /> {t("projects.edit")}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onShareRequest(project);
+                  }}
+                >
                   <Share className="h-4 w-4 mr-2" /> {t("projects.share")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -162,24 +173,38 @@ export default function ProjectsGrid({
                 >
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-2">
-                      {project.isPublic ? (
+                      {localVisibility[project.id] !== undefined ? (
+                        localVisibility[project.id]
+                      ) : project.isPublic ? (
                         <Globe className="h-4 w-4" />
                       ) : (
                         <Lock className="h-4 w-4" />
                       )}{" "}
-                      {project.isPublic
+                      {localVisibility[project.id] !== undefined
+                        ? localVisibility[project.id]
+                          ? t("projects.public")
+                          : t("projects.private")
+                        : project.isPublic
                         ? t("projects.public")
                         : t("projects.private")}
                     </span>
                     <Switch
-                      checked={project.isPublic}
-                      onCheckedChange={(checked) => {
-                        onToggleVisibility(project.id);
+                      checked={
+                        localVisibility[project.id] !== undefined
+                          ? localVisibility[project.id]
+                          : project.isPublic
+                      }
+                      onCheckedChange={() => {
+                        handleLocalVisibilityToggle(project.id);
                       }}
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {project.isPublic
+                    {localVisibility[project.id] !== undefined
+                      ? localVisibility[project.id]
+                        ? t("projects.isPublic")
+                        : t("projects.isPrivate")
+                      : project.isPublic
                       ? t("projects.isPublic")
                       : t("projects.isPrivate")}
                   </p>
@@ -202,9 +227,6 @@ export default function ProjectsGrid({
             <h3 className="font-semibold line-clamp-1 group-hover:text-primary transition-colors">
               {project.title}
             </h3>
-            <Badge variant="outline" className="w-fit">
-              {project.category}
-            </Badge>
           </CardHeader>
 
           <CardContent className="pt-0">
@@ -223,7 +245,7 @@ export default function ProjectsGrid({
               <div className="flex items-center gap-1">
                 <User className="h-3 w-3" />{" "}
                 <span>
-                  {t("projects.createdAt")} {formatDate(project.createdAt)}
+                  {t("projects.createdAt")} {formatDateShort(project.createdAt)}
                 </span>
               </div>
             </div>
