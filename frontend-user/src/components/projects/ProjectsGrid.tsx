@@ -23,7 +23,7 @@ import {
   Trash2,
   User,
 } from "lucide-react";
-import { formatDaysAgo, formatDateShort } from "../../utilis/functions";
+import { formatDaysAgo, formatDateShort } from "../../utils/functions";
 import type { ProjectGridItem } from "../../models/project";
 
 interface Props {

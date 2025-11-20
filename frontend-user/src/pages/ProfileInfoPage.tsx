@@ -4,7 +4,7 @@ import { ProfileOverview } from "../components/profile/ProfileOverview";
 import { StatsGrid } from "../components/profile/StatsGrid";
 import type { ProfileInfoData } from "../models/profile";
 import { profileService } from "../api/profileService";
-import { formatFullName, formatJoinedDate } from "../utilis/functions";
+import { formatFullName, formatJoinedDate } from "../utils/functions";
 import { Loader2 } from "lucide-react";
 
 export function ProfileInfoPage() {

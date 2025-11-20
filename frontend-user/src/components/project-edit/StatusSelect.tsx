@@ -5,7 +5,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../ui/select";
-import { getStatusNumber, getStatusString } from "../../utilis/functions";
+import { getStatusNumber, getStatusString } from "../../utils/functions";
 import { useTranslation } from "react-i18next";
 
 interface StatusSelectProps {

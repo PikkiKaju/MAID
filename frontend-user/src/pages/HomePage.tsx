@@ -11,9 +11,9 @@ import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { fetchPublicDatasets } from "../features/dataset/datasetThunks";
 import { useProjects } from "../hooks/useProjects";
 import { likeProject } from "../features/project/projectThunks";
-import { getUserIdFromToken } from "../utilis/tokenManager";
+import { getUserIdFromToken } from "../utils/tokenManager";
 import { useToast } from "../components/toast/ToastProvider";
-import { transformProject } from "../utilis/projectHelpers";
+import { transformProject } from "../utils/projectHelpers";
 
 export default function HomePage() {
   // All hooks must be called at the top level, in the same order

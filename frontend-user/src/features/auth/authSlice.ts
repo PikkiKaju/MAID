@@ -2,8 +2,8 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { AuthResponse, AuthState} from '../../models/auth';
 import { registerUser } from './registerThunks';
 import { loginUser } from './loginThunks';
-import { capitalizeFirstLetter } from '../../utilis/functions';
-import { saveToken, getToken, getDisplayName, clearToken, isTokenValid, getExpiryFromJWT } from '../../utilis/tokenManager';
+import { capitalizeFirstLetter } from '../../utils/functions';
+import { saveToken, getToken, getDisplayName, clearToken, isTokenValid, getExpiryFromJWT } from '../../utils/tokenManager';
 
 const initialState: AuthState = {
   token: null,

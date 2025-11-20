@@ -17,7 +17,7 @@ import {
   mapProfileToFormData,
   validateProfileSettings,
   clearPasswordFields,
-} from "../utilis/profileHelpers";
+} from "../utils/profileHelpers";
 
 export function ProfileSettingsPage() {
   const { t } = useTranslation();

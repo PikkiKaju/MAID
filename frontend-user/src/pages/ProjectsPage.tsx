@@ -24,8 +24,8 @@ import {
   filterAndSortProjects,
   validateProjectForm,
   calculatePagination,
-} from "../utilis/projectHelpers";
-import { getProjectStatusColor } from "../utilis/functions";
+} from "../utils/projectHelpers";
+import { getProjectStatusColor } from "../utils/functions";
 import { useProjectDelete } from "../hooks/useProjectDelete";
 
 function ProjectsPage() {

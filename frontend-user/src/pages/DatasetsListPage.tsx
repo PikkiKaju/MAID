@@ -9,12 +9,12 @@ import UploadDatasetDialog, {
   UploadFormData,
 } from "../components/datasets/UploadDatasetDialog";
 import DatasetDetailsDialog from "../components/datasets/DatasetDetailsDialog";
-import { handleDrag, handleDrop } from "../utilis/drag-and-drop";
+import { handleDrag, handleDrop } from "../utils/drag-and-drop";
 import {
   validateFile,
   formatDatasets,
   calculatePagination,
-} from "../utilis/datasetHelpers";
+} from "../utils/datasetHelpers";
 import { getFileIcon } from "../models/dataset";
 import { useSelector, useDispatch } from "react-redux";
 import { AppDispatch, RootState } from "../store/store";

@@ -9,7 +9,7 @@ import { useToast } from "../components/toast/ToastProvider";
 import ProjectEditSidebar from "../components/project-edit/ProjectEditSidebar";
 import ProjectEditTopbar from "../components/project-edit/ProjectEditTopbar";
 import CalculationResults from "../components/project-edit/CalculationResults";
-import { combineDatasets, isValidDatasetId } from "../utilis/projectHelpers";
+import { combineDatasets, isValidDatasetId } from "../utils/projectHelpers";
 import "../styles/Loader.css";
 
 export default function ProjectEditPage() {

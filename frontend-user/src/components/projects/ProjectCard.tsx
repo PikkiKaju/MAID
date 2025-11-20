@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader } from "../../ui/card";
 import { Button } from "../../ui/button";
 import { ImageWithFallback } from "../image/ImageWithFallback";
 import { Avatar, AvatarImage, AvatarFallback } from "../../ui/avatar";
-import { formatProjectDate, isSvgAvatar } from "../../utilis/functions";
+import { formatProjectDate, isSvgAvatar } from "../../utils/functions";
 import { useToast } from "../toast/ToastProvider";
 import { useTranslation } from "react-i18next";
 

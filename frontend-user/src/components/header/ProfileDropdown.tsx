@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "../../ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "../../ui/avatar";
-import { isSvgAvatar } from "../../utilis/functions";
+import { isSvgAvatar } from "../../utils/functions";
 import { RootState } from "../../store/store";
 
 interface ProfileDropdownProps {

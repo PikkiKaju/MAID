@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { store } from "./store/store";
 import router from "./router/router";
 import { ToastProvider } from "./components/toast/ToastProvider";
-import { startTokenExpiryChecker } from "./utilis/tokenExpiryChecker";
+import { startTokenExpiryChecker } from "./utils/tokenExpiryChecker";
 
 function AppContent() {
   // Check token expiry every minute

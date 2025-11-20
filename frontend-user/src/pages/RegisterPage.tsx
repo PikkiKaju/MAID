@@ -8,7 +8,7 @@ import RegisterForm from "../components/forms/RegisterForm";
 import { RegisterUserForm } from "../models/auth";
 import { registerUser } from "../features/auth/registerThunks";
 import { useToast } from "../components/toast/ToastProvider";
-import { validatePasswordMatch } from "../utilis/authHelpers";
+import { validatePasswordMatch } from "../utils/authHelpers";
 
 function RegisterPage() {
   const [userToRegister, setUserToRegister] = useState<RegisterUserForm>({

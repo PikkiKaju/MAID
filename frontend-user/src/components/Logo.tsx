@@ -1,5 +1,5 @@
 import { Sparkles } from "lucide-react";
-import { cn } from "../utilis/tailwind";
+import { cn } from "../utils/tailwind";
 
 interface LogoProps {
   className?: string;

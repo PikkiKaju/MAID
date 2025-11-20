@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ApiProject, DisplayProject } from '../models/project';
 import axiosInstance from '../api/axiosConfig';
-import { getToken } from '../utilis/tokenManager';
+import { getToken } from '../utils/tokenManager';
 
 interface UseProjectsResult {
     allProjects: DisplayProject[];

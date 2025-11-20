@@ -4,7 +4,7 @@ import CategoryGrid from "./CategoryGrid";
 import { Star, Loader2 } from "lucide-react";
 import { Badge } from "../../ui/badge";
 import { Pagination } from "../../ui/pagination";
-import { calculatePagination } from "../../utilis/projectHelpers";
+import { calculatePagination } from "../../utils/projectHelpers";
 import type { HomeProject } from "../../models/project";
 
 interface Props {

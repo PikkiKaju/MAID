@@ -1,7 +1,7 @@
 import { Calendar, User, Mail } from "lucide-react";
 import { Card, CardContent } from "../../ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "../../ui/avatar";
-import { isSvgAvatar } from "../../utilis/functions";
+import { isSvgAvatar } from "../../utils/functions";
 
 type ProfileOverviewProps = {
   avatarUrl: string;

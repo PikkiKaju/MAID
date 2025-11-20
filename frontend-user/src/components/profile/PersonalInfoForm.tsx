@@ -10,7 +10,7 @@ import { Textarea } from "../../ui/textarea";
 import type { PersonalInfo } from "../../models/profile";
 import { AvatarPicker } from "./AvatarPicker";
 import { profileService } from "../../api/profileService";
-import { isSvgAvatar, validateEmail } from "../../utilis/functions";
+import { isSvgAvatar, validateEmail } from "../../utils/functions";
 
 type PersonalInfoFormProps = {
   formData: PersonalInfo & { title?: string };

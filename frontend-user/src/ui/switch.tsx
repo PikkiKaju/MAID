@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as SwitchPrimitive from "@radix-ui/react-switch";
 
-import { cn } from "../utilis/tailwind";
+import { cn } from "../utils/tailwind";
 
 function Switch({
   className,

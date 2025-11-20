@@ -6,7 +6,7 @@ import { clearAuthStatus } from "../features/auth/authSlice";
 import { loginUser } from "../features/auth/loginThunks";
 import { useNavigate } from "react-router-dom";
 import LoginForm from "../components/forms/LoginForm";
-import { validateLoginForm } from "../utilis/authHelpers";
+import { validateLoginForm } from "../utils/authHelpers";
 
 function LoginPage() {
   const { t } = useTranslation();

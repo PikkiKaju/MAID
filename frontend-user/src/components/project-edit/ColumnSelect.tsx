@@ -5,7 +5,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../ui/select";
-import { isValidDatasetId } from "../../utilis/projectHelpers";
+import { isValidDatasetId } from "../../utils/projectHelpers";
 
 interface ColumnSelectProps {
   label: string;

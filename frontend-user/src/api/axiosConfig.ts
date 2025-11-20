@@ -1,5 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { isTokenValid, getToken, clearToken } from '../utilis/tokenManager';
+import { isTokenValid, getToken, clearToken } from '../utils/tokenManager';
 import { store } from '../store/store';
 import { logout } from '../features/auth/authSlice';
 

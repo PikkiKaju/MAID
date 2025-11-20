@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { FolderKanban, Loader2 } from "lucide-react";
 import CategoryGrid from "./CategoryGrid";
 import { Pagination } from "../../ui/pagination";
-import { calculatePagination } from "../../utilis/projectHelpers";
+import { calculatePagination } from "../../utils/projectHelpers";
 import type { HomeProject } from "../../models/project";
 
 export interface ProjectListProps {

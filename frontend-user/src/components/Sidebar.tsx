@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "../ui/sidebar";
-import { cn } from "../utilis/tailwind";
+import { cn } from "../utils/tailwind";
 import Logo from "./Logo";
 import { getNavigationItems } from "../data/navigationItems";
 

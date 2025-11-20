@@ -1,6 +1,6 @@
 import * as React from "react";
 import { X, CheckCircle2, AlertCircle, Info } from "lucide-react";
-import { cn } from "../utilis/tailwind";
+import { cn } from "../utils/tailwind";
 
 export type ToastType = "success" | "error" | "info";
 

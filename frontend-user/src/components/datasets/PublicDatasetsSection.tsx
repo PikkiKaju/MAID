@@ -9,7 +9,7 @@ import { datasetService } from "../../api/datasetService";
 import { useToast } from "../toast/ToastProvider";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store/store";
-import { formatUploadDate } from "../../utilis/functions";
+import { formatUploadDate } from "../../utils/functions";
 import { useTranslation } from "react-i18next";
 import DatasetDetailsDialog from "./DatasetDetailsDialog";
 import { Pagination } from "../../ui/pagination";
