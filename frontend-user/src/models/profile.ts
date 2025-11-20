@@ -1,9 +1,3 @@
-export type Activity = {
-  type: "project" | "dataset";
-  title: string;
-  date: string;
-};
-
 export type ProfileStats = {
   totalProjects: number;
   publicProjects: number;

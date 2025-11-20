@@ -5,10 +5,10 @@ import React, {
   useEffect,
 } from "react";
 import { ProjectCard } from "../projects/ProjectCard";
-import { Project } from "./CategorySection";
+import { HomeProject } from "../../models/project";
 
 interface Props {
-  projects: Project[];
+  projects: HomeProject[];
   favorites: Set<string>;
   handleFavoriteToggle: (projectId: string) => void;
 }
