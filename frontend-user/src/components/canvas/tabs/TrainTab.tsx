@@ -929,7 +929,20 @@ export default function TrainTab() {
                       ];
                     return (
                       <div className="mt-3">
-                        <div className="text-xs text-slate-500 mb-1">Loss over epochs</div>
+                        <div className="text-xs font-medium text-slate-500 mb-1">Loss over epochs</div>
+                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-600 mb-2">
+                          {series.map((s) => (
+                            <div key={s.label} className="flex items-center gap-1">
+                              <span
+                                className="inline-block h-2.5 w-6 rounded-sm"
+                                style={{ backgroundColor: s.color }}
+                              />
+                              <span className="capitalize">
+                                {s.label === 'val_loss' ? 'Validation loss' : 'Training loss'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                         <MiniLineChart
                           series={series}
                           height={180}

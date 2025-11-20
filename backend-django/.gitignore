@@ -26,6 +26,9 @@ network/tensorflow_data/manifests/*.json
 # Generated files
 .idea/**/contentModel.xml
 
+# Local files
+datasets/
+
 # Generated model files
 artifacts
 
