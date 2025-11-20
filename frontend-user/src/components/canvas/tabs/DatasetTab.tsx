@@ -10,7 +10,7 @@ export default function DatasetTab() {
   const { token, isLoggedIn } = useAppSelector((state) => state.auth);
   const { dataset, setDataset, updatePreprocessingConfig, processDataset, clearDataset: clearDatasetContext } = useDataset();
   const [processing, setProcessing] = useState(false);
-  
+
   // Local UI state
   const [loadingDatasets, setLoadingDatasets] = useState(false);
   const [availableDatasets, setAvailableDatasets] = useState<DatasetMyMetadata[]>([]);
@@ -43,10 +43,10 @@ export default function DatasetTab() {
   const handleFileUpload = async (file: File) => {
     const text = await file.text();
     const { headers, rows } = parseCSV(text);
-    
+
     // Analyze all columns
     const columnInfos = headers.map(header => analyzeColumn(rows, header));
-    
+
     // Create new dataset
     const newDataset: ProcessedDataset = {
       original: rows,
@@ -68,7 +68,7 @@ export default function DatasetTab() {
       totalColumns: headers.length,
       isProcessed: false,
     };
-    
+
     setDataset(newDataset);
   };
 
@@ -97,9 +97,9 @@ export default function DatasetTab() {
     try {
       const csvText = await datasetService.getDatasetDetails(id, token);
       const { headers, rows } = parseCSV(csvText);
-      
+
       const columnInfos = headers.map(header => analyzeColumn(rows, header));
-      
+
       const newDataset: ProcessedDataset = {
         original: rows,
         columns: columnInfos,
@@ -121,7 +121,7 @@ export default function DatasetTab() {
         totalColumns: headers.length,
         isProcessed: false,
       };
-      
+
       setDataset(newDataset);
       setShowDatasetList(false);
     } catch (err) {
@@ -253,15 +253,16 @@ export default function DatasetTab() {
                   <Upload size={16} className="mr-2" />
                   Choose CSV File
                 </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={loadDatasetsFromDB} 
-                  disabled={loadingDatasets || !isLoggedIn}
-                  title={!isLoggedIn ? "Please login to load datasets from database" : "Load datasets from database"}
-                >
-                  <Database size={16} className="mr-2" />
-                  {loadingDatasets ? 'Loading...' : 'Load from Database'}
-                </Button>
+                {isLoggedIn && (
+                  <Button
+                    variant="outline"
+                    onClick={loadDatasetsFromDB}
+                    disabled={loadingDatasets}
+                  >
+                    <Database size={16} className="mr-2" />
+                    {loadingDatasets ? 'Loading...' : 'Load from Database'}
+                  </Button>
+                )}
               </div>
               {!isLoggedIn && (
                 <p className="text-xs text-orange-600 mt-2">
@@ -370,8 +371,8 @@ export default function DatasetTab() {
                           </td>
                         ))}
                         <td className="px-3 py-2 border-r font-mono text-[11px] bg-green-50">
-                          {typeof dataset.trainData?.y[rowIdx] === 'number' 
-                            ? formatNumber(dataset.trainData.y[rowIdx]) 
+                          {typeof dataset.trainData?.y[rowIdx] === 'number'
+                            ? formatNumber(dataset.trainData.y[rowIdx])
                             : dataset.trainData?.y[rowIdx]}
                         </td>
                       </tr>
@@ -457,7 +458,7 @@ export default function DatasetTab() {
             {/* Preprocessing Settings */}
             <div className="bg-white border rounded-lg p-3 space-y-3">
               <h3 className="font-semibold text-slate-700 text-sm">Preprocessing</h3>
-              
+
               {/* Categorical Encoding */}
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">
@@ -537,7 +538,7 @@ export default function DatasetTab() {
             {/* Data Splitting */}
             <div className="bg-white border rounded-lg p-3 space-y-3">
               <h3 className="font-semibold text-slate-700 text-sm">Data Splitting</h3>
-              
+
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">Train</label>
@@ -625,10 +626,10 @@ export default function DatasetTab() {
                         <div>• Normalization: {dataset.preprocessingConfig.normalizationMethod === 'standard' ? 'Z-Score' : dataset.preprocessingConfig.normalizationMethod === 'minmax' ? 'Min-Max [0,1]' : 'None'}</div>
                         <div>• Missing Values: {
                           dataset.preprocessingConfig.missingValueStrategy === 'remove-rows' ? 'Rows Removed' :
-                          dataset.preprocessingConfig.missingValueStrategy === 'fill-mean' ? 'Filled with Mean' :
-                          dataset.preprocessingConfig.missingValueStrategy === 'fill-median' ? 'Filled with Median' :
-                          dataset.preprocessingConfig.missingValueStrategy === 'fill-mode' ? 'Filled with Mode' :
-                          'Filled with Zero'
+                            dataset.preprocessingConfig.missingValueStrategy === 'fill-mean' ? 'Filled with Mean' :
+                              dataset.preprocessingConfig.missingValueStrategy === 'fill-median' ? 'Filled with Median' :
+                                dataset.preprocessingConfig.missingValueStrategy === 'fill-mode' ? 'Filled with Mode' :
+                                  'Filled with Zero'
                         }</div>
                       </div>
                     </div>
@@ -645,11 +646,11 @@ export default function DatasetTab() {
               onClick={async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 if (!validation || !validation.valid) {
                   return;
                 }
-                
+
                 try {
                   setProcessing(true);
                   await processDataset();

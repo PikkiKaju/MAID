@@ -2,8 +2,9 @@ import { Save, Trash2, Play, FileDown, Upload, FolderOpen } from 'lucide-react';
 import LoadGraphModal from './LoadGraphModal';
 import { useModelCanvasStore } from '../../store/modelCanvasStore';
 import networkGraphService, { GraphEdge, GraphNode, NetworkGraphPayload } from '../../api/networkGraphService';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Edge as RFEdge, Node as RFNode } from 'reactflow';
+import { useAppSelector } from '../../store/hooks';
 
 interface Props {
   onSave: () => void;
@@ -23,6 +24,13 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
   const fileGraphRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState<null | string>(null);
   const [showLoadModal, setShowLoadModal] = useState(false);
+  const isLoggedIn = useAppSelector(state => state.auth.isLoggedIn);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setShowLoadModal(false);
+    }
+  }, [isLoggedIn]);
 
   const clearAll = () => setGraph([], []);
 
@@ -205,14 +213,18 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
         />
 
         {/* Save current canvas (delegates to parent) */}
-        <button onClick={onSave} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60'>
-          <Save size={14} /> Save
-        </button>
+        {isLoggedIn && (
+          <button onClick={onSave} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60'>
+            <Save size={14} /> Save
+          </button>
+        )}
 
         {/* Load saved graph */}
-        <button onClick={() => setShowLoadModal(true)} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-60'>
-          <FolderOpen size={14} /> Load
-        </button>
+        {isLoggedIn && (
+          <button onClick={() => setShowLoadModal(true)} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-60'>
+            <FolderOpen size={14} /> Load
+          </button>
+        )}
 
         {/* Compile on backend */}
         <button onClick={compileGraph} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-60'>
