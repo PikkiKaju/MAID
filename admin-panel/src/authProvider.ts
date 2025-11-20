@@ -1,8 +1,8 @@
-import { API_SERVER } from "./api/httpClient";
+import { ASP_NET_API_URL } from "./api/httpClient";
 
 const authProvider = {
     login: async ({ username, password }: { username: string; password: string }) => {
-        const request = new Request(`${API_SERVER}/Auth/login`, {
+        const request = new Request(`${ASP_NET_API_URL}/Auth/login`, {
             method: 'POST',
             body: JSON.stringify({ username, password }),
             headers: new Headers({ 'Content-Type': 'application/json' }),

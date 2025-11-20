@@ -1,6 +1,7 @@
 import { fetchUtils } from "react-admin";
 
-export const API_SERVER = 'http://localhost:5000/api'
+const envUrl = (import.meta as any).env?.VITE_ASP_NET_BASE_URL || (process.env.VITE_ASP_NET_BASE_URL as string);
+export const ASP_NET_API_URL = `${envUrl.replace(/\/$/, '')}/api`;
 
 export const httpClient = (url: string, options: fetchUtils.Options = {}) => { 
     const headers = new Headers(options.headers || { Accept: 'application/json' });

@@ -16,9 +16,9 @@ import {
   PersonAdd,
   CheckCircle,
 } from "@mui/icons-material";
-import { httpClient, API_SERVER } from "../../api/httpClient";
+import { httpClient, ASP_NET_API_URL } from "../../api/httpClient";
 
-const apiUrl = `${API_SERVER}/Admin`;
+const apiUrl = `${ASP_NET_API_URL}/Admin`;
 
 export default function NewAdminForm({
   onSuccess,
@@ -128,10 +128,9 @@ export default function NewAdminForm({
               ? "rgba(255, 255, 255, 0.05)"
               : "rgba(0, 0, 0, 0.02)",
           border: (theme) =>
-            `1px solid ${
-              theme.palette.mode === "dark"
-                ? "rgba(255, 255, 255, 0.1)"
-                : "rgba(0, 0, 0, 0.1)"
+            `1px solid ${theme.palette.mode === "dark"
+              ? "rgba(255, 255, 255, 0.1)"
+              : "rgba(0, 0, 0, 0.1)"
             }`,
         }}
       >
@@ -234,8 +233,8 @@ export default function NewAdminForm({
         {loading
           ? "Dodawanie..."
           : success
-          ? "Dodano!"
-          : "Dodaj administratora"}
+            ? "Dodano!"
+            : "Dodaj administratora"}
       </Button>
     </Box>
   );

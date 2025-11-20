@@ -1,9 +1,9 @@
 import axios from 'axios';
 
-const DJANGO_API_BASE = import.meta.env.VITE_DJANGO_API_BASE || import.meta.env.VITE_DJANGO_API_URL || 'http://localhost:8000/api/';
+const DJANGO_API_URL = String(import.meta.env.VITE_DJANGO_BASE_URL).concat("/api");
 
 const djangoClient = axios.create({
-  baseURL: DJANGO_API_BASE,
+  baseURL: DJANGO_API_URL,
   headers: { 'Content-Type': 'application/json' },
   // Allow cookies for SessionAuthentication if used alongside TokenAuthentication
   withCredentials: true,

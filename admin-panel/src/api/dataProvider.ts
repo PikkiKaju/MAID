@@ -8,9 +8,9 @@ import {
     type DeleteParams,
     type DeleteResult,
 } from 'react-admin';
-import { API_SERVER, httpClient } from './httpClient';
+import { ASP_NET_API_URL, httpClient } from './httpClient';
 
-const apiUrl = `${API_SERVER}/Admin`;
+const apiUrl = `${ASP_NET_API_URL}/Admin`;
 
 export const dataProvider: DataProvider = {
     getList: async (resource, params) => {

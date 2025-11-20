@@ -2,6 +2,12 @@ FROM node:20-bullseye-slim AS builder
 
 WORKDIR /app
 
+# Get build arg from docker-compose.yml
+ARG ASP_NET_BASE_URL
+ARG DJANGO_BASE_URL
+ENV VITE_ASP_NET_BASE_URL=${ASP_NET_BASE_URL}
+ENV VITE_DJANGO_BASE_URL=${DJANGO_BASE_URL}
+
 COPY package.json package-lock.json ./
 
 # Resolve deps on glibc (no musl lock)

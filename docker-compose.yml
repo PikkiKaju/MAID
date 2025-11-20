@@ -38,6 +38,12 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - CELERY_TASK_ALWAYS_EAGER=0
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=maid_app
+      - POSTGRES_SCHEMA=django_app
+      - POSTGRES_USER=django
+      - POSTGRES_PASSWORD=password
     command: sh -c "python manage.py migrate && python manage.py loadmanifests && python manage.py runserver 0.0.0.0:8000"
 
   celery-worker:
@@ -93,13 +99,16 @@ services:
       - backend
       - django
     environment:
-      - REACT_APP_BACKEND_API_URL=http://backend:8080
-      - REACT_APP_DJANGO_API_URL=http://django:8000
+      - VITE_ASP_NET_BASE_URL=http://host.docker.internal:5000
+      - VITE_DJANGO_BASE_URL=http://host.docker.internal:8000
 
   admin-panel:
     build:
       context: ./admin-panel
       dockerfile: Dockerfile
+      args:
+        ASP_NET_BASE_URL: "http://host.docker.internal:5000"
+        DJANGO_BASE_URL: "http://host.docker.internal:8000"
     mem_limit: 128m
     ports:
       - "3001:80"
@@ -108,9 +117,6 @@ services:
     depends_on:
       - backend
       - django
-    environment:
-      - REACT_APP_BACKEND_API_URL=http://backend:8080
-      - REACT_APP_DJANGO_API_URL=http://django:8000
 
   mongo:
     mem_limit: 256m

@@ -1,9 +1,9 @@
 import React from "react";
 import { Button, Tooltip, Box, Alert } from "@mui/material";
 import { Block, CheckCircle } from "@mui/icons-material";
-import { httpClient, API_SERVER } from "../../api/httpClient";
+import { httpClient, ASP_NET_API_URL } from "../../api/httpClient";
 
-const apiUrl = `${API_SERVER}/Admin`;
+const apiUrl = `${ASP_NET_API_URL}/Admin`;
 
 export default function BlockUserButton({
   userId,
