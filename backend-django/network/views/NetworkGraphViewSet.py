@@ -185,7 +185,7 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
         return response
 
-    @action(detail=False, methods=["post"], url_path="import-keras-json", permission_classes=[IsAdminUser])
+    @action(detail=False, methods=["post"], url_path="import-keras-json", permission_classes=[IsAuthenticated])
     def import_keras_json(self, request):
         """Accepts a Keras model.to_json() string and creates a corresponding graph.
 
@@ -263,7 +263,7 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
         return Response(self.get_serializer(instance).data, status=status.HTTP_201_CREATED)
 
 
-    @action(detail=False, methods=["post"], url_path="import-model", permission_classes=[IsAdminUser])
+    @action(detail=False, methods=["post"], url_path="import-model", permission_classes=[IsAuthenticated])
     def import_model_artifact(self, request):
         """Upload a Keras model artifact (.keras, .h5, or SavedModel .zip) and convert to a graph.
 

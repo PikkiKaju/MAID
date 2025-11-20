@@ -14,11 +14,11 @@ djangoClient.interceptors.request.use((config) => {
   try {
     const token = sessionStorage.getItem('token') || localStorage.getItem('token');
     if (token) {
-      // DRF TokenAuthentication expects 'Token <key>'
+      // Backend expects a standard Bearer JWT issued by ASP.NET
       config.headers = config.headers || {};
       // Preserve existing Authorization if present
       if (!config.headers['Authorization'] && !config.headers['authorization']) {
-        config.headers['Authorization'] = `Token ${token}`;
+        config.headers['Authorization'] = `Bearer ${token}`;
       }
     }
   } catch (e) {
@@ -64,7 +64,10 @@ let layersCachePromise: Promise<unknown> | null = null;
 const networkGraphService = {
   listGraphs: async (): Promise<NetworkGraphPayload[]> => {
     const resp = await djangoClient.get('network/graphs/');
-    if (resp.status === 200) return resp.data;
+    if (resp.status === 200) {
+      if (resp.data && Array.isArray(resp.data)) return resp.data;
+      if (resp.data?.results && Array.isArray(resp.data.results)) return resp.data.results;
+    }
     throw new Error('Failed to fetch graphs');
   },
 

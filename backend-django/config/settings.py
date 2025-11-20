@@ -55,6 +55,9 @@ INSTALLED_APPS += ['corsheaders', 'rest_framework', 'network', 'rest_framework.a
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        # Accept stateless JWT Bearer tokens (from ASP.NET) when configured below
+        'network.auth.ASPNetJWTAuthentication',
+        # Fall back to DRF Token auth (for tokens created in Django)
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
@@ -89,13 +92,13 @@ LOGGING = {
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -181,6 +184,31 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ORIGIN_ALLOW_ALL = str(os.getenv("CORS_ORIGIN_ALLOW_ALL", "False")).lower() in ("1", "true", "yes", "on")
+# Allow credentials (cookies, Authorization headers) in cross-origin requests.
+# When credentials are allowed, django-cors-headers will echo back the
+# requesting origin instead of using '*'. This is required when the frontend
+# sends requests with `withCredentials: true` or when using cookie-based auth.
+CORS_ALLOW_CREDENTIALS = True
+
+# --- JWT validation for tokens issued by ASP.NET ---
+# If you want Django to accept the JWT tokens issued by the ASP.NET auth
+# service, set `ASPNET_JWT_KEY` in this Django process environment to the
+# same symmetric key used by the ASP.NET app (see backend-aspdotnet/appsettings.json).
+# Then install `djangorestframework-simplejwt` so Django can validate Bearer tokens.
+ASPNET_JWT_KEY = os.getenv('ASPNET_JWT_KEY')
+
+# Configure Simple JWT to use the ASP.NET signing key when provided. If not
+# provided, Simple JWT will fall back to Django's SECRET_KEY.
+SIMPLE_JWT = {
+    'SIGNING_KEY': ASPNET_JWT_KEY or SECRET_KEY,
+    # Ensure the expected algorithm matches ASP.NET's HMAC-SHA256
+    'ALGORITHM': 'HS256',
+    # ASP.NET tokens don't include a JTI or token_type claim, so disable these checks
+    'JTI_CLAIM': None,
+    'TOKEN_TYPE_CLAIM': None,
+    # Use a placeholder claim we populate in ASPNetJWTAuthentication
+    'USER_ID_CLAIM': 'aspnet_user_id',
+}
 
 # Directory to store model artifacts and job uploads. Can be overridden via ENV.
 ARTIFACTS_DIR = Path(os.getenv("ARTIFACTS_DIR")) if os.getenv("ARTIFACTS_DIR") else BASE_DIR / "artifacts"
