@@ -13,7 +13,11 @@ import { logout } from "../features/auth/authSlice";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../components/toast/ToastProvider";
 import type { ProfileSettingsFormData, AvatarState } from "../models/profile";
-import { validateEmail } from "../utilis/functions";
+import {
+  mapProfileToFormData,
+  validateProfileSettings,
+  clearPasswordFields,
+} from "../utilis/profileHelpers";
 
 export function ProfileSettingsPage() {
   const { t } = useTranslation();
@@ -45,16 +49,7 @@ export function ProfileSettingsPage() {
     setLoading(true);
     try {
       const data = await profileService.getProfile();
-      setFormData({
-        firstName: data.name || "",
-        lastName: data.surname || "",
-        email: data.email || "",
-        title: data.title || "",
-        bio: data.bio || "",
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
+      setFormData(mapProfileToFormData(data));
     } catch (err) {
       showError(t("profile.failedToLoadProfile"));
       console.error("Error loading profile:", err);
@@ -82,26 +77,12 @@ export function ProfileSettingsPage() {
   const handleSave = async () => {
     setSaving(true);
 
-    // Walidacja emaila
-    const emailValidationError = validateEmail(formData.email);
-    if (emailValidationError) {
-      showError(t("profile.invalidEmail"));
+    // Validate form data
+    const validation = validateProfileSettings(formData, t);
+    if (!validation.isValid) {
+      showError(validation.error || t("profile.failedToUpdateProfile"));
       setSaving(false);
       return;
-    }
-
-    // Walidacja haseł
-    if (formData.newPassword || formData.confirmPassword) {
-      if (formData.newPassword !== formData.confirmPassword) {
-        showError(t("profile.passwordsDoNotMatch"));
-        setSaving(false);
-        return;
-      }
-      if (!formData.currentPassword) {
-        showError(t("profile.currentPasswordRequired"));
-        setSaving(false);
-        return;
-      }
     }
 
     try {
@@ -116,24 +97,19 @@ export function ProfileSettingsPage() {
         confirmPassword: formData.confirmPassword,
       });
 
-      // Zapisuj avatar do bazy danych tylko jeśli został wybrany
+      // Save avatar to database only if it was selected
       if (avatarState.selectedAvatarId) {
         await profileService.updateAvatar(avatarState.selectedAvatarId);
-        // Wyślij event, aby zaktualizować avatar w headerze
+        // Send event to update avatar in header
         window.dispatchEvent(new CustomEvent("avatarUpdated"));
-        // Wyczyść stan wybranego avatara po zapisaniu
+        // Clear selected avatar state after saving
         setAvatarState({ selectedAvatarId: null, selectedAvatarSvg: null });
       }
 
-      // Wyczyść pola haseł po udanym zapisie
-      setFormData((prev) => ({
-        ...prev,
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      }));
+      // Clear password fields after successful save
+      setFormData((prev) => clearPasswordFields(prev));
 
-      // Pokaż toast sukcesu
+      // Show success toast
       showSuccess(t("profile.profileUpdatedSuccess"));
     } catch (err: any) {
       const errorMessage =

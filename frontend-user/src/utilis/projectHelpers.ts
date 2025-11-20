@@ -1,5 +1,10 @@
 import type { Project, ProjectDisplay, DisplayProject } from "../models/project";
 import { getStatusString } from "./functions";
+import { calculatePagination } from "./datasetHelpers";
+import type {
+  DatasetMetadata,
+  DatasetMyMetadata,
+} from "../api/datasetService";
 
 const DEFAULT_PROJECT_IMAGE =
   "https://images.unsplash.com/photo-1653564142048-d5af2cf9b50f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkYXRhJTIwc2NpZW5jZSUyMG1hY2hpbmUlMjBsZWFybmluZ3xlbnwxfHx8fDE3NTk3NjYyMDR8MA&ixlib=rb-4.1.0&q=80&w=1080";
@@ -92,3 +97,50 @@ export const transformProject = (
   };
 };
 
+/**
+ * Validates project creation form
+ * @param projectName - Project name to validate
+ * @param projectDescription - Project description to validate
+ * @returns True if form is valid, false otherwise
+ */
+export const validateProjectForm = (
+  projectName: string,
+  projectDescription: string
+): boolean => {
+  return projectName.length >= 4 && projectDescription.length >= 10;
+};
+
+/**
+ * Calculates pagination for projects (re-export from datasetHelpers for consistency)
+ */
+export { calculatePagination };
+
+/**
+ * Combines public and user datasets into a single array
+ * @param publicDatasets - Public datasets from API
+ * @param userDatasets - User datasets from API (DatasetMyMetadata)
+ * @returns Combined array of datasets with username set to empty string for user datasets
+ */
+export const combineDatasets = (
+  publicDatasets: DatasetMetadata[],
+  userDatasets: DatasetMyMetadata[]
+): DatasetMetadata[] => {
+  return [
+    ...publicDatasets,
+    ...userDatasets.map((ds) => ({
+      id: ds.id,
+      name: ds.name,
+      username: "",
+      createdAt: ds.createdAt,
+    })),
+  ];
+};
+
+/**
+ * Checks if dataset ID is valid (not empty GUID)
+ * @param datasetId - Dataset ID to validate
+ * @returns True if dataset ID is valid, false otherwise
+ */
+export const isValidDatasetId = (datasetId: string): boolean => {
+  return datasetId !== "00000000-0000-0000-0000-000000000000" && datasetId !== "";
+};

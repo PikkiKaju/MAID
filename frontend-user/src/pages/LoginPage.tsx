@@ -6,6 +6,7 @@ import { clearAuthStatus } from "../features/auth/authSlice";
 import { loginUser } from "../features/auth/loginThunks";
 import { useNavigate } from "react-router-dom";
 import LoginForm from "../components/forms/LoginForm";
+import { validateLoginForm } from "../utilis/authHelpers";
 
 function LoginPage() {
   const { t } = useTranslation();
@@ -34,23 +35,6 @@ function LoginPage() {
     };
   }, [dispatch]);
 
-  // Client-side validation
-  const validateForm = (): string | null => {
-    if (!username.trim()) {
-      return t("auth.usernameRequired");
-    }
-    if (!password.trim()) {
-      return t("auth.passwordRequired");
-    }
-    if (username.trim().length < 3) {
-      return t("auth.usernameMinLength");
-    }
-    if (password.length < 4) {
-      return t("auth.passwordMinLength");
-    }
-    return null;
-  };
-
   // function to submit button
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,9 +48,9 @@ function LoginPage() {
     dispatch(clearAuthStatus());
 
     // Client-side validation
-    const validationErr = validateForm();
-    if (validationErr) {
-      setValidationError(validationErr);
+    const validation = validateLoginForm(username, password, t);
+    if (!validation.isValid) {
+      setValidationError(validation.error);
       return;
     }
 

@@ -9,6 +9,7 @@ import { useToast } from "../components/toast/ToastProvider";
 import ProjectEditSidebar from "../components/project-edit/ProjectEditSidebar";
 import ProjectEditTopbar from "../components/project-edit/ProjectEditTopbar";
 import CalculationResults from "../components/project-edit/CalculationResults";
+import { combineDatasets, isValidDatasetId } from "../utilis/projectHelpers";
 import "../styles/Loader.css";
 
 export default function ProjectEditPage() {
@@ -57,11 +58,7 @@ export default function ProjectEditPage() {
     datasetService
       .getAllDatasets(token)
       .then(({ public: publicDatasets, user: userDatasets }) => {
-        const all = [
-          ...publicDatasets,
-          ...userDatasets.map((ds) => ({ ...ds, username: "" })),
-        ];
-        setDatasets(all);
+        setDatasets(combineDatasets(publicDatasets, userDatasets));
       })
       .catch(() => setDatasets([]));
   }, [id, token, showError]);
@@ -69,12 +66,7 @@ export default function ProjectEditPage() {
   // Fetch columns when dataset changes
   useEffect(() => {
     const fetchColumns = async () => {
-      if (!meta?.datasetId || !token) {
-        setDatasetColumns([]);
-        return;
-      }
-
-      if (meta.datasetId === "00000000-0000-0000-0000-000000000000") {
+      if (!meta?.datasetId || !token || !isValidDatasetId(meta.datasetId)) {
         setDatasetColumns([]);
         return;
       }

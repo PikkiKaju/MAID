@@ -22,6 +22,8 @@ import { useTranslation } from "react-i18next";
 import {
   mapProjectToDisplay,
   filterAndSortProjects,
+  validateProjectForm,
+  calculatePagination,
 } from "../utilis/projectHelpers";
 import { getProjectStatusColor } from "../utilis/functions";
 import { useProjectDelete } from "../hooks/useProjectDelete";
@@ -71,30 +73,22 @@ function ProjectsPage() {
     }
   }, [dispatch, token]);
 
-  // if (!isLoggedIn) {
-  //   return (
-  //     <div className="p-6">
-  //       <h2 className="text-xl font-semibold">
-  //         Musisz być zalogowany, aby zobaczyć swoje projekty.
-  //       </h2>
-  //     </div>
-  //   );
-  // }
-
   const handleConfirm = async () => {
-    if (projectName.length >= 4 && projectDescription.length >= 10) {
-      try {
-        const result = await dispatch(
-          createProject({ name: projectName, description: projectDescription })
-        ).unwrap();
-        // Reset form
-        setProjectName("");
-        setProjectDescription("");
-        setIsModalOpen(false);
-        navigate(`/projects/${result.id}`, { state: { from: "/projects" } });
-      } catch (err) {
-        console.error("Błąd tworzenia projektu:", err);
-      }
+    if (!validateProjectForm(projectName, projectDescription)) {
+      return;
+    }
+
+    try {
+      const result = await dispatch(
+        createProject({ name: projectName, description: projectDescription })
+      ).unwrap();
+      // Reset form
+      setProjectName("");
+      setProjectDescription("");
+      setIsModalOpen(false);
+      navigate(`/projects/${result.id}`, { state: { from: "/projects" } });
+    } catch (err) {
+      console.error("Błąd tworzenia projektu:", err);
     }
   };
 
@@ -169,12 +163,9 @@ function ProjectsPage() {
   );
 
   // Pagination logic
-  const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedProjects = useMemo(
-    () => filteredProjects.slice(startIndex, endIndex),
-    [filteredProjects, startIndex, endIndex]
+  const { totalPages, paginatedItems: paginatedProjects } = useMemo(
+    () => calculatePagination(filteredProjects, currentPage, itemsPerPage),
+    [filteredProjects, currentPage, itemsPerPage]
   );
 
   // Reset to page 1 when filtered projects change
