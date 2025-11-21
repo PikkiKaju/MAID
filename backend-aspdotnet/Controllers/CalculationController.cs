@@ -42,7 +42,7 @@ namespace backend_aspdotnet.Controllers
                 return Unauthorized("Invalid user ID format.");
 
             // Get project from Postgres
-            var project = db.Projects.FirstOrDefault(p => p.Id == projectId && p.UserId == userId);
+            var project = db.Projects.FirstOrDefault(p => p.Id == projectId && ((p.UserId == userId) || p.IsPublic));
             if (project == null)
                 return NotFound("Project not found or not authorized");
 
