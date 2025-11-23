@@ -35,12 +35,14 @@ def _ensure_known_layers(nodes: Sequence[Dict[str, Any]]) -> None:
 def validate_graph_payload(
     nodes: Sequence[Dict[str, Any]],
     edges: Sequence[Dict[str, Any]],
+    strict: bool = True,
 ) -> GraphStructure:
     """
     Validate graph payload and return derived structure.
     Args:
         nodes (Sequence[Dict[str, Any]]): The list of node definitions.
         edges (Sequence[Dict[str, Any]]): The list of edge definitions.
+        strict (bool): Whether to enforce strict manifest compliance (required params, enums).
     Returns:
         GraphStructure: The validated graph structure.
 
@@ -53,7 +55,8 @@ def validate_graph_payload(
     if not nodes:
         raise GraphValidationError({"nodes": ["Graph must contain at least one node"]})
 
-    _ensure_known_layers(nodes)
+    if strict:
+        _ensure_known_layers(nodes)
 
     structure = build_graph_structure(nodes, edges)
 
@@ -66,7 +69,7 @@ def validate_graph_payload(
         if ntype in ("Input", "InputLayer"):
             continue
         try:
-            normalize_params_for_layer(ntype, params)
+            normalize_params_for_layer(ntype, params, strict=strict)
         except Exception as exc:
             validation_errors.setdefault(node["id"], []).append(str(exc))
 

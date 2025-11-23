@@ -180,6 +180,7 @@ def build_keras_model(
     structure: GraphStructure,
     nodes: Sequence[Dict[str, Any]],
     edges: Sequence[Dict[str, Any]],
+    strict: bool = True,
 ) -> Dict[str, Any]:
     """
     Build and return a Keras Model from a validated GraphStructure.
@@ -187,6 +188,7 @@ def build_keras_model(
     Args:
         nodes (Sequence[Dict[str, Any]]): The list of node definitions.
         edges (Sequence[Dict[str, Any]]): The list of edge definitions.
+        strict (bool): Whether to enforce strict manifest compliance.
     Returns:
         Dict[str, Any]: Compilation result including model summary and parameter count.
     """
@@ -216,8 +218,8 @@ def build_keras_model(
             tensor = Input(**kwargs)
         else:
             # Normal layer path
-            normalized = normalize_params_for_layer(ntype, params)
-            layer = create_layer(ntype, normalized)
+            normalized = normalize_params_for_layer(ntype, params, strict=strict)
+            layer = create_layer(ntype, normalized, strict=strict)
 
             if len(inbound_tensors) == 0:
                 # If no inbound tensors, try to synthesize an Input() from any input-like params
@@ -277,6 +279,7 @@ def build_keras_model(
 def compile_graph(
     nodes: Sequence[Dict[str, Any]],
     edges: Sequence[Dict[str, Any]],
+    strict: bool = True,
 ) -> Dict[str, Any]:
     """
     Attempt to construct a model from the provided graph.
@@ -288,12 +291,13 @@ def compile_graph(
     Args:
         nodes (Sequence[Dict[str, Any]]): The list of node definitions.
         edges (Sequence[Dict[str, Any]]): The list of edge definitions.
+        strict (bool): Whether to enforce strict manifest compliance.
     Returns:
         Dict[str, Any]: Compilation result including model summary and parameter count.
     """
 
-    structure = validate_graph_payload(nodes, edges)
-    model = build_keras_model(structure, nodes, edges)
+    structure = validate_graph_payload(nodes, edges, strict=strict)
+    model = build_keras_model(structure, nodes, edges, strict=strict)
 
     summary_stream = io.StringIO()
     model.summary(print_fn=lambda line: summary_stream.write(line + "\n"))

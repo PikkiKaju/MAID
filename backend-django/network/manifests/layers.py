@@ -151,14 +151,14 @@ def get_param_choices(layer_name: str, param_name: str) -> Optional[Dict[str, An
     return None
 
 
-def normalize_params_for_layer(layer_name: str, raw_params: Dict[str, Any]) -> Dict[str, Any]:
+def normalize_params_for_layer(layer_name: str, raw_params: Dict[str, Any], strict: bool = True) -> Dict[str, Any]:
     """Normalize using only manifest: enums (case-insensitive) and required checks.
 
     - No type guessing/conversion. Values are passed through to Keras.
     - Enum values are normalized to canonical casing when case_insensitive is true.
-    - Parameters not declared in the manifest are dropped.
+    - Parameters not declared in the manifest are dropped (if strict=True).
     - Parameters with value None or empty string are omitted to let Keras defaults apply.
-    - Required parameters must be present (after omission of None/empty) or an error is raised.
+    - Required parameters must be present (after omission of None/empty) or an error is raised (if strict=True).
     """
     def _coerce_manifest_string(val: str) -> Any:
         """Best-effort cleanup for manifest-derived string defaults.
@@ -212,7 +212,14 @@ def normalize_params_for_layer(layer_name: str, raw_params: Dict[str, Any]) -> D
         except (ValueError, AttributeError):
             return val  # Parsing failed, return original
 
-    entry = get_layer_entry(layer_name)
+    try:
+        entry = get_layer_entry(layer_name)
+    except KeyError:
+        if strict:
+            raise
+        # If not strict and layer unknown, return params as-is (or best effort)
+        return raw_params
+
     declared_params = [p for p in entry.get("parameters", []) if p.get("name")]
     declared_names = {p["name"] for p in declared_params}
     required_names = {p["name"] for p in declared_params if p.get("required")}
@@ -224,7 +231,7 @@ def normalize_params_for_layer(layer_name: str, raw_params: Dict[str, Any]) -> D
 
     # Apply enum normalization and filter to declared params
     for k, v in (raw_params or {}).items():
-        if k not in declared_names:
+        if strict and k not in declared_names:
             continue
 
         # Treat empty string, None, or string "None" as omission (let default apply)
@@ -244,7 +251,7 @@ def normalize_params_for_layer(layer_name: str, raw_params: Dict[str, Any]) -> D
                     v = parsed
             
             # Type coercion based on param_type from manifest
-            elif isinstance(v, str):
+            if isinstance(v, str):
                 pmeta = param_meta.get(k, {})
                 ptype = pmeta.get("param_type")
                 if ptype == "int":
@@ -260,6 +267,16 @@ def normalize_params_for_layer(layer_name: str, raw_params: Dict[str, Any]) -> D
                 elif ptype == "bool":
                     # Already handled by _coerce_manifest_string for "true"/"false"
                     pass
+                elif ptype == "tuple_int":
+                    try:
+                        v = int(v)
+                    except (ValueError, TypeError):
+                        pass
+                elif ptype == "tuple_float":
+                    try:
+                        v = float(v)
+                    except (ValueError, TypeError):
+                        pass
 
         spec = get_param_choices(layer_name, k)
         if spec and isinstance(v, str):
@@ -273,9 +290,10 @@ def normalize_params_for_layer(layer_name: str, raw_params: Dict[str, Any]) -> D
         cleaned[k] = v
 
     # Validate required params
-    missing = sorted(n for n in required_names if n not in cleaned)
-    if missing:
-        raise ValueError(f"Missing required parameters for {layer_name}: {', '.join(missing)}")
+    if strict:
+        missing = sorted(n for n in required_names if n not in cleaned)
+        if missing:
+            raise ValueError(f"Missing required parameters for {layer_name}: {', '.join(missing)}")
 
     return cleaned
 
@@ -299,19 +317,19 @@ def _get_keras_layer_ctor(layer_name: str):
         raise KeyError(f"Keras layer '{layer_name}' not found in keras.layers") from exc
 
 
-def create_layer(layer_name: str, params: Optional[Dict[str, Any]] = None):
+def create_layer(layer_name: str, params: Optional[Dict[str, Any]] = None, strict: bool = True):
     """Instantiate a Keras layer by name using manifest-driven normalization."""
     ctor = _get_keras_layer_ctor(layer_name)
-    norm = normalize_params_for_layer(layer_name, params or {})
+    norm = normalize_params_for_layer(layer_name, params or {}, strict=strict)
     return ctor(**norm)
 
 
-def apply_layer(layer_name: str, inbound: List[Any], params: Optional[Dict[str, Any]] = None):
+def apply_layer(layer_name: str, inbound: List[Any], params: Optional[Dict[str, Any]] = None, strict: bool = True):
     """
     Instantiate a layer and apply it to inbound tensors.
     Heuristic: if a single inbound tensor is provided, call layer(x), else call layer([x1, x2, ...]).
     """
-    layer = create_layer(layer_name, params)
+    layer = create_layer(layer_name, params, strict=strict)
     if not inbound:
         # Return layer instance for caller to connect later
         return layer

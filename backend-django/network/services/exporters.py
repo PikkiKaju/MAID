@@ -16,14 +16,15 @@ def export_graph_to_python_script(
     edges: Sequence[Dict[str, Any]],
     *,
     model_name: str = "generated_model",
+    strict: bool = True,
 ) -> str:
     """Return a standalone Python script that can rebuild the model in two ways:
     - build_model_json(): via model_from_json using Keras model.to_json()
     - build_model_py(): via explicit Keras functional API code (generic, manifest-driven)
     """
 
-    structure = validate_graph_payload(nodes, edges)
-    model = build_keras_model(structure, nodes, edges)
+    structure = validate_graph_payload(nodes, edges, strict=strict)
+    model = build_keras_model(structure, nodes, edges, strict=strict)
     model_json_literal = json.dumps(model.to_json())
     safe_model_name = json.dumps(model_name)
 
@@ -78,7 +79,7 @@ def export_graph_to_python_script(
         # Strict normalization against manifest where applicable
         known = set(list_layers(include_deprecated=False))
         input_names_in_manifest = {n for n in ("Input", "InputLayer") if n in known}
-        norm = params if ntype in input_names_in_manifest else normalize_params_for_layer(ntype, params)
+        norm = params if ntype in input_names_in_manifest else normalize_params_for_layer(ntype, params, strict=strict)
         in_vars = [var_for[p] for p in inbound_map[nid]]
 
         if ntype in input_names_in_manifest:
