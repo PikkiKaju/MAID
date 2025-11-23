@@ -14,6 +14,7 @@ from network.models import TrainingJob, TrainingStatus
 from network.serializers import TrainingJobSerializer
 from network import storage
 from network.services.training import launch_training_job
+from network.services.export_tasks import run_model_export
 
 
 class TrainingJobViewSet(viewsets.ReadOnlyModelViewSet):
@@ -25,29 +26,91 @@ class TrainingJobViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=["get"], url_path="artifact")
     def download_artifact(self, request, pk=None):
         job = self.get_object()
-        # Basic validation: artifact must exist and must live inside configured ARTIFACTS_DIR
+        artifact_type = request.query_params.get('type', 'final')
+
         if not job.artifact_path:
-            raise Http404("Artifact not available")
-        # If configured to use Azure presigned URLs, attempt to generate one.
-        if getattr(settings, "USE_PRESIGNED_STORAGE_URLS", False):
+            raise Http404('Artifact not available')
+
+        target_path_or_key = None
+        download_filename = f"job_{job.id}_model.keras"
+
+        if artifact_type == 'best':
+            target_path_or_key = (job.result or {}).get('best_model_artifact')
+            download_filename = f"job_{job.id}_best_model.keras"
+            if not target_path_or_key:
+                target_path_or_key = f"{job.id}_best.keras"
+        elif artifact_type == 'log':
+            target_path_or_key = (job.result or {}).get('training_log_artifact')
+            download_filename = f"job_{job.id}_training_log.csv"
+            if not target_path_or_key:
+                target_path_or_key = f"{job.id}_log.csv"
+        elif artifact_type == 'tflite':
+            target_path_or_key = f"{job.id}.tflite"
+            download_filename = f"job_{job.id}_model.tflite"
+        elif artifact_type == 'final':
+            target_path_or_key = job.artifact_path
+            download_filename = f"job_{job.id}_model.keras"
+        else:
+            raise Http404('Unknown artifact type')
+
+        if target_path_or_key:
+            # Absolute filesystem path?
+            if os.path.isabs(target_path_or_key):
+                if os.path.exists(target_path_or_key):
+                    fh = open(target_path_or_key, 'rb')
+                    return FileResponse(fh, as_attachment=True, filename=download_filename)
+            else:
+                target_key = target_path_or_key.replace('\\', '/')
+                presigned = storage.get_presigned_download(target_key)
+                if presigned:
+                    return Response({'url': presigned})
+                try:
+                    stream = storage.open_stream(target_key)
+                    return FileResponse(stream, as_attachment=True, filename=download_filename)
+                except Exception:
+                    pass
+
+        # Fallback for absolute paths relative to job.artifact_path directory
+        base_dir = os.path.dirname(job.artifact_path)
+        relative_name = os.path.basename(target_path_or_key) if target_path_or_key else download_filename
+
+        if base_dir and os.path.isabs(base_dir):
+            fallback_path = os.path.join(base_dir, relative_name)
+            if os.path.exists(fallback_path):
+                fh = open(fallback_path, 'rb')
+                return FileResponse(fh, as_attachment=True, filename=download_filename)
+
+        # Try treating artifact_path as storage key and append relative file
+        storage_base = os.path.dirname(job.artifact_path)
+        if storage_base:
+            target_key = os.path.join(storage_base, relative_name).replace('\\', '/')
+            presigned = storage.get_presigned_download(target_key)
+            if presigned:
+                return Response({'url': presigned})
             try:
-                url = storage.get_presigned_download(job.artifact_path)
-                if url:
-                    # Return the presigned URL so the client can download directly from blob storage
-                    return Response({"url": url}, status=status.HTTP_200_OK)
+                stream = storage.open_stream(target_key)
+                return FileResponse(stream, as_attachment=True, filename=download_filename)
             except Exception:
-                # Fall back to local streaming if presign fails
                 pass
 
-        # Fallback: attempt to stream via default storage or local filesystem
-        try:
-            stream = storage.open_stream(job.artifact_path)
-        except Exception:
-            raise Http404("Artifact not available")
+        raise Http404('Artifact not available')
 
-        response = FileResponse(stream, content_type="application/octet-stream")
-        response["Content-Disposition"] = f'attachment; filename="{job.id}.keras"'
-        return response
+    @action(detail=True, methods=["post"], url_path="export")
+    def export_model(self, request, pk=None):
+        """Trigger an export of the trained model to ONNX or TFLite format."""
+        job = self.get_object()
+        format_type = request.data.get('format')
+        
+        if format_type not in ['onnx', 'tflite']:
+             return Response({"detail": "Invalid format. Use 'onnx' or 'tflite'."}, status=status.HTTP_400_BAD_REQUEST)
+             
+        if job.status != TrainingStatus.SUCCEEDED:
+            return Response({"detail": "Job must be succeeded to export model."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Trigger Celery task
+        run_model_export.delay(job.id, format_type)
+        
+        return Response({"detail": "Export started"}, status=status.HTTP_202_ACCEPTED)
 
     @action(detail=True, methods=["post"], url_path="start")
     def start(self, request, pk=None):

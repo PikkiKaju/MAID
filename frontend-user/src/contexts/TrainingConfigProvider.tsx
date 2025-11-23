@@ -21,6 +21,17 @@ export default function TrainingConfigProvider({ children }: { children: ReactNo
   const [rlrFactor, setRlrFactor] = useState<number>(0.1);
   const [rlrPatience, setRlrPatience] = useState<number>(3);
   const [rlrMinLR, setRlrMinLR] = useState<number>(1e-6);
+
+  // New Features
+  const [clipnorm, setClipnorm] = useState<number | ''>('');
+  const [clipvalue, setClipvalue] = useState<number | ''>('');
+  const [autoBalance, setAutoBalance] = useState<boolean>(false);
+  const [lrSchedule, setLrSchedule] = useState<string>('constant');
+  const [lrDecaySteps, setLrDecaySteps] = useState<number>(1000);
+  const [lrDecayRate, setLrDecayRate] = useState<number>(0.96);
+  const [saveBestModel, setSaveBestModel] = useState<boolean>(false);
+  const [saveTrainingLogs, setSaveTrainingLogs] = useState<boolean>(false);
+
   // Training job state
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobStatus, setJobStatus] = useState<string | null>(null);
@@ -48,6 +59,14 @@ export default function TrainingConfigProvider({ children }: { children: ReactNo
     rlrFactor, setRlrFactor,
     rlrPatience, setRlrPatience,
     rlrMinLR, setRlrMinLR,
+    clipnorm, setClipnorm,
+    clipvalue, setClipvalue,
+    autoBalance, setAutoBalance,
+    lrSchedule, setLrSchedule,
+    lrDecaySteps, setLrDecaySteps,
+    lrDecayRate, setLrDecayRate,
+    saveBestModel, setSaveBestModel,
+    saveTrainingLogs, setSaveTrainingLogs,
     jobId, setJobId,
     jobStatus, setJobStatus,
     jobProgress, setJobProgress,

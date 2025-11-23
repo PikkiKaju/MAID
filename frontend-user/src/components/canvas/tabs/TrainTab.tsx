@@ -23,6 +23,9 @@ type TrainingResult = {
   };
   history?: Record<string, number[]>;
   evaluation?: Record<string, number> | null;
+  exports?: string[];
+  best_model_artifact?: string;
+  training_log_artifact?: string;
 };
 
 /**
@@ -51,6 +54,7 @@ export default function TrainTab() {
   // ============================================================
   const {
     optimizer, setOptimizer,
+    clipnorm, setClipnorm,
     loss, setLoss,
     selectedMetrics, setSelectedMetrics,
     epochs, setEpochs,
@@ -69,6 +73,8 @@ export default function TrainTab() {
     rlrFactor, setRlrFactor,
     rlrPatience, setRlrPatience,
     rlrMinLR, setRlrMinLR,
+    saveBestModel, setSaveBestModel,
+    saveTrainingLogs, setSaveTrainingLogs,
   } = useTrainingConfig();
 
   // ============================================================
@@ -76,6 +82,8 @@ export default function TrainTab() {
   // ============================================================
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
   const {
     jobId, setJobId,
     jobStatus, setJobStatus,
@@ -155,6 +163,17 @@ export default function TrainTab() {
     })();
     return () => { cancelled = true; };
   }, [optimizer, loss, setOptimizer, setLoss, setLosses, setMetricsCatalog]);
+
+  // Effect to handle "Final vs Best" logic
+  useEffect(() => {
+    if (useEarlyStopping && esRestoreBest) {
+      // If restoring best weights, the final model IS the best model.
+      // Disable saveBestModel to avoid redundancy
+      if (saveBestModel) {
+        setSaveBestModel(false);
+      }
+    }
+  }, [useEarlyStopping, esRestoreBest, saveBestModel, setSaveBestModel]);
 
   // ============================================================
   // COMPUTED VALUES - Derived from dataset and configuration
@@ -405,6 +424,8 @@ export default function TrainTab() {
         rlrop_factor: rlrFactor,
         rlrop_patience: rlrPatience,
         rlrop_min_lr: rlrMinLR,
+        save_best_model: saveBestModel,
+        save_training_logs: saveTrainingLogs,
       });
       setJobId(job.id);
       setJobStatus(job.status || 'queued');
@@ -469,15 +490,24 @@ export default function TrainTab() {
    */
   useEffect(() => {
     const isFinal = jobStatus === 'succeeded' || jobStatus === 'failed' || jobStatus === 'cancelled';
-    if (!jobId || isFinal) return; // No job or job already finished
+    const shouldPoll = (jobId && !isFinal) || (jobId && isExporting);
+
+    if (!shouldPoll) return; // No job or job already finished and not exporting
     if (pollerRef.current) return; // Already polling, don't create duplicate
 
     const interval = window.setInterval(async () => {
       try {
+        if (!jobId) return;
         const j = await networkGraphService.getTrainingJob(jobId);
         setJobStatus(j.status);
         if (typeof j.progress === 'number') setJobProgress(j.progress);
         if (j.result) setJobResult(j.result as TrainingResult);
+
+        // Check if export finished
+        if (isExporting && j.result?.exports?.includes('tflite')) {
+          setIsExporting(false);
+        }
+
         if (j.status === 'running' && j.result?.live) {
           const epoch = Number(j.result.live.epoch || 0);
           if (epoch > lastEpochRef.current) {
@@ -489,7 +519,8 @@ export default function TrainTab() {
           }
         }
         const final = j.status === 'succeeded' || j.status === 'failed' || j.status === 'cancelled';
-        if (final) {
+        // Only stop polling if final AND not exporting
+        if (final && !isExporting) {
           clearInterval(interval);
           if (j.status === 'succeeded') {
             setJobResult(j.result);
@@ -513,7 +544,7 @@ export default function TrainTab() {
         pollerRef.current = null;
       }
     };
-  }, [jobId, jobStatus, setJobError, setJobProgress, setJobResult, setJobStatus]);
+  }, [jobId, jobStatus, isExporting, setJobError, setJobProgress, setJobResult, setJobStatus]);
 
   /**
    * Cancel the currently running training job.
@@ -599,6 +630,28 @@ export default function TrainTab() {
                     </select>
                     <p className="mt-1 text-xs text-slate-500">
                       Controls how weights update during training. Adam is a solid default; SGD can work well with momentum for large datasets.</p>
+                  </div>
+
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Gradient Clipping (clipnorm)
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      value={clipnorm === undefined ? '' : clipnorm}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setClipnorm(v === '' ? '' : Number(v));
+                      }}
+                      placeholder="e.g. 1.0"
+                      className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="mt-1 text-xs text-slate-500">
+                      Clips gradients by norm to prevent exploding gradients. Leave empty to disable.
+                    </p>
                   </div>
 
                   <div>
@@ -727,6 +780,30 @@ export default function TrainTab() {
                       Shuffle training data each epoch
                     </label>
                     <span className="text-xs text-slate-500">Recommended. Prevents learning spurious order; disable only for sequence-sensitive data already batched in order.</span>
+                  </div>
+
+                  <div className="col-span-2 border-t pt-4 mt-2">
+                    <h4 className="text-sm font-medium text-slate-700 mb-3">Checkpoints & Logs</h4>
+                    <div className="flex flex-col gap-3">
+                      <label className={`flex items-center gap-2 text-sm ${useEarlyStopping && esRestoreBest ? 'opacity-50' : ''}`}>
+                        <input
+                          type="checkbox"
+                          checked={saveBestModel}
+                          onChange={(e) => setSaveBestModel(e.target.checked)}
+                          disabled={useEarlyStopping && esRestoreBest}
+                        />
+                        Save Best Model
+                      </label>
+                      {useEarlyStopping && esRestoreBest && (
+                        <p className="text-xs text-amber-600 ml-6 -mt-2">
+                          Disabled because "Restore best weights" is active. The final model will already be the best model.
+                        </p>
+                      )}
+                      <label className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" checked={saveTrainingLogs} onChange={(e) => setSaveTrainingLogs(e.target.checked)} />
+                        Save Training Logs (CSV)
+                      </label>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -892,20 +969,103 @@ export default function TrainTab() {
                   )}
                   {/* Download artifact button when job succeeded */}
                   {jobStatus === 'succeeded' && (
-                    <div className="mt-3">
-                      <Button
-                        onClick={async () => {
-                          try {
-                            if (!jobId) return;
-                            await networkGraphService.downloadArtifactToBrowser(jobId, 'model.keras');
-                          } catch (e) {
-                            console.error('Failed to download artifact', e);
-                            setJobError(e instanceof Error ? e.message : String(e));
-                          }
-                        }}
-                      >
-                        Download Model
-                      </Button>
+                    <div className="mt-3 flex flex-col gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          onClick={async () => {
+                            try {
+                              if (!jobId) return;
+                              await networkGraphService.downloadArtifactToBrowser(jobId, 'final');
+                            } catch (e) {
+                              console.error('Failed to download artifact', e);
+                              setJobError(e instanceof Error ? e.message : String(e));
+                            }
+                          }}
+                          variant="outline"
+                          size="sm"
+                        >
+                          Download Final Model
+                        </Button>
+
+                        {/* Show Best Model button ONLY if artifact exists in result */}
+                        {jobResult?.best_model_artifact && (
+                          <Button
+                            onClick={async () => {
+                              try {
+                                if (!jobId) return;
+                                await networkGraphService.downloadArtifactToBrowser(jobId, 'best');
+                              } catch (e) {
+                                console.error('Failed to download artifact', e);
+                                setJobError(e instanceof Error ? e.message : String(e));
+                              }
+                            }}
+                            variant="outline"
+                            size="sm"
+                          >
+                            Download Best Model
+                          </Button>
+                        )}
+
+                        {jobResult?.training_log_artifact && (
+                          <Button
+                            onClick={async () => {
+                              try {
+                                if (!jobId) return;
+                                await networkGraphService.downloadArtifactToBrowser(jobId, 'log');
+                              } catch (e) {
+                                console.error('Failed to download artifact', e);
+                                setJobError(e instanceof Error ? e.message : String(e));
+                              }
+                            }}
+                            variant="outline"
+                            size="sm"
+                          >
+                            Download Logs (CSV)
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Export Section */}
+                      <div className="border-t pt-2 mt-1">
+                        <div className="text-xs font-medium text-slate-500 mb-2">Export Formats</div>
+                        <div className="flex flex-wrap gap-2">
+                          {/* ONNX export removed; only TFLite supported */}
+
+                          {/* TFLite */}
+                          {jobResult?.exports?.includes('tflite') ? (
+                            <Button
+                              onClick={() => jobId && networkGraphService.downloadArtifactToBrowser(jobId, 'tflite')}
+                              variant="secondary"
+                              size="sm"
+                              className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                            >
+                              Download TFLite
+                            </Button>
+                          ) : (
+                            <Button
+                              onClick={async () => {
+                                if (!jobId) return;
+                                try {
+                                  setExportingFormat('tflite');
+                                  setIsExporting(true);
+                                  await networkGraphService.exportModel(jobId, 'tflite');
+                                } catch (e) {
+                                  console.error(e);
+                                  setJobError('Export failed');
+                                  setIsExporting(false);
+                                } finally {
+                                  setExportingFormat(null);
+                                }
+                              }}
+                              disabled={exportingFormat === 'tflite'}
+                              variant="outline"
+                              size="sm"
+                            >
+                              {exportingFormat === 'tflite' ? 'Exporting...' : 'Export to TFLite'}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
 

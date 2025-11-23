@@ -14,7 +14,47 @@ type TrainingResult = {
   };
   history?: Record<string, number[]>;
   evaluation?: Record<string, number> | null;
+  extended_evaluation?: {
+    confusion_matrix?: number[][];
+    roc_curve?: {
+      fpr: number[];
+      tpr: number[];
+      auc: number;
+    };
+  };
 };
+
+function RocChart({ fpr, tpr, auc }: { fpr: number[], tpr: number[], auc: number }) {
+  const width = 300;
+  const height = 300;
+  const padding = 40;
+  const innerW = width - padding * 2;
+  const innerH = height - padding * 2;
+
+  const points = fpr.map((x, i) => {
+    const px = padding + x * innerW;
+    const py = height - padding - tpr[i] * innerH;
+    return `${px},${py}`;
+  }).join(' ');
+
+  return (
+    <div className="flex flex-col items-center">
+      <svg width={width} height={height} className="border bg-white">
+        {/* Grid */}
+        <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#ddd" />
+        <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#ddd" />
+        {/* Diagonal */}
+        <line x1={padding} y1={height - padding} x2={width - padding} y2={padding} stroke="#eee" strokeDasharray="4" />
+        {/* Curve */}
+        <polyline points={points} fill="none" stroke="#2563eb" strokeWidth="2" />
+        {/* Labels */}
+        <text x={width / 2} y={height - 10} textAnchor="middle" fontSize="12">False Positive Rate</text>
+        <text x={10} y={height / 2} textAnchor="middle" transform={`rotate(-90, 10, ${height / 2})`} fontSize="12">True Positive Rate</text>
+      </svg>
+      <div className="mt-2 text-sm font-medium">AUC = {auc.toFixed(4)}</div>
+    </div>
+  );
+}
 
 export default function MetricsTab() {
   const {
@@ -239,6 +279,48 @@ export default function MetricsTab() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Extended Evaluation (Confusion Matrix & ROC) */}
+        {jobResult?.extended_evaluation && (
+          <div className="bg-white border rounded-lg p-6">
+            <h3 className="text-sm font-semibold text-slate-700 mb-4">Extended Evaluation</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Confusion Matrix */}
+              {jobResult.extended_evaluation.confusion_matrix && (
+                <div>
+                  <h4 className="text-xs font-semibold text-slate-600 mb-3">Confusion Matrix</h4>
+                  <div className="overflow-auto">
+                    <table className="min-w-full border-collapse text-center text-sm">
+                      <tbody>
+                        {jobResult.extended_evaluation.confusion_matrix.map((row, i) => (
+                          <tr key={i}>
+                            {row.map((cell, j) => (
+                              <td key={j} className="border p-2 bg-slate-50">
+                                {cell}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* ROC Curve */}
+              {jobResult.extended_evaluation.roc_curve && (
+                <div>
+                  <h4 className="text-xs font-semibold text-slate-600 mb-3">ROC Curve</h4>
+                  <RocChart
+                    fpr={jobResult.extended_evaluation.roc_curve.fpr}
+                    tpr={jobResult.extended_evaluation.roc_curve.tpr}
+                    auc={jobResult.extended_evaluation.roc_curve.auc}
+                  />
+                </div>
+              )}
             </div>
           </div>
         )}

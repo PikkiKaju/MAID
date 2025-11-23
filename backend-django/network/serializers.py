@@ -423,6 +423,10 @@ class TrainingStartSerializer(serializers.Serializer):
     rlrop_patience = serializers.IntegerField(required=False, min_value=0, default=3)
     rlrop_min_lr = serializers.FloatField(required=False, default=1e-6)
 
+    # Checkpoints & logs
+    save_best_model = serializers.BooleanField(required=False, default=False)
+    save_training_logs = serializers.BooleanField(required=False, default=False)
+
     def to_internal_value(self, data):
         # Allow JSON strings for list fields (common from multipart/form-data)
         import json
