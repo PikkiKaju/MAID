@@ -1,29 +1,50 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Cpu, Play } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Cpu, Play, Info, Download, FileText, FileSpreadsheet, ClipboardCopy } from 'lucide-react';
 import { useTrainingConfig } from '../../../contexts/useTrainingConfig';
 import networkGraphService from '../../../api/networkGraphService';
 import { useDataset } from '../../../contexts/DatasetContext';
+import { useInference } from '../../../contexts/InferenceContext';
 import { columnToNumeric, handleMissingNumeric, minMaxScale, standardScale } from '../../../utils/dataPreprocessing';
 
 export default function InferenceTab() {
     const { jobId, jobStatus } = useTrainingConfig();
     const { dataset } = useDataset();
 
-    const [mode, setMode] = useState<'json' | 'csv'>('json');
-    const [jsonText, setJsonText] = useState('[\n  [0, 0, 0]\n]');
-    const [csvFile, setCsvFile] = useState<File | null>(null);
-    const [busy, setBusy] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [preds, setPreds] = useState<unknown | null>(null);
+    const {
+        mode,
+        setMode,
+        jsonText,
+        setJsonText,
+        csvFile,
+        setCsvFile,
+        applyNormalization,
+        setApplyNormalization,
+        preds,
+        setPreds,
+        busy,
+        setBusy,
+        error,
+        setError,
+        copied,
+        setCopied,
+        lastRunAt,
+        setLastRunAt,
+        lastResetKey,
+        setLastResetKey,
+    } = useInference();
     const [xColumns, setXColumns] = useState<string[] | null>(null);
-    const [applyNormalization, setApplyNormalization] = useState(true);
+    const csvInputRef = useRef<HTMLInputElement | null>(null);
 
     const canPredict = !!jobId && jobStatus === 'succeeded';
 
+    const jobSignature = `${jobId ?? ''}|${jobStatus ?? ''}|${mode}`;
     useEffect(() => {
-        setPreds(null);
-        setError(null);
-    }, [jobId, jobStatus, mode]);
+        if (jobSignature !== lastResetKey) {
+            setPreds(null);
+            setError(null);
+            setLastResetKey(jobSignature);
+        }
+    }, [jobSignature, lastResetKey, setPreds, setError, setLastResetKey]);
 
     // Fetch job details once to get x_columns shape; fall back to dataset feature names
     useEffect(() => {
@@ -45,7 +66,7 @@ export default function InferenceTab() {
     useEffect(() => {
         const method = dataset?.preprocessingConfig.normalizationMethod || 'none';
         setApplyNormalization(method !== 'none');
-    }, [dataset?.preprocessingConfig.normalizationMethod]);
+    }, [dataset?.preprocessingConfig.normalizationMethod, setApplyNormalization]);
 
     // Build quick per-feature scalers from current dataset for numeric features
     const scalers = useMemo(() => {
@@ -103,7 +124,7 @@ export default function InferenceTab() {
         setPreds(null);
         try {
             if (mode === 'csv') {
-                if (!csvFile) { setError('Select a CSV file first'); return; }
+                if (!csvFile) { setError('Select a CSV file first'); setBusy(false); return; }
                 const res = await networkGraphService.predictWithCsv(jobId, csvFile);
                 setPreds(res.predictions);
             } else {
@@ -118,6 +139,7 @@ export default function InferenceTab() {
                 const res = await networkGraphService.predictWithJson(jobId, payload);
                 setPreds(res.predictions);
             }
+            setLastRunAt(new Date().toISOString());
         } catch (e) {
             const msg = e instanceof Error ? e.message : 'Prediction failed';
             setError(msg);
@@ -126,107 +148,363 @@ export default function InferenceTab() {
         }
     }
 
+    const featureList = useMemo(() => {
+        if (xColumns && xColumns.length) return xColumns;
+        if (dataset?.trainData?.featureNames?.length) return dataset.trainData.featureNames;
+        if (dataset?.columns?.length) return dataset.columns.map(c => c.name);
+        return [] as string[];
+    }, [xColumns, dataset]);
+
+    const normalizationMethod = dataset?.preprocessingConfig?.normalizationMethod || 'none';
+    const hasNormalization = normalizationMethod !== 'none';
+
+    const predictionSummary = useMemo(() => {
+        if (!preds) return null as null | { total: number; vectorLength: number | null };
+        const raw = Array.isArray(preds)
+            ? preds
+            : (preds as { predictions?: unknown }).predictions;
+        if (!raw || !Array.isArray(raw)) return null;
+        const total = raw.length;
+        const first = raw[0];
+        const vectorLength = Array.isArray(first) ? (first as unknown[]).length : null;
+        return { total, vectorLength };
+    }, [preds]);
+
+    const targetLabels = useMemo(() => {
+        try {
+            const targetName = dataset?.preprocessingConfig?.targetColumn;
+            if (!targetName) return null;
+            // Prefer cleaned rows (aligned to transformed), fall back to original
+            const rows = dataset?.cleaned && dataset.cleaned.length ? dataset.cleaned : dataset?.original;
+            if (!rows) return null;
+            const vals = rows.map(r => {
+                const v = (r as Record<string, unknown>)[targetName];
+                return v === undefined || v === null ? null : String(v);
+            }).filter((v): v is string => v !== null);
+            const uniques = Array.from(new Set(vals)).sort();
+            return uniques.length ? uniques : null;
+        } catch {
+            return null;
+        }
+    }, [dataset]);
+
+    const statusBadgeClass = (() => {
+        const base = 'px-2 py-0.5 text-xs font-medium rounded-full capitalize';
+        switch (jobStatus) {
+            case 'succeeded':
+                return base + ' bg-emerald-100 text-emerald-700';
+            case 'running':
+            case 'queued':
+                return base + ' bg-amber-100 text-amber-700';
+            case 'failed':
+                return base + ' bg-red-100 text-red-700';
+            default:
+                return base + ' bg-slate-100 text-slate-600';
+        }
+    })();
+
+    const featureChips = featureList.slice(0, 15);
+    const extraFeatureCount = featureList.length - featureChips.length;
+
+    const generateJsonTemplate = (cols?: string[]) => {
+        const c = (cols && cols.length) ? cols : (featureList.length ? featureList : ['feature_1', 'feature_2', 'feature_3']);
+        const example = { instances: [c.map((_: string, idx: number) => Number(((idx + 1) * 0.1).toFixed(2)))], };
+        return JSON.stringify(example, null, 2);
+    };
+
+    const handleTemplateDownload = (type: 'json' | 'csv') => {
+        const cols = featureList.length ? featureList : ['feature_1', 'feature_2', 'feature_3'];
+        if (type === 'json') {
+            const exampleText = generateJsonTemplate(cols);
+            triggerDownload(exampleText, `${dataset?.datasetName || 'inference'}-template.json`, 'application/json');
+        } else {
+            const header = cols.join(',');
+            const sample = cols.map((_: string, idx: number) => (idx + 1) * 0.1);
+            const csv = [header, sample.join(',')].join('\n');
+            triggerDownload(csv, `${dataset?.datasetName || 'inference'}-template.csv`, 'text/csv');
+        }
+    };
+
+    // Auto-insert a sensible JSON template into the textarea when feature list becomes available,
+    // but only if the user hasn't modified the placeholder yet.
+    useEffect(() => {
+        const placeholder = '[\n  [0, 0, 0]\n]';
+        if (mode === 'json' && (jsonText.trim() === placeholder.trim() || jsonText.trim() === '')) {
+            const tpl = generateJsonTemplate();
+            setJsonText(tpl);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [featureList, mode]);
+
+    const triggerDownload = (content: string, filename: string, mime: string) => {
+        const blob = new Blob([content], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    };
+
+    const handleCopyPreds = async () => {
+        if (!preds || typeof navigator === 'undefined' || !navigator.clipboard) return;
+        try {
+            await navigator.clipboard.writeText(JSON.stringify(preds, null, 2));
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+        } catch (err) {
+            console.error('Clipboard copy failed', err);
+        }
+    };
+
+    const handleDownloadPreds = () => {
+        if (!preds) return;
+        triggerDownload(JSON.stringify(preds, null, 2), 'predictions.json', 'application/json');
+    };
+
+    const formattedLastRun = lastRunAt ? new Date(lastRunAt).toLocaleString() : null;
+
+    const modeButtonClass = (value: 'json' | 'csv') => (
+        'flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition ' +
+        (mode === value
+            ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+            : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-800')
+    );
+
     return (
-        <div className="h-full flex flex-col p-4 bg-slate-50">
-            <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2"><Cpu size={16} /> Inference</h2>
+        <div className="h-full flex flex-col gap-4 p-4 bg-slate-50">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <div className="text-xs uppercase tracking-wide text-slate-500">Inference workspace</div>
+                    <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2"><Cpu size={18} /> Run predictions</h2>
+                </div>
                 <div className="text-sm text-slate-600">
-                    {canPredict ? 'Ready to predict with last trained model' : 'Train a model first to enable predictions'}
+                    {canPredict ? 'Ready to predict with your last successful training run.' : 'Train a model (status: succeeded) to unlock predictions.'}
                 </div>
             </div>
 
-            <div className="flex-1 overflow-auto">
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+                <div className="bg-white border rounded-lg p-4 space-y-2">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Model status</div>
+                    <div className="flex items-center gap-2">
+                        <span className={statusBadgeClass}>{jobStatus || 'not started'}</span>
+                        {jobId && <span className="text-xs text-slate-500">Job #{jobId}</span>}
+                    </div>
+                    <div className="text-xs text-slate-500">Only jobs with status <span className="font-semibold">succeeded</span> can serve predictions.</div>
+                </div>
+                <div className="bg-white border rounded-lg p-4 space-y-2">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Dataset</div>
+                    <div className="text-sm font-medium text-slate-800">{dataset?.datasetName || 'Active dataset'}</div>
+                    {dataset?.totalRows && dataset?.totalColumns && (
+                        <div className="text-xs text-slate-500">{dataset.totalRows} rows • {dataset.totalColumns} features • target: {dataset?.preprocessingConfig?.targetColumn || 'N/A'}</div>
+                    )}
+                </div>
+                <div className="bg-white border rounded-lg p-4 space-y-2">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Normalization</div>
+                    <div className="text-sm font-medium text-slate-800">{normalizationMethod === 'none' ? 'Not applied' : normalizationMethod}</div>
+                    <div className="text-xs text-slate-500">{normalizationMethod === 'none' ? 'You can send raw values.' : 'Match the same scaling the dataset used or enable auto-normalization below.'}</div>
+                </div>
+            </div>
+
+            <div className="flex-1 overflow-hidden">
                 {!canPredict ? (
-                    <div className="bg-white border rounded-lg p-8 text-center">
-                        <Cpu size={64} className="mx-auto mb-4 text-slate-300" />
-                        <h3 className="text-lg font-medium text-slate-600 mb-2">No trained model available</h3>
-                        <p className="text-sm text-slate-500">Finish a training run (status: succeeded) to enable predictions.</p>
+                    <div className="h-full flex items-center justify-center">
+                        <div className="bg-white border rounded-xl p-10 text-center max-w-md">
+                            <Cpu size={64} className="mx-auto mb-4 text-slate-300" />
+                            <h3 className="text-lg font-semibold text-slate-700 mb-2">No trained model available</h3>
+                            <p className="text-sm text-slate-500">Finish a training run (status: succeeded) to enable inference tools.</p>
+                        </div>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        <div className="bg-white border rounded-lg p-4 space-y-3">
-                            {/* Expected feature order */}
-                            {xColumns && xColumns.length > 0 && (
-                                <div className="text-xs text-slate-600">
-                                    <div className="mb-1 font-medium">Expected feature order ({xColumns.length}):</div>
-                                    <div className="flex flex-wrap gap-1">
-                                        {xColumns.map((c) => (
-                                            <span key={c} className="px-2 py-0.5 rounded border bg-slate-50 text-slate-700">{c}</span>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="flex items-center gap-3 text-sm">
-                                <label className="flex items-center gap-2">
-                                    <input type="radio" name="mode" checked={mode === 'json'} onChange={() => setMode('json')} /> JSON
-                                </label>
-                                <label className="flex items-center gap-2">
-                                    <input type="radio" name="mode" checked={mode === 'csv'} onChange={() => setMode('csv')} /> CSV
-                                </label>
+                    <div className="h-full grid gap-4 lg:grid-cols-2">
+                        <div className="bg-white border rounded-lg flex flex-col overflow-hidden">
+                            <div className="border-b px-4 py-3">
+                                <div className="text-xs uppercase tracking-wide text-slate-500">Step 1</div>
+                                <div className="flex items-center gap-2 text-base font-semibold text-slate-800">Prepare input payload</div>
                             </div>
-
-                            {mode === 'json' ? (
-                                <div>
-                                    <div className="text-xs text-slate-500 mb-1">
-                                        Paste an array of arrays (instances) or <code>{"{\"instances\": [...]}"}</code>
+                            <div className="flex-1 overflow-auto px-4 py-4 space-y-4">
+                                {featureList.length > 0 && (
+                                    <div className="text-xs text-slate-600">
+                                        <div className="mb-1 font-medium">Expected feature order ({featureList.length}):</div>
+                                        <div className="flex flex-wrap gap-1">
+                                            {featureChips.map((c: string) => (
+                                                <span key={c} className="px-2 py-0.5 rounded-full border bg-slate-50 text-slate-700">{c}</span>
+                                            ))}
+                                            {extraFeatureCount > 0 && (
+                                                <span className="px-2 py-0.5 rounded-full border bg-slate-100 text-slate-600">+{extraFeatureCount} more</span>
+                                            )}
+                                        </div>
                                     </div>
-                                    {dataset?.preprocessingConfig?.normalizationMethod !== 'none' && (
-                                        <label className="flex items-center gap-2 text-xs text-slate-600 mb-1">
-                                            <input type="checkbox" checked={applyNormalization} onChange={(e) => setApplyNormalization(e.target.checked)} />
-                                            Apply dataset normalization ({dataset?.preprocessingConfig?.normalizationMethod})
-                                        </label>
-                                    )}
-                                    <textarea
-                                        value={jsonText}
-                                        onChange={(e) => setJsonText(e.target.value)}
-                                        className="w-full h-48 font-mono text-xs border rounded p-2"
-                                    />
-                                </div>
-                            ) : (
-                                <div>
-                                    <div className="text-xs text-slate-500 mb-1">Upload CSV with header matching training features</div>
-                                    <input type="file" accept=".csv,text/csv" onChange={(e) => setCsvFile(e.target.files?.[0] || null)} />
-                                </div>
-                            )}
+                                )}
 
-                            <button
-                                onClick={handlePredict}
-                                disabled={!canPredict || busy}
-                                className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60"
-                            >
-                                <Play size={16} /> {busy ? 'Predicting...' : 'Predict'}
-                            </button>
+                                <div className="space-y-2">
+                                    <div className="text-xs font-medium text-slate-500 uppercase">Input format</div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button type="button" className={modeButtonClass('json')} onClick={() => setMode('json')}>
+                                            <FileText size={14} /> JSON (manual)
+                                        </button>
+                                        <button type="button" className={modeButtonClass('csv')} onClick={() => setMode('csv')}>
+                                            <FileSpreadsheet size={14} /> CSV (batch)
+                                        </button>
+                                    </div>
+                                </div>
 
-                            {error && <div className="text-sm text-red-600">{error}</div>}
+                                {mode === 'json' ? (
+                                    <div className="space-y-2">
+                                        <div className="text-xs text-slate-500">
+                                            Paste an array of arrays or an object that contains <code>{'{"instances": [...]}'}</code>.
+                                        </div>
+                                        {hasNormalization && (
+                                            <label className="flex items-center gap-2 text-xs text-slate-600">
+                                                <input type="checkbox" checked={applyNormalization} onChange={(e) => setApplyNormalization(e.target.checked)} />
+                                                Apply dataset normalization ({normalizationMethod})
+                                            </label>
+                                        )}
+                                        <textarea
+                                            value={jsonText}
+                                            onChange={(e) => setJsonText(e.target.value)}
+                                            className="w-full min-h-[220px] font-mono text-xs border rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                        <div className="flex flex-wrap gap-2 text-xs">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleTemplateDownload('json')}
+                                                className="inline-flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-slate-600 hover:bg-slate-50"
+                                            >
+                                                <Download size={12} /> JSON template
+                                            </button>
+                                            <div className="inline-flex items-center gap-1 text-slate-500"><Info size={12} /> Keep order aligned with training features.</div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-4 text-sm text-slate-600">
+                                            {csvFile ? (
+                                                <div className="space-y-2">
+                                                    <div className="font-medium text-slate-700">{csvFile.name}</div>
+                                                    <div className="text-xs text-slate-500">{(csvFile.size / 1024).toFixed(1)} KB</div>
+                                                    <div className="flex gap-2 text-xs">
+                                                        <button type="button" onClick={() => csvInputRef.current?.click()} className="rounded border border-slate-200 px-2 py-1 hover:bg-white">Replace file</button>
+                                                        <button type="button" onClick={() => setCsvFile(null)} className="rounded border border-slate-200 px-2 py-1 hover:bg-white">Remove</button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    <div>Select a CSV with headers that match the training feature names.</div>
+                                                    <button type="button" onClick={() => csvInputRef.current?.click()} className="rounded bg-white px-3 py-1 text-sm font-medium text-blue-600 shadow-sm">Choose file</button>
+                                                </div>
+                                            )}
+                                            <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => setCsvFile(e.target.files?.[0] || null)} />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleTemplateDownload('csv')}
+                                            className="inline-flex items-center gap-1 text-xs text-slate-600 hover:text-slate-800"
+                                        >
+                                            <Download size={12} /> Download CSV template
+                                        </button>
+                                    </div>
+                                )}
+
+                                <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600 flex gap-2">
+                                    <Info size={14} className="text-slate-400" />
+                                    <div>
+                                        Keep target columns out of the payload. For categorical models you will receive probability vectors per class.
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col gap-2">
+                                    <button
+                                        onClick={handlePredict}
+                                        disabled={!canPredict || busy}
+                                        className="flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-blue-700 disabled:opacity-60"
+                                    >
+                                        <Play size={16} /> {busy ? 'Predicting…' : 'Run inference'}
+                                    </button>
+                                    {error && <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="bg-white border rounded-lg p-4 overflow-auto">
-                            <h3 className="text-sm font-semibold text-slate-700 mb-2">Results</h3>
-                            {!preds ? (
-                                <div className="text-sm text-slate-500">No predictions yet.</div>
-                            ) : (
-                                <div className="space-y-2">
-                                    {/* Raw predictions */}
-                                    <pre className="bg-slate-50 border rounded p-3 text-xs max-h-[300px] overflow-auto">{JSON.stringify(preds, null, 2)}</pre>
-                                    {/* Argmax preview for classification-like outputs */}
-                                    {(() => {
-                                        const p = preds as unknown;
-                                        let arr: unknown = null;
-                                        if (Array.isArray(p)) arr = p;
-                                        else if (p && typeof p === 'object' && Array.isArray((p as { predictions?: unknown }).predictions)) arr = (p as { predictions: unknown }).predictions;
-                                        if (!arr || !Array.isArray(arr) || !Array.isArray(arr[0])) return null;
-                                        const classes = (arr as number[][]).map(row => row.indexOf(Math.max(...row as number[])));
-                                        return (
-                                            <div className="text-xs text-slate-700">
-                                                <div className="font-medium mb-1">Argmax class indices:</div>
-                                                <pre className="bg-slate-50 border rounded p-2">{JSON.stringify(classes)}</pre>
-                                                <div className="text-slate-500">Tip: For categorical targets, take argmax to get predicted class index. Map to labels based on your dataset’s class encoding.</div>
-                                            </div>
-                                        );
-                                    })()}
+                        <div className="bg-white border rounded-lg flex flex-col overflow-hidden">
+                            <div className="border-b px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                    <div className="text-xs uppercase tracking-wide text-slate-500">Step 2</div>
+                                    <div className="text-base font-semibold text-slate-800">Review predictions</div>
+                                    {formattedLastRun && <div className="text-xs text-slate-500">Last run: {formattedLastRun}</div>}
                                 </div>
-                            )}
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleCopyPreds}
+                                        disabled={!preds}
+                                        className="inline-flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-xs text-slate-600 disabled:opacity-50"
+                                    >
+                                        <ClipboardCopy size={12} /> {copied ? 'Copied' : 'Copy JSON'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleDownloadPreds}
+                                        disabled={!preds}
+                                        className="inline-flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-xs text-slate-600 disabled:opacity-50"
+                                    >
+                                        <Download size={12} /> Download
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-auto p-4 space-y-3">
+                                {!preds ? (
+                                    <div className="h-full flex items-center justify-center text-sm text-slate-500">
+                                        Run a prediction to see results here.
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {predictionSummary && (
+                                            <div className="flex flex-wrap gap-2 text-xs">
+                                                <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">{predictionSummary.total} records</span>
+                                                {typeof predictionSummary.vectorLength === 'number' && (
+                                                    <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700">{predictionSummary.vectorLength} outputs / record</span>
+                                                )}
+                                            </div>
+                                        )}
+                                        <pre className="bg-slate-50 border rounded p-3 text-xs max-h-[340px] overflow-auto">{JSON.stringify(preds, null, 2)}</pre>
+                                        {(() => {
+                                            const p = preds as unknown;
+                                            let arr: unknown = null;
+                                            if (Array.isArray(p)) arr = p;
+                                            else if (p && typeof p === 'object' && Array.isArray((p as { predictions?: unknown }).predictions)) arr = (p as { predictions: unknown }).predictions;
+                                            if (!arr || !Array.isArray(arr) || !Array.isArray(arr[0])) return null;
+                                            const classes = (arr as number[][]).map((row: number[]) => row.indexOf(Math.max(...row)));
+                                            const labels = targetLabels ?? null;
+                                            return (
+                                                <div className="text-xs text-slate-700 space-y-2">
+                                                    <div className="font-medium">Argmax class indices:</div>
+                                                    <pre className="bg-slate-50 border rounded p-2">{JSON.stringify(classes)}</pre>
+                                                    {labels ? (
+                                                        <div className="text-xs">
+                                                            <div className="font-medium mb-1">Mapped labels:</div>
+                                                            <div className="flex flex-col gap-1">
+                                                                {classes.map((idx: number, i: number) => (
+                                                                    <div key={i} className="flex items-center gap-2">
+                                                                        <div className="w-6 text-slate-600">#{idx}</div>
+                                                                        <div className="font-medium">{labels[idx] ?? 'Unknown'}</div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                            <div className="mt-2 text-slate-500">Full mapping (index → label):</div>
+                                                            <pre className="bg-slate-50 border rounded p-2 text-xs">{JSON.stringify(labels.map((l: string, i: number) => ({ index: i, label: l })), null, 2)}</pre>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-slate-500">Map these indices back to your categorical labels to interpret predictions.</div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
