@@ -1,4 +1,4 @@
-import { Save, Trash2, Play, FileDown, Upload, FolderOpen, Eraser } from 'lucide-react';
+import { Save, Trash2, Play, Upload, FolderOpen, Eraser, ChevronDown, FileJson, Code2 } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../../ui/tooltip';
 import LoadGraphModal from './LoadGraphModal';
 import { useModelCanvasStore } from '../../store/modelCanvasStore';
@@ -6,6 +6,7 @@ import networkGraphService, { GraphEdge, GraphNode, NetworkGraphPayload } from '
 import { useEffect, useRef, useState } from 'react';
 import { Edge as RFEdge, Node as RFNode } from 'reactflow';
 import { useAppSelector } from '../../store/hooks';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../../ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -200,25 +201,84 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
     }
   };
 
+  const downloadTextFile = (content: string, filename: string, mime: string) => {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const safeFileBase = (name: string) => {
+    const base = (name || 'model').toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '');
+    return base || 'model';
+  };
+
   const exportPython = async () => {
     try {
       setBusy('export-python');
       const { nodes, edges } = buildPayloadFromStore();
       // Export from payload without saving
       const code: string = await networkGraphService.exportPythonFromPayload(nodes, edges, 'model');
-      // trigger browser download
-      const blob = new Blob([code], { type: 'text/x-python' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'model.py';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      const base = safeFileBase(modelName);
+      downloadTextFile(code, `${base}.py`, 'text/x-python');
     } catch (err: unknown) {
       console.error('Export python failed', err);
       const msg = 'Export python failed: ' + (err instanceof Error ? err.message : String(err));
+      onShowErrors?.([msg]);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const exportGraphJson = () => {
+    try {
+      setBusy('export-graph');
+      const payload = buildPayloadFromStore();
+      const base = safeFileBase(modelName);
+      downloadTextFile(JSON.stringify(payload, null, 2), `${base}-graph.json`, 'application/json');
+      onShowSuccess?.('Graph JSON exported');
+    } catch (err: unknown) {
+      console.error('Export graph failed', err);
+      const msg = 'Export graph failed: ' + (err instanceof Error ? err.message : String(err));
+      onShowErrors?.([msg]);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const exportKerasJson = async () => {
+    try {
+      setBusy('export-keras');
+      const { nodes, edges } = buildPayloadFromStore();
+      const script = await networkGraphService.exportPythonFromPayload(nodes, edges, modelName || 'model');
+      const modelJsonLine = script.split('\n').find(line => line.trim().startsWith('MODEL_JSON = '));
+      if (!modelJsonLine) {
+        throw new Error('MODEL_JSON literal not found in exported script');
+      }
+      const literal = modelJsonLine.trim().replace('MODEL_JSON =', '').trim();
+      const encoded = JSON.parse(literal);
+      let pretty: string;
+      if (typeof encoded === 'string') {
+        try {
+          const parsed = JSON.parse(encoded);
+          pretty = JSON.stringify(parsed, null, 2);
+        } catch {
+          pretty = encoded;
+        }
+      } else {
+        pretty = JSON.stringify(encoded, null, 2);
+      }
+      const base = safeFileBase(modelName);
+      downloadTextFile(pretty, `${base}-keras.json`, 'application/json');
+      onShowSuccess?.('Keras JSON exported');
+    } catch (err: unknown) {
+      console.error('Export Keras JSON failed', err);
+      const msg = 'Export Keras JSON failed: ' + (err instanceof Error ? err.message : String(err));
       onShowErrors?.([msg]);
     } finally {
       setBusy(null);
@@ -276,41 +336,50 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
           <TooltipContent sideOffset={6} className="bg-black/90 text-white text-sm px-3 py-1.5 rounded-md shadow-lg">Compile the current canvas on the backend (validates model and returns summary/errors)</TooltipContent>
         </Tooltip>
 
-        {/* Import Keras model (JSON) */}
+        {/* Import/Export dropdown */}
         <input ref={fileKerasRef} type='file' accept='.json,application/json' className='hidden' onChange={(e) => {
           const f = e.target.files?.[0]; if (f) importKeras(f);
         }} />
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button onClick={() => fileKerasRef.current?.click()} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-60'>
-              <Upload size={14} /> Import Keras
-            </button>
-          </TooltipTrigger>
-          <TooltipContent sideOffset={6} className="bg-black/90 text-white text-sm px-3 py-1.5 rounded-md shadow-lg">Import a Keras model JSON file onto the canvas</TooltipContent>
-        </Tooltip>
-
-        {/* Import Graph model (JSON shaped like /network/graphs/) */}
         <input ref={fileGraphRef} type='file' accept='.json,application/json' className='hidden' onChange={(e) => {
           const f = e.target.files?.[0]; if (f) importGraph(f);
         }} />
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button onClick={() => fileGraphRef.current?.click()} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-violet-600 text-white rounded hover:bg-violet-700 disabled:opacity-60'>
-              <Upload size={14} /> Import Graph
-            </button>
-          </TooltipTrigger>
-          <TooltipContent sideOffset={6} className="bg-black/90 text-white text-sm px-3 py-1.5 rounded-md shadow-lg">Import a saved graph JSON file onto the canvas</TooltipContent>
-        </Tooltip>
-
-        {/* Export Python */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button onClick={exportPython} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-60'>
-              <FileDown size={14} /> Export Python
-            </button>
-          </TooltipTrigger>
-          <TooltipContent sideOffset={6} className="bg-black/90 text-white text-sm px-3 py-1.5 rounded-md shadow-lg">Export the current model as Python code</TooltipContent>
-        </Tooltip>
+        <DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  disabled={toolbarDisabled}
+                  className='flex items-center gap-1 px-2 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-60'
+                >
+                  Import / Export
+                  <ChevronDown size={14} />
+                </button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent sideOffset={6} className="bg-black/90 text-white text-sm px-3 py-1.5 rounded-md shadow-lg">Import or export canvas data</TooltipContent>
+          </Tooltip>
+          <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-slate-500">Import</DropdownMenuLabel>
+            <DropdownMenuItem disabled={toolbarDisabled} onSelect={() => fileKerasRef.current?.click()}>
+              <Upload size={14} /> Import Keras JSON
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={toolbarDisabled} onSelect={() => fileGraphRef.current?.click()}>
+              <Upload size={14} /> Import Graph JSON
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-slate-500">Export</DropdownMenuLabel>
+            <DropdownMenuItem disabled={toolbarDisabled} onSelect={exportGraphJson}>
+              <FileJson size={14} /> Export Graph JSON
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={toolbarDisabled} onSelect={exportKerasJson}>
+              <FileJson size={14} /> Export Keras JSON
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={toolbarDisabled} onSelect={exportPython}>
+              <Code2 size={14} /> Export Python Script
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <div className='ml-auto flex items-center gap-2'>
           <AlertDialog>
