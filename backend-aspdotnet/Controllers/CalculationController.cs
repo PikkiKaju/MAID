@@ -32,7 +32,7 @@ namespace backend_aspdotnet.Controllers
 
         [Authorize]
         [HttpPost("start")]
-        public async Task<IActionResult> LinearRegression([FromBody] Guid projectId, [FromServices] AppDbContext db, [FromServices] ElementDBConterxt mongoDb)
+        public async Task<IActionResult> LinearRegression([FromBody] Guid projectId, [FromServices] AppDbContext db, [FromServices] ElementDBConterxt mongoDb, [FromServices] PythonConectService pythonService)
         {
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdString))
@@ -79,7 +79,6 @@ namespace backend_aspdotnet.Controllers
 
             Console.WriteLine(input.ToString());    
 
-            var pythonService = new PythonConectService();
             var responseJson = await pythonService.SendDataAsync(input, projectDetails.Algorithm);
 
             if (string.IsNullOrEmpty(responseJson))
