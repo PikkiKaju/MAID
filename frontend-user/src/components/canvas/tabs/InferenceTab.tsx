@@ -269,78 +269,78 @@ export default function InferenceTab() {
     const modeButtonClass = (value: 'json' | 'csv') => (
         'flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition ' +
         (mode === value
-            ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-            : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-800')
+            ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+            : 'bg-card text-muted-foreground border-border hover:border-input hover:text-foreground')
     );
 
     return (
-        <div className="h-full flex flex-col gap-4 p-4 bg-slate-50">
+        <div className="h-full flex flex-col gap-4 p-4 bg-background">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <div className="text-xs uppercase tracking-wide text-slate-500">Inference workspace</div>
-                    <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2"><Cpu size={18} /> Run predictions</h2>
+                    <div className="text-xs uppercase tracking-wide text-muted-foreground">Inference workspace</div>
+                    <h2 className="text-xl font-semibold text-foreground flex items-center gap-2"><Cpu size={18} /> Run predictions</h2>
                 </div>
-                <div className="text-sm text-slate-600">
+                <div className="text-sm text-muted-foreground">
                     {canPredict ? 'Ready to predict with your last successful training run.' : 'Train a model (status: succeeded) to unlock predictions.'}
                 </div>
             </div>
 
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-                <div className="bg-white border rounded-lg p-4 space-y-2">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Model status</div>
+                <div className="bg-card border border-border rounded-lg p-4 space-y-2">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Model status</div>
                     <div className="flex items-center gap-2">
                         <span className={statusBadgeClass}>{jobStatus || 'not started'}</span>
-                        {jobId && <span className="text-xs text-slate-500">Job #{jobId}</span>}
+                        {jobId && <span className="text-xs text-muted-foreground">Job #{jobId}</span>}
                     </div>
-                    <div className="text-xs text-slate-500">Only jobs with status <span className="font-semibold">succeeded</span> can serve predictions.</div>
+                    <div className="text-xs text-muted-foreground">Only jobs with status <span className="font-semibold">succeeded</span> can serve predictions.</div>
                 </div>
-                <div className="bg-white border rounded-lg p-4 space-y-2">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Dataset</div>
-                    <div className="text-sm font-medium text-slate-800">{dataset?.datasetName || 'Active dataset'}</div>
+                <div className="bg-card border border-border rounded-lg p-4 space-y-2">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dataset</div>
+                    <div className="text-sm font-medium text-foreground">{dataset?.datasetName || 'Active dataset'}</div>
                     {dataset?.totalRows && dataset?.totalColumns && (
-                        <div className="text-xs text-slate-500">{dataset.totalRows} rows • {dataset.totalColumns} features • target: {dataset?.preprocessingConfig?.targetColumn || 'N/A'}</div>
+                        <div className="text-xs text-muted-foreground">{dataset.totalRows} rows • {dataset.totalColumns} features • target: {dataset?.preprocessingConfig?.targetColumn || 'N/A'}</div>
                     )}
                 </div>
-                <div className="bg-white border rounded-lg p-4 space-y-2">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Normalization</div>
-                    <div className="text-sm font-medium text-slate-800">{normalizationMethod === 'none' ? 'Not applied' : normalizationMethod}</div>
-                    <div className="text-xs text-slate-500">{normalizationMethod === 'none' ? 'You can send raw values.' : 'Match the same scaling the dataset used or enable auto-normalization below.'}</div>
+                <div className="bg-card border border-border rounded-lg p-4 space-y-2">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Normalization</div>
+                    <div className="text-sm font-medium text-foreground">{normalizationMethod === 'none' ? 'Not applied' : normalizationMethod}</div>
+                    <div className="text-xs text-muted-foreground">{normalizationMethod === 'none' ? 'You can send raw values.' : 'Match the same scaling the dataset used or enable auto-normalization below.'}</div>
                 </div>
             </div>
 
             <div className="flex-1 overflow-hidden">
                 {!canPredict ? (
                     <div className="h-full flex items-center justify-center">
-                        <div className="bg-white border rounded-xl p-10 text-center max-w-md">
-                            <Cpu size={64} className="mx-auto mb-4 text-slate-300" />
-                            <h3 className="text-lg font-semibold text-slate-700 mb-2">No trained model available</h3>
-                            <p className="text-sm text-slate-500">Finish a training run (status: succeeded) to enable inference tools.</p>
+                        <div className="bg-card border border-border rounded-xl p-10 text-center max-w-md">
+                            <Cpu size={64} className="mx-auto mb-4 text-muted" />
+                            <h3 className="text-lg font-semibold text-foreground mb-2">No trained model available</h3>
+                            <p className="text-sm text-muted-foreground">Finish a training run (status: succeeded) to enable inference tools.</p>
                         </div>
                     </div>
                 ) : (
                     <div className="h-full grid gap-4 lg:grid-cols-2">
-                        <div className="bg-white border rounded-lg flex flex-col overflow-hidden">
-                            <div className="border-b px-4 py-3">
-                                <div className="text-xs uppercase tracking-wide text-slate-500">Step 1</div>
-                                <div className="flex items-center gap-2 text-base font-semibold text-slate-800">Prepare input payload</div>
+                        <div className="bg-card border border-border rounded-lg flex flex-col overflow-hidden">
+                            <div className="border-b border-border px-4 py-3">
+                                <div className="text-xs uppercase tracking-wide text-muted-foreground">Step 1</div>
+                                <div className="flex items-center gap-2 text-base font-semibold text-foreground">Prepare input payload</div>
                             </div>
                             <div className="flex-1 overflow-auto px-4 py-4 space-y-4">
                                 {featureList.length > 0 && (
-                                    <div className="text-xs text-slate-600">
+                                    <div className="text-xs text-muted-foreground">
                                         <div className="mb-1 font-medium">Expected feature order ({featureList.length}):</div>
                                         <div className="flex flex-wrap gap-1">
                                             {featureChips.map((c: string) => (
-                                                <span key={c} className="px-2 py-0.5 rounded-full border bg-slate-50 text-slate-700">{c}</span>
+                                                <span key={c} className="px-2 py-0.5 rounded-full border border-border bg-muted/50 text-foreground">{c}</span>
                                             ))}
                                             {extraFeatureCount > 0 && (
-                                                <span className="px-2 py-0.5 rounded-full border bg-slate-100 text-slate-600">+{extraFeatureCount} more</span>
+                                                <span className="px-2 py-0.5 rounded-full border border-border bg-muted text-muted-foreground">+{extraFeatureCount} more</span>
                                             )}
                                         </div>
                                     </div>
                                 )}
 
                                 <div className="space-y-2">
-                                    <div className="text-xs font-medium text-slate-500 uppercase">Input format</div>
+                                    <div className="text-xs font-medium text-muted-foreground uppercase">Input format</div>
                                     <div className="grid grid-cols-2 gap-2">
                                         <button type="button" className={modeButtonClass('json')} onClick={() => setMode('json')}>
                                             <FileText size={14} /> JSON (manual)
@@ -353,11 +353,11 @@ export default function InferenceTab() {
 
                                 {mode === 'json' ? (
                                     <div className="space-y-2">
-                                        <div className="text-xs text-slate-500">
+                                        <div className="text-xs text-muted-foreground">
                                             Paste an array of arrays or an object that contains <code>{'{"instances": [...]}'}</code>.
                                         </div>
                                         {hasNormalization && (
-                                            <label className="flex items-center gap-2 text-xs text-slate-600">
+                                            <label className="flex items-center gap-2 text-xs text-muted-foreground">
                                                 <input type="checkbox" checked={applyNormalization} onChange={(e) => setApplyNormalization(e.target.checked)} />
                                                 Apply dataset normalization ({normalizationMethod})
                                             </label>
@@ -365,35 +365,35 @@ export default function InferenceTab() {
                                         <textarea
                                             value={jsonText}
                                             onChange={(e) => setJsonText(e.target.value)}
-                                            className="w-full min-h-[220px] font-mono text-xs border rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            className="w-full min-h-[220px] font-mono text-xs border border-input rounded-md p-3 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                                         />
                                         <div className="flex flex-wrap gap-2 text-xs">
                                             <button
                                                 type="button"
                                                 onClick={() => handleTemplateDownload('json')}
-                                                className="inline-flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-slate-600 hover:bg-slate-50"
+                                                className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-muted-foreground hover:bg-accent"
                                             >
                                                 <Download size={12} /> JSON template
                                             </button>
-                                            <div className="inline-flex items-center gap-1 text-slate-500"><Info size={12} /> Keep order aligned with training features.</div>
+                                            <div className="inline-flex items-center gap-1 text-muted-foreground"><Info size={12} /> Keep order aligned with training features.</div>
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
-                                        <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-4 text-sm text-slate-600">
+                                        <div className="rounded-lg border border-dashed border-border bg-muted/30 px-3 py-4 text-sm text-muted-foreground">
                                             {csvFile ? (
                                                 <div className="space-y-2">
-                                                    <div className="font-medium text-slate-700">{csvFile.name}</div>
-                                                    <div className="text-xs text-slate-500">{(csvFile.size / 1024).toFixed(1)} KB</div>
+                                                    <div className="font-medium text-foreground">{csvFile.name}</div>
+                                                    <div className="text-xs text-muted-foreground">{(csvFile.size / 1024).toFixed(1)} KB</div>
                                                     <div className="flex gap-2 text-xs">
-                                                        <button type="button" onClick={() => csvInputRef.current?.click()} className="rounded border border-slate-200 px-2 py-1 hover:bg-white">Replace file</button>
-                                                        <button type="button" onClick={() => setCsvFile(null)} className="rounded border border-slate-200 px-2 py-1 hover:bg-white">Remove</button>
+                                                        <button type="button" onClick={() => csvInputRef.current?.click()} className="rounded border border-border px-2 py-1 hover:bg-accent">Replace file</button>
+                                                        <button type="button" onClick={() => setCsvFile(null)} className="rounded border border-border px-2 py-1 hover:bg-accent">Remove</button>
                                                     </div>
                                                 </div>
                                             ) : (
                                                 <div className="space-y-2">
                                                     <div>Select a CSV with headers that match the training feature names.</div>
-                                                    <button type="button" onClick={() => csvInputRef.current?.click()} className="rounded bg-white px-3 py-1 text-sm font-medium text-blue-600 shadow-sm">Choose file</button>
+                                                    <button type="button" onClick={() => csvInputRef.current?.click()} className="rounded bg-card px-3 py-1 text-sm font-medium text-primary shadow-sm border border-border hover:bg-accent">Choose file</button>
                                                 </div>
                                             )}
                                             <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => setCsvFile(e.target.files?.[0] || null)} />
@@ -401,15 +401,15 @@ export default function InferenceTab() {
                                         <button
                                             type="button"
                                             onClick={() => handleTemplateDownload('csv')}
-                                            className="inline-flex items-center gap-1 text-xs text-slate-600 hover:text-slate-800"
+                                            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
                                         >
                                             <Download size={12} /> Download CSV template
                                         </button>
                                     </div>
                                 )}
 
-                                <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600 flex gap-2">
-                                    <Info size={14} className="text-slate-400" />
+                                <div className="rounded-lg bg-muted/30 p-3 text-xs text-muted-foreground flex gap-2">
+                                    <Info size={14} className="text-muted-foreground" />
                                     <div>
                                         Keep target columns out of the payload. For categorical models you will receive probability vectors per class.
                                     </div>
@@ -419,28 +419,28 @@ export default function InferenceTab() {
                                     <button
                                         onClick={handlePredict}
                                         disabled={!canPredict || busy}
-                                        className="flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-blue-700 disabled:opacity-60"
+                                        className="flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:opacity-60"
                                     >
                                         <Play size={16} /> {busy ? 'Predicting…' : 'Run inference'}
                                     </button>
-                                    {error && <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+                                    {error && <div className="rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div>}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="bg-white border rounded-lg flex flex-col overflow-hidden">
-                            <div className="border-b px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+                        <div className="bg-card border border-border rounded-lg flex flex-col overflow-hidden">
+                            <div className="border-b border-border px-4 py-3 flex flex-wrap items-center justify-between gap-2">
                                 <div>
-                                    <div className="text-xs uppercase tracking-wide text-slate-500">Step 2</div>
-                                    <div className="text-base font-semibold text-slate-800">Review predictions</div>
-                                    {formattedLastRun && <div className="text-xs text-slate-500">Last run: {formattedLastRun}</div>}
+                                    <div className="text-xs uppercase tracking-wide text-muted-foreground">Step 2</div>
+                                    <div className="text-base font-semibold text-foreground">Review predictions</div>
+                                    {formattedLastRun && <div className="text-xs text-muted-foreground">Last run: {formattedLastRun}</div>}
                                 </div>
                                 <div className="flex gap-2">
                                     <button
                                         type="button"
                                         onClick={handleCopyPreds}
                                         disabled={!preds}
-                                        className="inline-flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-xs text-slate-600 disabled:opacity-50"
+                                        className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-xs text-muted-foreground disabled:opacity-50 hover:bg-accent"
                                     >
                                         <ClipboardCopy size={12} /> {copied ? 'Copied' : 'Copy JSON'}
                                     </button>
@@ -448,7 +448,7 @@ export default function InferenceTab() {
                                         type="button"
                                         onClick={handleDownloadPreds}
                                         disabled={!preds}
-                                        className="inline-flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-xs text-slate-600 disabled:opacity-50"
+                                        className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-xs text-muted-foreground disabled:opacity-50 hover:bg-accent"
                                     >
                                         <Download size={12} /> Download
                                     </button>
@@ -456,20 +456,24 @@ export default function InferenceTab() {
                             </div>
                             <div className="flex-1 overflow-auto p-4 space-y-3">
                                 {!preds ? (
-                                    <div className="h-full flex items-center justify-center text-sm text-slate-500">
+                                    <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
                                         Run a prediction to see results here.
                                     </div>
                                 ) : (
                                     <div className="space-y-4">
                                         {predictionSummary && (
                                             <div className="flex flex-wrap gap-2 text-xs">
-                                                <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">{predictionSummary.total} records</span>
+                                                <span className="rounded-full bg-emerald-50 dark:bg-emerald-950 px-3 py-1 text-emerald-700 dark:text-emerald-200">
+                                                    {predictionSummary.total} records
+                                                </span>
                                                 {typeof predictionSummary.vectorLength === 'number' && (
-                                                    <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700">{predictionSummary.vectorLength} outputs / record</span>
+                                                    <span className="rounded-full bg-blue-50 dark:bg-blue-950 px-3 py-1 text-blue-700 dark:text-blue-200">
+                                                        {predictionSummary.vectorLength} outputs / record
+                                                    </span>
                                                 )}
                                             </div>
                                         )}
-                                        <pre className="bg-slate-50 border rounded p-3 text-xs max-h-[340px] overflow-auto">{JSON.stringify(preds, null, 2)}</pre>
+                                        <pre className="bg-muted/30 border border-border rounded p-3 text-xs max-h-[340px] overflow-auto text-foreground">{JSON.stringify(preds, null, 2)}</pre>
                                         {(() => {
                                             const p = preds as unknown;
                                             let arr: unknown = null;
@@ -479,25 +483,25 @@ export default function InferenceTab() {
                                             const classes = (arr as number[][]).map((row: number[]) => row.indexOf(Math.max(...row)));
                                             const labels = targetLabels ?? null;
                                             return (
-                                                <div className="text-xs text-slate-700 space-y-2">
+                                                <div className="text-xs text-foreground space-y-2">
                                                     <div className="font-medium">Argmax class indices:</div>
-                                                    <pre className="bg-slate-50 border rounded p-2">{JSON.stringify(classes)}</pre>
+                                                    <pre className="bg-muted/30 border border-border rounded p-2">{JSON.stringify(classes)}</pre>
                                                     {labels ? (
                                                         <div className="text-xs">
                                                             <div className="font-medium mb-1">Mapped labels:</div>
                                                             <div className="flex flex-col gap-1">
                                                                 {classes.map((idx: number, i: number) => (
                                                                     <div key={i} className="flex items-center gap-2">
-                                                                        <div className="w-6 text-slate-600">#{idx}</div>
+                                                                        <div className="w-6 text-muted-foreground">#{idx}</div>
                                                                         <div className="font-medium">{labels[idx] ?? 'Unknown'}</div>
                                                                     </div>
                                                                 ))}
                                                             </div>
-                                                            <div className="mt-2 text-slate-500">Full mapping (index → label):</div>
-                                                            <pre className="bg-slate-50 border rounded p-2 text-xs">{JSON.stringify(labels.map((l: string, i: number) => ({ index: i, label: l })), null, 2)}</pre>
+                                                            <div className="mt-2 text-muted-foreground">Full mapping (index → label):</div>
+                                                            <pre className="bg-muted/30 border border-border rounded p-2 text-xs">{JSON.stringify(labels.map((l: string, i: number) => ({ index: i, label: l })), null, 2)}</pre>
                                                         </div>
                                                     ) : (
-                                                        <div className="text-slate-500">Map these indices back to your categorical labels to interpret predictions.</div>
+                                                        <div className="text-muted-foreground">Map these indices back to your categorical labels to interpret predictions.</div>
                                                     )}
                                                 </div>
                                             );

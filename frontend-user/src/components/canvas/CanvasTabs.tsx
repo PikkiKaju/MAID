@@ -25,7 +25,7 @@ export default function CanvasTabs() {
               <div className="h-full flex flex-col">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
                   {/* Tab Headers */}
-                  <div className="bg-white px-4 py-2">
+                  <div className="bg-background border-b border-border px-4 py-2">
                     <TabsList className="w-full justify-start">
                       <TabsTrigger value="canvas" className="flex items-center gap-2">
                         <Pencil size={16} />

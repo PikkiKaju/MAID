@@ -292,14 +292,14 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
         onOpenChange={setShowLoadModal}
         onLoad={onLoadGraph}
       />
-      <div className='flex items-center gap-2 px-3 py-2 bg-white text-xs border-b border-slate-200 rounded-t-lg'>
+      <div className='flex items-center gap-2 px-3 py-2 bg-card text-xs border-b border-border rounded-t-lg'>
         {/* Model Name Input */}
         <input
           type="text"
           value={modelName}
           onChange={(e) => onModelNameChange(e.target.value)}
           placeholder="Model name..."
-          className="px-3 py-1 text-sm rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-input-background min-w-[200px]"
+          className="px-3 py-1 text-sm rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground min-w-[200px]"
         />
 
         {/* Save current canvas (delegates to parent) */}
@@ -310,7 +310,7 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
                 <Save size={14} /> Save
               </button>
             </TooltipTrigger>
-            <TooltipContent sideOffset={6} className="bg-black/90 text-white text-sm px-3 py-1.5 rounded-md shadow-lg">Save the current canvas to your account</TooltipContent>
+            <TooltipContent sideOffset={6} className="bg-popover text-popover-foreground text-sm px-3 py-1.5 rounded-md shadow-lg">Save the current canvas to your account</TooltipContent>
           </Tooltip>
         )}
 
@@ -322,7 +322,7 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
                 <FolderOpen size={14} /> Load
               </button>
             </TooltipTrigger>
-            <TooltipContent sideOffset={6} className="bg-black/90 text-white text-sm px-3 py-1.5 rounded-md shadow-lg">Open a saved graph from your account</TooltipContent>
+            <TooltipContent sideOffset={6} className="bg-popover text-popover-foreground text-sm px-3 py-1.5 rounded-md shadow-lg">Open a saved graph from your account</TooltipContent>
           </Tooltip>
         )}
 
@@ -333,7 +333,7 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
               <Play size={14} /> Compile
             </button>
           </TooltipTrigger>
-          <TooltipContent sideOffset={6} className="bg-black/90 text-white text-sm px-3 py-1.5 rounded-md shadow-lg">Compile the current canvas on the backend (validates model and returns summary/errors)</TooltipContent>
+          <TooltipContent sideOffset={6} className="bg-popover text-popover-foreground text-sm px-3 py-1.5 rounded-md shadow-lg">Compile the current canvas on the backend (validates model and returns summary/errors)</TooltipContent>
         </Tooltip>
 
         {/* Import/Export dropdown */}
@@ -357,10 +357,10 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
                 </button>
               </DropdownMenuTrigger>
             </TooltipTrigger>
-            <TooltipContent sideOffset={6} className="bg-black/90 text-white text-sm px-3 py-1.5 rounded-md shadow-lg">Import or export canvas data</TooltipContent>
+            <TooltipContent sideOffset={6} className="bg-popover text-popover-foreground text-sm px-3 py-1.5 rounded-md shadow-lg">Import or export canvas data</TooltipContent>
           </Tooltip>
           <DropdownMenuContent align="start" className="w-56">
-            <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-slate-500">Import</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">Import</DropdownMenuLabel>
             <DropdownMenuItem disabled={toolbarDisabled} onSelect={() => fileKerasRef.current?.click()}>
               <Upload size={14} /> Import Keras JSON
             </DropdownMenuItem>
@@ -368,7 +368,7 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
               <Upload size={14} /> Import Graph JSON
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-slate-500">Export</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">Export</DropdownMenuLabel>
             <DropdownMenuItem disabled={toolbarDisabled} onSelect={exportGraphJson}>
               <FileJson size={14} /> Export Graph JSON
             </DropdownMenuItem>
@@ -395,7 +395,7 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
                   </button>
                 </AlertDialogTrigger>
               </TooltipTrigger>
-              <TooltipContent sideOffset={6} className="bg-black/90 text-white text-sm px-3 py-1.5 rounded-md shadow-lg">Clear the canvas (removes all layers and connections)</TooltipContent>
+              <TooltipContent sideOffset={6} className="bg-popover text-popover-foreground text-sm px-3 py-1.5 rounded-md shadow-lg">Clear the canvas (removes all layers and connections)</TooltipContent>
             </Tooltip>
             <AlertDialogContent>
               <AlertDialogHeader>
@@ -427,7 +427,7 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
                     </button>
                   </AlertDialogTrigger>
                 </TooltipTrigger>
-                <TooltipContent sideOffset={6} className="bg-black/90 text-white text-sm px-3 py-1.5 rounded-md shadow-lg">Delete the saved model from the backend</TooltipContent>
+                <TooltipContent sideOffset={6} className="bg-popover text-popover-foreground text-sm px-3 py-1.5 rounded-md shadow-lg">Delete the saved model from the backend</TooltipContent>
               </Tooltip>
               <AlertDialogContent>
                 <AlertDialogHeader>

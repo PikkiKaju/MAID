@@ -56,6 +56,7 @@ export default function ModelCanvas() {
   const [errorNodeIds, setErrorNodeIds] = useState<Set<string>>(new Set());
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isDeletingGraph, setIsDeletingGraph] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   // No raw/details to keep UI concise; we only show summarized messages.
   const flowWrapperRef = useRef<HTMLDivElement | null>(null);
   // Memoize these to avoid React Flow warning about re-creating nodeTypes/edgeTypes each render
@@ -99,6 +100,20 @@ export default function ModelCanvas() {
       setModelName(graphName);
     }
   }, [graphName]);
+
+  // Track whether the app/root is in dark mode by observing the <html> class list.
+  useEffect(() => {
+    try {
+      const check = () => setIsDarkMode(typeof document !== 'undefined' && document.documentElement.classList.contains('dark'));
+      check();
+      const obs = new MutationObserver(check);
+      obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+      return () => obs.disconnect();
+    } catch {
+      // Server-side or unsupported environment: assume light mode
+      setIsDarkMode(false);
+    }
+  }, []);
 
   // Keep ReactFlow internal state in sync when store changes externally (e.g. removeNode)
   useEffect(() => {
@@ -413,20 +428,23 @@ export default function ModelCanvas() {
   }, [rfInstance, setNodes, setGraph, nodes, edges]);
 
   return (
-    <div className='h-full flex flex-col bg-white border border-slate-300 rounded-lg shadow-sm mx-3 my-2'>
+    <div className='h-full flex flex-col bg-card border border-border rounded-lg shadow-sm mx-3 my-2'>
       {successMessage && (
-        <div className='mx-3 mt-3 mb-2 border border-emerald-200 bg-emerald-50 text-emerald-800 rounded p-2 text-sm'>
+        <div
+          className='mx-3 mt-3 mb-2 border rounded p-2 text-sm'
+          style={isDarkMode ? undefined : { backgroundColor: '#ecfdf5', borderColor: '#bbf7d0', color: '#065f46' }}
+        >
           <div className='flex items-start justify-between'>
             <div className='font-semibold mb-1'>{successMessage}</div>
-            <button onClick={() => setSuccessMessage(null)} className='text-emerald-800 hover:underline text-xs'>Dismiss</button>
+            <button onClick={() => setSuccessMessage(null)} className='hover:underline text-xs' style={isDarkMode ? { color: undefined } : { color: '#065f46' }}>Dismiss</button>
           </div>
         </div>
       )}
       {(errorItems || saveErrors) && (
-        <div className='mx-3 mt-3 mb-3 border border-red-200 bg-red-50 text-red-700 rounded p-2 text-sm'>
+        <div className='mx-3 mt-3 mb-3 border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-200 rounded p-2 text-sm'>
           <div className='flex items-start justify-between'>
             <div className='font-semibold mb-1'>There were issues with your graph</div>
-            <button onClick={() => { setSaveErrors(null); setErrorItems(null); setErrorNodeIds(new Set()); }} className='text-red-700 hover:underline text-xs'>Dismiss</button>
+            <button onClick={() => { setSaveErrors(null); setErrorItems(null); setErrorNodeIds(new Set()); }} className='text-red-700 dark:text-red-200 hover:underline text-xs'>Dismiss</button>
           </div>
           <ul className='list-disc ml-5 space-y-1 max-h-40 overflow-auto pr-2'>
             {(errorItems || []).map((item, i) => (
@@ -482,8 +500,8 @@ export default function ModelCanvas() {
         onShowSuccess={(msg) => { setSuccessMessage(msg); setSaveErrors(null); setErrorItems(null); setErrorNodeIds(new Set()); }}
       />
       <div className='flex flex-1 min-h-0'>
-        <div className='w-56 border-r border-slate-200 p-2 space-y-2 overflow-y-auto text-xs'>
-          <h3 className='font-semibold text-slate-600 text-sm'>Layers</h3>
+        <div className='w-56 border-r border-border p-2 space-y-2 overflow-y-auto text-xs'>
+          <h3 className='font-semibold text-muted-foreground text-sm'>Layers</h3>
           <LayerPalette />
         </div>
         <div className='flex-1' ref={flowWrapperRef}>
@@ -510,12 +528,16 @@ export default function ModelCanvas() {
             onDrop={onDrop}
             onDragOver={onDragOver}
           >
-            <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
-            <MiniMap pannable zoomable />
-            <Controls />
+            <Background variant={BackgroundVariant.Dots} gap={16} size={1} className="[&_*]:fill-muted-foreground/20" />
+            <MiniMap
+              pannable
+              zoomable
+              className="!bg-card !border-border [&_.react-flow__minimap-mask]:!fill-muted/20 [&_.react-flow__minimap-node]:!fill-muted-foreground/60"
+            />
+            <Controls className="!bg-card !border-border [&_button]:!border-border [&_button]:!fill-foreground [&_button:hover]:!bg-accent [&_button]:!text-foreground" />
           </ReactFlow>
         </div>
-        <div className='w-70 border-l border-slate-200 p-3 overflow-y-auto'>
+        <div className='w-70 border-l border-border p-3 overflow-y-auto'>
           <LayerInspector />
         </div>
       </div>

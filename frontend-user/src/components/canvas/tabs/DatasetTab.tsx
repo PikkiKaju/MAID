@@ -227,16 +227,16 @@ export default function DatasetTab() {
   const validation = dataset ? validatePreprocessingConfig(dataset.preprocessingConfig, dataset.columns) : null;
 
   return (
-    <div className="h-full flex flex-col p-4 bg-slate-50">
+    <div className="h-full flex flex-col p-4 bg-background">
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-800">Dataset Manager</h2>
+          <h2 className="text-lg font-semibold text-foreground">Dataset Manager</h2>
           {dataset && (
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-muted-foreground">
               {dataset.datasetName} • {dataset.totalRows} rows × {dataset.totalColumns} columns
               {dataset.isProcessed && dataset.cleaned && dataset.cleaned.length !== dataset.totalRows && (
-                <span className="text-orange-600 ml-1">
+                <span className="text-orange-600 dark:text-orange-400 ml-1">
                   → {dataset.cleaned.length} after cleaning
                 </span>
               )}
@@ -247,12 +247,12 @@ export default function DatasetTab() {
           {dataset && (
             <>
               {dataset.isProcessed ? (
-                <div className="flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded text-sm">
+                <div className="flex items-center gap-2 px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100 rounded text-sm border border-green-200 dark:border-green-800">
                   <CheckCircle2 size={16} />
                   Ready for Training
                 </div>
               ) : validation && !validation.valid ? (
-                <div className="flex items-center gap-2 px-3 py-1 bg-red-50 text-red-700 rounded text-sm">
+                <div className="flex items-center gap-2 px-3 py-1 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-200 rounded text-sm border border-red-200 dark:border-red-800">
                   <AlertCircle size={16} />
                   Configuration Issues
                 </div>
@@ -268,11 +268,11 @@ export default function DatasetTab() {
       {!dataset ? (
         /* Upload/Load Section */
         <div className="flex-1 flex flex-col gap-4">
-          <div className="flex-1 flex items-center justify-center border-2 border-dashed border-slate-300 rounded-lg bg-white">
+          <div className="flex-1 flex items-center justify-center border-2 border-dashed border-border rounded-lg bg-card">
             <div className="text-center p-8">
-              <Upload size={48} className="mx-auto mb-4 text-slate-400" />
-              <h3 className="text-lg font-medium text-slate-700 mb-2">Upload Dataset</h3>
-              <p className="text-sm text-slate-500 mb-4">
+              <Upload size={48} className="mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-medium text-foreground mb-2">Upload Dataset</h3>
+              <p className="text-sm text-muted-foreground mb-4">
                 Upload a CSV file to prepare for training
               </p>
               <input
@@ -302,7 +302,7 @@ export default function DatasetTab() {
                 )}
               </div>
               {!isLoggedIn && (
-                <p className="text-xs text-orange-600 mt-2">
+                <p className="text-xs text-orange-600 dark:text-orange-400 mt-2">
                   Login required to access database datasets
                 </p>
               )}
@@ -311,26 +311,26 @@ export default function DatasetTab() {
 
           {/* Dataset List Modal */}
           {showDatasetList && (
-            <div className="bg-white border rounded-lg p-4 max-h-[400px] overflow-y-auto">
+            <div className="bg-card border border-border rounded-lg p-4 max-h-[400px] overflow-y-auto">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-slate-700">Available Datasets</h3>
+                <h3 className="font-semibold text-foreground">Available Datasets</h3>
                 <Button variant="ghost" size="sm" onClick={() => setShowDatasetList(false)}>
                   <X size={16} />
                 </Button>
               </div>
               {availableDatasets.length === 0 ? (
-                <p className="text-sm text-slate-500 text-center py-8">No datasets found</p>
+                <p className="text-sm text-muted-foreground text-center py-8">No datasets found</p>
               ) : (
                 <div className="space-y-2">
                   {availableDatasets.map((ds) => (
                     <div
                       key={ds.id}
-                      className="border rounded p-3 hover:bg-slate-50 cursor-pointer flex items-center justify-between"
+                      className="border border-border rounded p-3 hover:bg-accent cursor-pointer flex items-center justify-between"
                       onClick={() => loadDatasetById(ds.id, ds.name)}
                     >
                       <div>
-                        <p className="font-medium text-sm">{ds.name}</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="font-medium text-sm text-foreground">{ds.name}</p>
+                        <p className="text-xs text-muted-foreground">
                           Created: {new Date(ds.createdAt).toLocaleDateString()}
                         </p>
                       </div>
@@ -348,15 +348,15 @@ export default function DatasetTab() {
         /* Dataset Preprocessing View */
         <div className="flex-1 flex gap-4 overflow-hidden">
           {/* Left Panel - Data Preview */}
-          <div className="flex-1 flex flex-col overflow-hidden bg-white border rounded-lg">
-            <div className="p-3 border-b bg-slate-50">
+          <div className="flex-1 flex flex-col overflow-hidden bg-card border border-border rounded-lg">
+            <div className="p-3 border-b border-border bg-muted/30">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Table size={16} />
+                  <Table size={16} className="text-muted-foreground" />
                   <div>
-                    <h3 className="font-semibold text-slate-700">Data Preview</h3>
+                    <h3 className="font-semibold text-foreground">Data Preview</h3>
                     {dataset.isProcessed && dataset.cleaned && (
-                      <p className="text-[10px] text-slate-500">
+                      <p className="text-[10px] text-muted-foreground">
                         {showTransformed ?
                           `Showing encoded & normalized feature matrix (${Math.min(previewCount, dataset.transformed?.X.length ?? 0)} of ${dataset.transformed?.X.length ?? 0} rows)` :
                           `Showing cleaned data (${Math.min(previewCount, dataset.cleaned.length)} of ${dataset.cleaned.length} rows)`}
@@ -367,7 +367,7 @@ export default function DatasetTab() {
                 <div className="flex items-center gap-3">
                   {dataset && (
                     <div className="flex items-center gap-2">
-                      <label className="text-xs text-slate-500">Rows:</label>
+                      <label className="text-xs text-muted-foreground">Rows:</label>
                       <select
                         value={previewCount}
                         onChange={(e) => {
@@ -376,7 +376,7 @@ export default function DatasetTab() {
                           if (v === 'all') setPreviewCount(total);
                           else setPreviewCount(parseInt(v, 10));
                         }}
-                        className="text-xs px-2 py-1 border rounded bg-white"
+                        className="text-xs px-2 py-1 border border-input rounded bg-background text-foreground"
                       >
                         <option value={10}>10</option>
                         <option value={25}>25</option>
@@ -385,7 +385,7 @@ export default function DatasetTab() {
                         <option value={dataset.isProcessed ? (dataset.transformed?.X.length ?? dataset.cleaned?.length ?? dataset.totalRows) : dataset.totalRows}>All</option>
                       </select>
                       {((dataset.transformed?.X.length ?? dataset.cleaned?.length ?? dataset.totalRows) || 0) > 1000 && (
-                        <span className="text-[10px] text-slate-500 ml-2">All may be slow for large datasets</span>
+                        <span className="text-[10px] text-muted-foreground ml-2">All may be slow for large datasets</span>
                       )}
                     </div>
                   )}
@@ -418,35 +418,35 @@ export default function DatasetTab() {
               {showTransformed && dataset.isProcessed && dataset.transformed ? (
                 // Show transformed/encoded/normalized data
                 <table className="w-full text-xs border-collapse">
-                  <thead className="bg-slate-100 sticky top-0">
+                  <thead className="bg-muted sticky top-0">
                     <tr>
-                      <th className="px-3 py-2 text-left font-semibold text-slate-600 border-r border-b">#</th>
+                      <th className="px-3 py-2 text-left font-semibold text-muted-foreground border-r border-b border-border">#</th>
                       {dataset.transformed.featureNames.map((name, idx) => (
-                        <th key={idx} className="px-3 py-2 text-left border-r border-b">
+                        <th key={idx} className="px-3 py-2 text-left border-r border-b border-border">
                           <div className="flex flex-col gap-1">
-                            <span className="font-semibold text-slate-600">{name}</span>
-                            <span className="text-[10px] text-slate-500">feature</span>
+                            <span className="font-semibold text-foreground">{name}</span>
+                            <span className="text-[10px] text-muted-foreground">feature</span>
                           </div>
                         </th>
                       ))}
-                      <th className="px-3 py-2 text-left border-r border-b bg-green-50">
+                      <th className="px-3 py-2 text-left border-r border-b border-border bg-green-100 dark:bg-green-900/50">
                         <div className="flex flex-col gap-1">
-                          <span className="font-semibold text-green-700">{dataset.preprocessingConfig.targetColumn}</span>
-                          <span className="text-[10px] text-green-600">target</span>
+                          <span className="font-semibold text-green-900 dark:text-green-100">{dataset.preprocessingConfig.targetColumn}</span>
+                          <span className="text-[10px] text-green-800 dark:text-green-200">target</span>
                         </div>
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     {dataset.transformed.X.slice(0, previewCount).map((row, rowIdx) => (
-                      <tr key={rowIdx} className="border-b hover:bg-slate-50">
-                        <td className="px-3 py-2 text-slate-400 border-r font-medium">{rowIdx + 1}</td>
+                      <tr key={rowIdx} className="border-b border-border hover:bg-accent/50">
+                        <td className="px-3 py-2 text-muted-foreground border-r border-border font-medium">{rowIdx + 1}</td>
                         {row.map((val, cellIdx) => (
-                          <td key={cellIdx} className="px-3 py-2 border-r font-mono text-[11px]">
+                          <td key={cellIdx} className="px-3 py-2 border-r border-border font-mono text-[11px] text-foreground">
                             {typeof val === 'number' ? formatNumber(val) : val}
                           </td>
                         ))}
-                        <td className="px-3 py-2 border-r font-mono text-[11px] bg-green-50">
+                        <td className="px-3 py-2 border-r border-border font-mono text-[11px] bg-green-50 dark:bg-green-900/20 text-foreground">
                           {typeof dataset.transformed?.y[rowIdx] === 'number'
                             ? formatNumber(dataset.transformed.y[rowIdx])
                             : dataset.transformed?.y[rowIdx]}
@@ -458,14 +458,14 @@ export default function DatasetTab() {
               ) : (
                 // Show cleaned source data
                 <table className="w-full text-xs border-collapse">
-                  <thead className="bg-slate-100 sticky top-0">
+                  <thead className="bg-muted sticky top-0">
                     <tr>
-                      <th className="px-3 py-2 text-left font-semibold text-slate-600 border-r border-b">#</th>
+                      <th className="px-3 py-2 text-left font-semibold text-muted-foreground border-r border-b border-border">#</th>
                       {dataset.columns.map((col, idx) => (
-                        <th key={idx} className="px-3 py-2 text-left border-r border-b">
+                        <th key={idx} className="px-3 py-2 text-left border-r border-b border-border">
                           <div className="flex flex-col gap-1">
-                            <span className="font-semibold text-slate-600">{col.name}</span>
-                            <span className="text-[10px] text-slate-500">
+                            <span className="font-semibold text-foreground">{col.name}</span>
+                            <span className="text-[10px] text-muted-foreground">
                               {col.type}
                               {col.role === 'target' && ' • TARGET'}
                               {col.role === 'ignore' && ' • IGNORED'}
@@ -477,10 +477,10 @@ export default function DatasetTab() {
                   </thead>
                   <tbody>
                     {(dataset.isProcessed && dataset.cleaned ? dataset.cleaned : dataset.original).slice(0, previewCount).map((row, rowIdx) => (
-                      <tr key={rowIdx} className="border-b hover:bg-slate-50">
-                        <td className="px-3 py-2 text-slate-400 border-r font-medium">{rowIdx + 1}</td>
+                      <tr key={rowIdx} className="border-b border-border hover:bg-accent/50">
+                        <td className="px-3 py-2 text-muted-foreground border-r border-border font-medium">{rowIdx + 1}</td>
                         {dataset.columns.map((col, cellIdx) => (
-                          <td key={cellIdx} className="px-3 py-2 border-r">
+                          <td key={cellIdx} className="px-3 py-2 border-r border-border text-foreground">
                             {row[col.name] || '-'}
                           </td>
                         ))}
@@ -495,31 +495,31 @@ export default function DatasetTab() {
           {/* Right Panel - Preprocessing Configuration */}
           <div className="w-96 flex flex-col gap-3 overflow-y-auto">
             {/* Column Configuration */}
-            <div className="bg-white border rounded-lg">
+            <div className="bg-card border border-border rounded-lg">
               <div
-                className="p-3 border-b bg-slate-50 cursor-pointer flex items-center justify-between"
+                className="p-3 border-b border-border bg-muted/30 cursor-pointer flex items-center justify-between"
                 onClick={() => setShowColumnConfig(!showColumnConfig)}
               >
-                <h3 className="font-semibold text-slate-700 text-sm flex items-center gap-2">
+                <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
                   <Settings size={16} />
                   Column Configuration
                 </h3>
-                {showColumnConfig ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                {showColumnConfig ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
               </div>
               {showColumnConfig && (
                 <div className="p-3 space-y-2 max-h-64 overflow-y-auto">
                   {dataset.columns.map((col) => (
-                    <div key={col.name} className="flex items-center justify-between text-xs border-b pb-2">
+                    <div key={col.name} className="flex items-center justify-between text-xs border-b border-border pb-2">
                       <div className="flex-1">
-                        <p className="font-medium">{col.name}</p>
-                        <p className="text-slate-500 text-[10px]">
+                        <p className="font-medium text-foreground">{col.name}</p>
+                        <p className="text-muted-foreground text-[10px]">
                           {col.type} • {col.uniqueCount} unique • {col.missingCount} missing
                         </p>
                       </div>
                       <select
                         value={col.role}
                         onChange={(e) => handleColumnRoleChange(col.name, e.target.value as 'feature' | 'target' | 'ignore')}
-                        className="px-2 py-1 border rounded text-xs"
+                        className="px-2 py-1 border border-input rounded text-xs bg-background text-foreground"
                       >
                         <option value="feature">Feature</option>
                         <option value="target">Target</option>
@@ -532,18 +532,18 @@ export default function DatasetTab() {
             </div>
 
             {/* Preprocessing Settings */}
-            <div className="bg-white border rounded-lg p-3 space-y-3">
-              <h3 className="font-semibold text-slate-700 text-sm">Preprocessing</h3>
+            <div className="bg-card border border-border rounded-lg p-3 space-y-3">
+              <h3 className="font-semibold text-foreground text-sm">Preprocessing</h3>
 
               {/* Categorical Encoding */}
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-foreground mb-1">
                   Categorical Encoding
                 </label>
                 <select
                   value={dataset.preprocessingConfig.categoricalEncoding}
                   onChange={(e) => updatePreprocessingConfig({ categoricalEncoding: e.target.value as 'one-hot' | 'label' | 'remove' })}
-                  className="w-full px-2 py-1 border rounded text-xs"
+                  className="w-full px-2 py-1 border border-input rounded text-xs bg-background text-foreground"
                 >
                   <option value="label">Label Encoding</option>
                   <option value="one-hot">One-Hot Encoding</option>
@@ -558,18 +558,18 @@ export default function DatasetTab() {
                 if (!targetMeta || targetMeta.type === 'numeric') return null;
                 return (
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                    <label className="block text-xs font-medium text-foreground mb-1">
                       Target Encoding
                     </label>
                     <select
                       value={dataset.preprocessingConfig.targetEncoding}
                       onChange={(e) => updatePreprocessingConfig({ targetEncoding: e.target.value as 'label' | 'one-hot' })}
-                      className="w-full px-2 py-1 border rounded text-xs"
+                      className="w-full px-2 py-1 border border-input rounded text-xs bg-background text-foreground"
                     >
                       <option value="label">Label (integers 0..K-1)</option>
                       <option value="one-hot">One-Hot (K columns in model)</option>
                     </select>
-                    <p className="text-[10px] text-slate-500 mt-1">
+                    <p className="text-[10px] text-muted-foreground mt-1">
                       Tip: One-hot pairs with CategoricalCrossentropy; Label pairs with SparseCategoricalCrossentropy.
                     </p>
                   </div>
@@ -578,13 +578,13 @@ export default function DatasetTab() {
 
               {/* Missing Values */}
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-foreground mb-1">
                   Missing Value Strategy
                 </label>
                 <select
                   value={dataset.preprocessingConfig.missingValueStrategy}
                   onChange={(e) => updatePreprocessingConfig({ missingValueStrategy: e.target.value as 'remove-rows' | 'fill-mean' | 'fill-median' | 'fill-mode' | 'fill-zero' })}
-                  className="w-full px-2 py-1 border rounded text-xs"
+                  className="w-full px-2 py-1 border border-input rounded text-xs bg-background text-foreground"
                 >
                   <option value="fill-mean">Fill with Mean</option>
                   <option value="fill-median">Fill with Median</option>
@@ -596,13 +596,13 @@ export default function DatasetTab() {
 
               {/* Normalization */}
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-foreground mb-1">
                   Normalization Method
                 </label>
                 <select
                   value={dataset.preprocessingConfig.normalizationMethod}
                   onChange={(e) => updatePreprocessingConfig({ normalizationMethod: e.target.value as 'standard' | 'minmax' | 'none' })}
-                  className="w-full px-2 py-1 border rounded text-xs"
+                  className="w-full px-2 py-1 border border-input rounded text-xs bg-background text-foreground"
                 >
                   <option value="standard">Standard Scaling (Z-score)</option>
                   <option value="minmax">Min-Max Scaling [0,1]</option>
@@ -612,12 +612,12 @@ export default function DatasetTab() {
             </div>
 
             {/* Data Splitting */}
-            <div className="bg-white border rounded-lg p-3 space-y-3">
-              <h3 className="font-semibold text-slate-700 text-sm">Data Splitting</h3>
+            <div className="bg-card border border-border rounded-lg p-3 space-y-3">
+              <h3 className="font-semibold text-foreground text-sm">Data Splitting</h3>
 
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Train</label>
+                  <label className="block text-xs font-medium text-foreground mb-1">Train</label>
                   <input
                     type="number"
                     min="0"
@@ -625,11 +625,11 @@ export default function DatasetTab() {
                     step="0.05"
                     value={dataset.preprocessingConfig.trainSplit}
                     onChange={(e) => updatePreprocessingConfig({ trainSplit: parseFloat(e.target.value) })}
-                    className="w-full px-2 py-1 border rounded text-xs"
+                    className="w-full px-2 py-1 border border-input rounded text-xs bg-background text-foreground"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Val</label>
+                  <label className="block text-xs font-medium text-foreground mb-1">Val</label>
                   <input
                     type="number"
                     min="0"
@@ -637,11 +637,11 @@ export default function DatasetTab() {
                     step="0.05"
                     value={dataset.preprocessingConfig.validationSplit}
                     onChange={(e) => updatePreprocessingConfig({ validationSplit: parseFloat(e.target.value) })}
-                    className="w-full px-2 py-1 border rounded text-xs"
+                    className="w-full px-2 py-1 border border-input rounded text-xs bg-background text-foreground"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Test</label>
+                  <label className="block text-xs font-medium text-foreground mb-1">Test</label>
                   <input
                     type="number"
                     min="0"
@@ -649,30 +649,30 @@ export default function DatasetTab() {
                     step="0.05"
                     value={dataset.preprocessingConfig.testSplit}
                     onChange={(e) => updatePreprocessingConfig({ testSplit: parseFloat(e.target.value) })}
-                    className="w-full px-2 py-1 border rounded text-xs"
+                    className="w-full px-2 py-1 border border-input rounded text-xs bg-background text-foreground"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Random Seed</label>
+                <label className="block text-xs font-medium text-foreground mb-1">Random Seed</label>
                 <input
                   type="number"
                   value={dataset.preprocessingConfig.randomSeed}
                   onChange={(e) => updatePreprocessingConfig({ randomSeed: parseInt(e.target.value) })}
-                  className="w-full px-2 py-1 border rounded text-xs"
+                  className="w-full px-2 py-1 border border-input rounded text-xs bg-background text-foreground"
                 />
               </div>
             </div>
 
             {/* Validation Errors */}
             {validation && !validation.valid && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-3">
                 <div className="flex items-start gap-2">
-                  <AlertCircle size={16} className="text-red-600 mt-0.5" />
+                  <AlertCircle size={16} className="text-red-600 dark:text-red-400 mt-0.5" />
                   <div>
-                    <p className="text-xs font-semibold text-red-800 mb-1">Configuration Errors:</p>
-                    <ul className="text-xs text-red-700 space-y-1">
+                    <p className="text-xs font-semibold text-red-800 dark:text-red-200 mb-1">Configuration Errors:</p>
+                    <ul className="text-xs text-red-700 dark:text-red-300 space-y-1">
                       {validation.errors.map((error, idx) => (
                         <li key={idx}>• {error}</li>
                       ))}
@@ -684,17 +684,17 @@ export default function DatasetTab() {
 
             {/* Processing Stats */}
             {dataset.isProcessed && dataset.trainData && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <div className="bg-green-100 dark:bg-green-900 border border-green-200 dark:border-green-800 rounded-lg p-3">
                 <div className="flex items-start gap-2">
-                  <CheckCircle2 size={16} className="text-green-600 mt-0.5" />
+                  <CheckCircle2 size={16} className="text-green-700 dark:text-green-300 mt-0.5" />
                   <div className="flex-1">
-                    <p className="text-xs font-semibold text-green-800 mb-1">Dataset Processed Successfully</p>
-                    <div className="text-xs text-green-700 space-y-0.5">
+                    <p className="text-xs font-semibold text-green-900 dark:text-green-100 mb-1">Dataset Processed Successfully</p>
+                    <div className="text-xs text-green-800 dark:text-green-200 space-y-0.5">
                       <div>• Train: {dataset.trainData.X.length} samples</div>
                       <div>• Validation: {dataset.validationData?.X.length || 0} samples</div>
                       <div>• Test: {dataset.testData?.X.length || 0} samples</div>
                       <div>• Features: {dataset.trainData.featureNames.length} ({dataset.trainData.featureNames.slice(0, 3).join(', ')}{dataset.trainData.featureNames.length > 3 ? '...' : ''})</div>
-                      <div className="pt-1 border-t border-green-200 mt-1">
+                      <div className="pt-1 border-t border-emerald-200 dark:border-emerald-800 mt-1">
                         <div>• Encoding: {dataset.preprocessingConfig.categoricalEncoding === 'label' ? 'Label' : dataset.preprocessingConfig.categoricalEncoding === 'one-hot' ? 'One-Hot' : 'None'}</div>
                         {dataset.preprocessingConfig.targetColumn && (dataset.columns.find(c => c.name === dataset.preprocessingConfig.targetColumn)?.type !== 'numeric') && (
                           <div>• Target Encoding: {dataset.preprocessingConfig.targetEncoding === 'one-hot' ? 'One-Hot' : 'Label'}</div>
