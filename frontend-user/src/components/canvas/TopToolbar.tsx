@@ -1,10 +1,21 @@
-import { Save, Trash2, Play, FileDown, Upload, FolderOpen } from 'lucide-react';
+import { Save, Trash2, Play, FileDown, Upload, FolderOpen, Eraser } from 'lucide-react';
 import LoadGraphModal from './LoadGraphModal';
 import { useModelCanvasStore } from '../../store/modelCanvasStore';
 import networkGraphService, { GraphEdge, GraphNode, NetworkGraphPayload } from '../../api/networkGraphService';
 import { useEffect, useRef, useState } from 'react';
 import { Edge as RFEdge, Node as RFNode } from 'reactflow';
 import { useAppSelector } from '../../store/hooks';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../../ui/alert-dialog';
 
 interface Props {
   onSave: () => void;
@@ -13,9 +24,12 @@ interface Props {
   onModelNameChange: (name: string) => void;
   onShowErrors?: (messages: string[], raw?: unknown) => void;
   onShowSuccess?: (message: string) => void;
+  canDeleteModel?: boolean;
+  onDeleteModel?: () => void | Promise<void>;
+  deletingModel?: boolean;
 }
 
-export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelNameChange, onShowErrors, onShowSuccess }: Props) {
+export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelNameChange, onShowErrors, onShowSuccess, canDeleteModel, onDeleteModel, deletingModel }: Props) {
   const setGraph = useModelCanvasStore(s => s.setGraph);
   const currentNodes = useModelCanvasStore(s => s.nodes);
   const currentEdges = useModelCanvasStore(s => s.edges);
@@ -25,6 +39,8 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
   const [busy, setBusy] = useState<null | string>(null);
   const [showLoadModal, setShowLoadModal] = useState(false);
   const isLoggedIn = useAppSelector(state => state.auth.isLoggedIn);
+  const showDelete = Boolean(isLoggedIn && canDeleteModel && onDeleteModel);
+  const toolbarDisabled = !!busy || !!deletingModel;
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -33,6 +49,19 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
   }, [isLoggedIn]);
 
   const clearAll = () => setGraph([], []);
+
+  const handleConfirmDelete = async () => {
+    if (!onDeleteModel) return;
+    try {
+      await onDeleteModel();
+    } catch (err) {
+      console.error('Delete model failed', err);
+    }
+  };
+
+  const handleConfirmClear = () => {
+    clearAll();
+  };
 
   const buildPayloadFromStore = (): { nodes: GraphNode[]; edges: GraphEdge[] } => {
     const nodesPayload: GraphNode[] = currentNodes.map(n => {
@@ -214,20 +243,20 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
 
         {/* Save current canvas (delegates to parent) */}
         {isLoggedIn && (
-          <button onClick={onSave} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60'>
+          <button onClick={onSave} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60'>
             <Save size={14} /> Save
           </button>
         )}
 
         {/* Load saved graph */}
         {isLoggedIn && (
-          <button onClick={() => setShowLoadModal(true)} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-60'>
+          <button onClick={() => setShowLoadModal(true)} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-60'>
             <FolderOpen size={14} /> Load
           </button>
         )}
 
         {/* Compile on backend */}
-        <button onClick={compileGraph} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-60'>
+        <button onClick={compileGraph} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-60'>
           <Play size={14} /> Compile
         </button>
 
@@ -235,7 +264,7 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
         <input ref={fileKerasRef} type='file' accept='.json,application/json' className='hidden' onChange={(e) => {
           const f = e.target.files?.[0]; if (f) importKeras(f);
         }} />
-        <button onClick={() => fileKerasRef.current?.click()} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-60'>
+        <button onClick={() => fileKerasRef.current?.click()} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-60'>
           <Upload size={14} /> Import Keras
         </button>
 
@@ -243,19 +272,74 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
         <input ref={fileGraphRef} type='file' accept='.json,application/json' className='hidden' onChange={(e) => {
           const f = e.target.files?.[0]; if (f) importGraph(f);
         }} />
-        <button onClick={() => fileGraphRef.current?.click()} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-violet-600 text-white rounded hover:bg-violet-700 disabled:opacity-60'>
+        <button onClick={() => fileGraphRef.current?.click()} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-violet-600 text-white rounded hover:bg-violet-700 disabled:opacity-60'>
           <Upload size={14} /> Import Graph
         </button>
 
         {/* Export Python */}
-        <button onClick={exportPython} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-60'>
+        <button onClick={exportPython} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-60'>
           <FileDown size={14} /> Export Python
         </button>
 
-        {/* Clear canvas */}
-        <button onClick={clearAll} disabled={!!busy} className='flex items-center gap-1 px-2 py-1 bg-rose-600 text-white rounded hover:bg-rose-700 disabled:opacity-60 ml-auto'>
-          <Trash2 size={14} /> Clear
-        </button>
+        <div className='ml-auto flex items-center gap-2'>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                type='button'
+                disabled={toolbarDisabled}
+                className='flex items-center gap-1 px-2 py-1 bg-rose-500 text-white rounded hover:bg-rose-600 disabled:opacity-60'
+              >
+                <Eraser size={14} /> Clear
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Clear the canvas?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This removes all layers and connections from the workspace. You can still undo it by reloading a saved model.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmClear} className='bg-rose-600 hover:bg-rose-700'>
+                  Clear canvas
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          {showDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  type='button'
+                  disabled={toolbarDisabled}
+                  className='flex items-center gap-1 px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-60'
+                >
+                  <Trash2 size={14} /> Delete
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this saved model?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    The backend copy will be removed permanently. Your current canvas will remain open but will no longer be linked to the saved graph.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={deletingModel}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleConfirmDelete}
+                    disabled={deletingModel}
+                    className='bg-red-600 hover:bg-red-700'
+                  >
+                    {deletingModel ? 'Deleting…' : 'Yes, delete'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
       </div>
     </>
   );

@@ -4,14 +4,17 @@ import { createContext, useContext, useState, ReactNode } from 'react';
 export interface GraphContextType {
   graphId: string | null;
   setGraphId: (id: string | null) => void;
+  graphName: string | null;
+  setGraphName: (name: string | null) => void;
 }
 
 const GraphContext = createContext<GraphContextType | undefined>(undefined);
 
 export function GraphProvider({ children }: { children: ReactNode }) {
   const [graphId, setGraphId] = useState<string | null>(null);
+  const [graphName, setGraphName] = useState<string | null>(null);
   return (
-    <GraphContext.Provider value={{ graphId, setGraphId }}>
+    <GraphContext.Provider value={{ graphId, setGraphId, graphName, setGraphName }}>
       {children}
     </GraphContext.Provider>
   );

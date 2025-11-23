@@ -45,16 +45,17 @@ const initialEdges: Edge[] = [];
 
 export default function ModelCanvas() {
   const { nodes: storeNodes, edges: storeEdges, setGraph } = useModelCanvasStore();
-  const { setGraphId } = useGraph();
+  const { graphId, setGraphId, graphName, setGraphName } = useGraph();
   const [nodes, setNodes] = useNodesState(storeNodes.length ? storeNodes : initialNodes);
   const [edges, setEdges] = useEdgesState(storeEdges.length ? storeEdges : initialEdges);
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
-  const [persistedGraphId, setPersistedGraphId] = useState<string | null>(null);
-  const [modelName, setModelName] = useState('Untitled graph');
+  const [persistedGraphId, setPersistedGraphId] = useState<string | null>(graphId);
+  const [modelName, setModelName] = useState(graphName ?? 'Untitled graph');
   const [saveErrors, setSaveErrors] = useState<string[] | null>(null);
   const [errorItems, setErrorItems] = useState<Array<{ text: string; nodeId?: string; param?: string }> | null>(null);
   const [errorNodeIds, setErrorNodeIds] = useState<Set<string>>(new Set());
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isDeletingGraph, setIsDeletingGraph] = useState(false);
   // No raw/details to keep UI concise; we only show summarized messages.
   const flowWrapperRef = useRef<HTMLDivElement | null>(null);
   // Memoize these to avoid React Flow warning about re-creating nodeTypes/edgeTypes each render
@@ -62,6 +63,10 @@ export default function ModelCanvas() {
   const edgeTypes = useMemo(() => ({ removable: RemovableEdge }), []);
   const setSelected = useModelCanvasStore(s => s.setSelected);
   const setHighlightedParam = useModelCanvasStore(s => s.setHighlightedParam);
+  const handleModelNameChange = useCallback((name: string) => {
+    setModelName(name);
+    setGraphName(name === '' ? '' : name);
+  }, [setGraphName]);
   const MAX_EDGE_RAW_LENGTH = 27;
   const ensureEdgeRawId = (raw: string | null | undefined): string => {
     if (!raw) return `edge-${nanoid(10)}`;
@@ -82,6 +87,18 @@ export default function ModelCanvas() {
       return newEdges;
     });
   }, [setEdges, nodes, setGraph]);
+
+  useEffect(() => {
+    setPersistedGraphId(graphId);
+  }, [graphId]);
+
+  useEffect(() => {
+    if (graphName === null) {
+      setModelName('Untitled graph');
+    } else {
+      setModelName(graphName);
+    }
+  }, [graphName]);
 
   // Keep ReactFlow internal state in sync when store changes externally (e.g. removeNode)
   useEffect(() => {
@@ -237,11 +254,38 @@ export default function ModelCanvas() {
     if (graph.id) {
       setPersistedGraphId(graph.id);
       setGraphId(graph.id);
+    } else {
+      setPersistedGraphId(null);
+      setGraphId(null);
     }
-    if (graph.name) {
-      setModelName(graph.name);
+    const incomingName = graph.name && graph.name.trim().length ? graph.name : null;
+    setGraphName(incomingName);
+    setModelName(incomingName ?? 'Untitled graph');
+  }, [setNodes, setEdges, setGraph, setGraphId, setGraphName]);
+
+  const handleDeletePersistedGraph = useCallback(async () => {
+    if (!persistedGraphId) return;
+    try {
+      setIsDeletingGraph(true);
+      await networkGraphService.deleteGraph(persistedGraphId);
+      setPersistedGraphId(null);
+      setGraphId(null);
+      setGraphName(null);
+      setSuccessMessage('Graph deleted');
+      setSaveErrors(null);
+      setErrorItems(null);
+      setErrorNodeIds(new Set());
+    } catch (err) {
+      console.error('Failed to delete graph', err);
+      setSuccessMessage(null);
+      const message = err instanceof Error ? err.message : 'Failed to delete graph';
+      setErrorItems(null);
+      setErrorNodeIds(new Set());
+      setSaveErrors([message]);
+    } finally {
+      setIsDeletingGraph(false);
     }
-  }, [setNodes, setEdges, setGraph, setGraphId]);
+  }, [persistedGraphId, setGraphId, setGraphName, setSuccessMessage, setSaveErrors, setErrorItems, setErrorNodeIds]);
 
   const sanitizeEdgesForPersist = (currentEdges: Edge[]): Edge[] => {
     return currentEdges.map((edge) => {
@@ -418,7 +462,10 @@ export default function ModelCanvas() {
         onSave={handlePersist}
         onLoadGraph={loadGraphFromPayload}
         modelName={modelName}
-        onModelNameChange={setModelName}
+        onModelNameChange={handleModelNameChange}
+        canDeleteModel={!!persistedGraphId}
+        onDeleteModel={handleDeletePersistedGraph}
+        deletingModel={isDeletingGraph}
         onShowErrors={(messages, raw) => {
           if (messages && messages.length) setSuccessMessage(null);
           if (raw !== undefined) {
