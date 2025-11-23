@@ -54,13 +54,11 @@ def import_keras_json_to_graph(model_json: str) -> Dict[str, Any]:
         cls = str(parsed.get("class_name", "")).lower()
         is_sequential = (cls == "sequential")
         model_name = parsed.get("config", {}).get("name") or model_name
-        if is_sequential:
-            # Keras 3 JSON has layers at config.layers as a list of {class_name, config, ...}
+        if cls in {"sequential", "functional", "model"}:
             layers_list = list(parsed.get("config", {}).get("layers", []) or [])
         else:
-            # Not Sequential – bail out with the same message as before
             raise GraphValidationError({
-                "model": ["Only Sequential models are supported for import in this version."]
+                "model": ["Only Sequential or Functional Keras models can be imported."]
             })
     else:
         # 2) Fallback: use model_from_json (older tf.keras formats)
@@ -72,19 +70,13 @@ def import_keras_json_to_graph(model_json: str) -> Dict[str, Any]:
         model = model_from_json(model_json)
         mconf = model.get_config() if hasattr(model, "get_config") else {}
         model_name = mconf.get("name") or getattr(model, "name", "imported_model")
-        is_sequential = model.__class__.__name__.lower() == "sequential"
-        if not is_sequential:
+        cls = model.__class__.__name__.lower()
+        is_sequential = (cls == "sequential")
+        if cls not in {"sequential", "functional", "model"}:
             raise GraphValidationError({
-                "model": ["Only Sequential models are supported for import in this version."]
+                "model": ["Only Sequential or Functional Keras models can be imported."]
             })
-        # Derive layers list from the live model
-        # We will map them to a list of dicts with class_name/config to reuse the same logic below
-        layers_list = []
-        for l in list(getattr(model, "layers", []) or []):
-            layers_list.append({
-                "class_name": l.__class__.__name__,
-                "config": (l.get_config() if hasattr(l, "get_config") else {}),
-            })
+        layers_list = list(mconf.get("layers", []) or [])
 
     nodes: List[Dict[str, Any]] = []
     edges: List[Dict[str, Any]] = []
@@ -104,57 +96,37 @@ def import_keras_json_to_graph(model_json: str) -> Dict[str, Any]:
     # layers_list is a list of dicts: {class_name, config, ...}
     last_index = len(layers_list) - 1 if layers_list else -1
 
-    def _infer_input_from_model_or_first_layer() -> Dict[str, Any] | None:
-        """Infer an Input node params dict from the model or first layer config.
-        Returns a node dict or None if not enough info.
-        """
+    def _infer_input_from_first_layer() -> Dict[str, Any] | None:
+        """Infer an Input node params dict from the first layer config when no InputLayer exists."""
         if not layers_list:
             return None
-        # Try model.input_shape first (can be tuple or list of tuples)
-        shape_tuple = None
-        try:
-            m_in_shape = getattr(model, "input_shape", None)
-            if isinstance(m_in_shape, (list, tuple)) and m_in_shape is not None:
-                shape_tuple = m_in_shape[0] if (isinstance(m_in_shape, list) and m_in_shape and isinstance(m_in_shape[0], (list, tuple))) else m_in_shape
-        except Exception:
-            shape_tuple = None
-
-        # Fallback to first layer config
         first_layer = layers_list[0]
-        first_cfg = first_layer.get_config() if hasattr(first_layer, "get_config") else {}
-        if shape_tuple is None:
-            if first_cfg.get("batch_input_shape"):
-                bs = first_cfg["batch_input_shape"][1:]
-                shape_tuple = tuple(x for x in bs)
-            elif first_cfg.get("batch_shape"):
-                bs = first_cfg["batch_shape"][1:]
-                shape_tuple = tuple(x for x in bs)
-            elif first_cfg.get("input_shape"):
-                shape_tuple = tuple(first_cfg["input_shape"])
-            elif first_cfg.get("input_dim"):
-                shape_tuple = (first_cfg["input_dim"],)
+        first_cfg = first_layer.get("config") or {}
 
-        # Normalize: drop batch dim if present in full batch shape, filter None
-        norm_shape = None
-        if isinstance(shape_tuple, (list, tuple)) and shape_tuple:
-            try:
-                # If batch already removed above, don't drop again; detect by len match
-                # Here we conservatively drop first dim assuming it's batch
-                norm_shape = tuple(int(x) for x in list(shape_tuple)[1:] if x is not None)
-                if not norm_shape:
-                    # If nothing left, try keep as-is but remove Nones
-                    norm_shape = tuple(int(x) for x in list(shape_tuple) if x is not None)
-            except Exception:
-                norm_shape = tuple(x for x in list(shape_tuple)[1:] if x is not None)
+        def _coerce_dtype(val: Any) -> str:
+            if isinstance(val, str):
+                return val
+            if isinstance(val, dict):
+                cfg = val.get("config") or {}
+                if isinstance(cfg, dict) and cfg.get("name"):
+                    return str(cfg.get("name"))
+            return "float32"
 
-        # dtype from model inputs if available
-        dtype = "float32"
-        try:
-            if getattr(model, "inputs", None):
-                dt = getattr(model.inputs[0], "dtype", None)
-                dtype = str(dt) if dt else dtype
-        except Exception:
-            pass
+        def _shape_from_cfg(cfg: Dict[str, Any]) -> List[Any] | None:
+            for key in ("batch_input_shape", "batch_shape", "input_shape"):
+                if isinstance(cfg.get(key), (list, tuple)):
+                    return list(cfg[key])
+            if cfg.get("input_dim") is not None:
+                return [cfg.get("input_dim")]
+            return None
+
+        raw_shape = _shape_from_cfg(first_cfg)
+        norm_shape: List[Any] | None = None
+        if raw_shape:
+            if len(raw_shape) > 1 and raw_shape[0] is None:
+                norm_shape = [dim for dim in raw_shape[1:] if dim is not None]
+            else:
+                norm_shape = [dim for dim in raw_shape if dim is not None]
 
         if norm_shape:
             in_id = next_id("input")
@@ -162,7 +134,7 @@ def import_keras_json_to_graph(model_json: str) -> Dict[str, Any]:
                 "id": in_id,
                 "type": "InputLayer",
                 "label": "Input",
-                "params": {"shape": tuple(norm_shape), "dtype": dtype, "name": None},
+                "params": {"shape": tuple(norm_shape), "dtype": _coerce_dtype(first_cfg.get("dtype")), "name": None},
                 "position": {},
                 "notes": {"synthesized": True},
             }
@@ -170,19 +142,61 @@ def import_keras_json_to_graph(model_json: str) -> Dict[str, Any]:
 
     # If there is no explicit InputLayer, synthesize one using inferred shape
     has_explicit_input = any(str((l or {}).get("class_name", "")) == "InputLayer" for l in layers_list)
+    synthesized_input_id: str | None = None
     if not has_explicit_input:
-        maybe_input = _infer_input_from_model_or_first_layer()
+        maybe_input = _infer_input_from_first_layer()
         if maybe_input:
             nodes.append(maybe_input)
             last_node_id = maybe_input["id"]
+            synthesized_input_id = maybe_input["id"]
 
     known = set(list_layers(include_deprecated=False))
+    layer_name_to_node_id: Dict[str, str] = {}
+    layer_metadata: List[Dict[str, Any]] = []
+
+    def _canonical_layer_name(entry: Dict[str, Any], cfg: Dict[str, Any]) -> str:
+        if entry.get("name"):
+            return str(entry["name"])
+        if cfg.get("name"):
+            return str(cfg["name"])
+        return str(uuid.uuid4())
+
+    def _extract_inbound(layer_entry: Dict[str, Any]) -> List[str]:
+        inbound = layer_entry.get("inbound_nodes") or []
+        names: List[str] = []
+
+        def _add(name: Any) -> None:
+            if name and str(name) not in names:
+                names.append(str(name))
+
+        if isinstance(inbound, list):
+            for node in inbound:
+                if isinstance(node, dict):
+                    args = node.get("args") or []
+                    for arg in args:
+                        if isinstance(arg, dict):
+                            hist = arg.get("config", {}).get("keras_history") or arg.get("keras_history")
+                            if isinstance(hist, (list, tuple)) and hist:
+                                _add(hist[0])
+                        elif isinstance(arg, (list, tuple)) and arg and isinstance(arg[0], str):
+                            _add(arg[0])
+                elif isinstance(node, (list, tuple)):
+                    for item in node:
+                        if isinstance(item, (list, tuple)) and item and isinstance(item[0], str):
+                            _add(item[0])
+                        elif isinstance(item, dict):
+                            hist = item.get("config", {}).get("keras_history") or item.get("keras_history")
+                            if isinstance(hist, (list, tuple)) and hist:
+                                _add(hist[0])
+        return names
 
     for idx, layer in enumerate(layers_list):
         lclass = str((layer or {}).get("class_name", ""))
         cfg = (layer or {}).get("config") or {}
 
         # Explicit InputLayer becomes a dedicated Input node
+        layer_name = _canonical_layer_name(layer, cfg)
+
         if lclass == "InputLayer":
             # Prefer batch_input_shape / batch_shape in config
             shape = None
@@ -215,6 +229,8 @@ def import_keras_json_to_graph(model_json: str) -> Dict[str, Any]:
                     "notes": {},
                 }
             )
+            layer_name_to_node_id[layer_name] = nid
+            layer_metadata.append({"id": nid, "name": layer_name, "type": "InputLayer", "inbound": []})
             last_node_id = nid
             continue
 
@@ -254,9 +270,28 @@ def import_keras_json_to_graph(model_json: str) -> Dict[str, Any]:
                 "notes": {},
             }
         )
-        if last_node_id:
-            add_edge(last_node_id, nid)
+        layer_name_to_node_id[layer_name] = nid
+        inbound_sources = _extract_inbound(layer)
+        layer_metadata.append({
+            "id": nid,
+            "name": layer_name,
+            "type": lclass,
+            "inbound": inbound_sources,
+        })
         last_node_id = nid
+
+    prev_node_id: str | None = synthesized_input_id
+    for meta in layer_metadata:
+        inbound_sources = meta.get("inbound") or []
+        added = False
+        for src_name in inbound_sources:
+            src_id = layer_name_to_node_id.get(src_name)
+            if src_id:
+                add_edge(src_id, meta["id"])
+                added = True
+        if not added and is_sequential and prev_node_id and meta.get("type") != "InputLayer":
+            add_edge(prev_node_id, meta["id"])
+        prev_node_id = meta["id"]
 
     graph_payload = {
         "name": model_name or "Imported Model",
