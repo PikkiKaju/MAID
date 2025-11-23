@@ -1,4 +1,5 @@
 import { Save, Trash2, Play, FileDown, Upload, FolderOpen, Eraser } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent } from '../../ui/tooltip';
 import LoadGraphModal from './LoadGraphModal';
 import { useModelCanvasStore } from '../../store/modelCanvasStore';
 import networkGraphService, { GraphEdge, GraphNode, NetworkGraphPayload } from '../../api/networkGraphService';
@@ -243,55 +244,90 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
 
         {/* Save current canvas (delegates to parent) */}
         {isLoggedIn && (
-          <button onClick={onSave} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60'>
-            <Save size={14} /> Save
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button onClick={onSave} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60'>
+                <Save size={14} /> Save
+              </button>
+            </TooltipTrigger>
+            <TooltipContent sideOffset={6} className="bg-black/90 text-white text-sm px-3 py-1.5 rounded-md shadow-lg">Save the current canvas to your account</TooltipContent>
+          </Tooltip>
         )}
 
         {/* Load saved graph */}
         {isLoggedIn && (
-          <button onClick={() => setShowLoadModal(true)} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-60'>
-            <FolderOpen size={14} /> Load
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button onClick={() => setShowLoadModal(true)} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-60'>
+                <FolderOpen size={14} /> Load
+              </button>
+            </TooltipTrigger>
+            <TooltipContent sideOffset={6} className="bg-black/90 text-white text-sm px-3 py-1.5 rounded-md shadow-lg">Open a saved graph from your account</TooltipContent>
+          </Tooltip>
         )}
 
         {/* Compile on backend */}
-        <button onClick={compileGraph} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-60'>
-          <Play size={14} /> Compile
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button onClick={compileGraph} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-60'>
+              <Play size={14} /> Compile
+            </button>
+          </TooltipTrigger>
+          <TooltipContent sideOffset={6} className="bg-black/90 text-white text-sm px-3 py-1.5 rounded-md shadow-lg">Compile the current canvas on the backend (validates model and returns summary/errors)</TooltipContent>
+        </Tooltip>
 
         {/* Import Keras model (JSON) */}
         <input ref={fileKerasRef} type='file' accept='.json,application/json' className='hidden' onChange={(e) => {
           const f = e.target.files?.[0]; if (f) importKeras(f);
         }} />
-        <button onClick={() => fileKerasRef.current?.click()} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-60'>
-          <Upload size={14} /> Import Keras
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button onClick={() => fileKerasRef.current?.click()} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-60'>
+              <Upload size={14} /> Import Keras
+            </button>
+          </TooltipTrigger>
+          <TooltipContent sideOffset={6} className="bg-black/90 text-white text-sm px-3 py-1.5 rounded-md shadow-lg">Import a Keras model JSON file onto the canvas</TooltipContent>
+        </Tooltip>
 
         {/* Import Graph model (JSON shaped like /network/graphs/) */}
         <input ref={fileGraphRef} type='file' accept='.json,application/json' className='hidden' onChange={(e) => {
           const f = e.target.files?.[0]; if (f) importGraph(f);
         }} />
-        <button onClick={() => fileGraphRef.current?.click()} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-violet-600 text-white rounded hover:bg-violet-700 disabled:opacity-60'>
-          <Upload size={14} /> Import Graph
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button onClick={() => fileGraphRef.current?.click()} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-violet-600 text-white rounded hover:bg-violet-700 disabled:opacity-60'>
+              <Upload size={14} /> Import Graph
+            </button>
+          </TooltipTrigger>
+          <TooltipContent sideOffset={6} className="bg-black/90 text-white text-sm px-3 py-1.5 rounded-md shadow-lg">Import a saved graph JSON file onto the canvas</TooltipContent>
+        </Tooltip>
 
         {/* Export Python */}
-        <button onClick={exportPython} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-60'>
-          <FileDown size={14} /> Export Python
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button onClick={exportPython} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-60'>
+              <FileDown size={14} /> Export Python
+            </button>
+          </TooltipTrigger>
+          <TooltipContent sideOffset={6} className="bg-black/90 text-white text-sm px-3 py-1.5 rounded-md shadow-lg">Export the current model as Python code</TooltipContent>
+        </Tooltip>
 
         <div className='ml-auto flex items-center gap-2'>
           <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button
-                type='button'
-                disabled={toolbarDisabled}
-                className='flex items-center gap-1 px-2 py-1 bg-rose-500 text-white rounded hover:bg-rose-600 disabled:opacity-60'
-              >
-                <Eraser size={14} /> Clear
-              </button>
-            </AlertDialogTrigger>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <AlertDialogTrigger asChild>
+                  <button
+                    type='button'
+                    disabled={toolbarDisabled}
+                    className='flex items-center gap-1 px-2 py-1 bg-rose-500 text-white rounded hover:bg-rose-600 disabled:opacity-60'
+                  >
+                    <Eraser size={14} /> Clear
+                  </button>
+                </AlertDialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent sideOffset={6} className="bg-black/90 text-white text-sm px-3 py-1.5 rounded-md shadow-lg">Clear the canvas (removes all layers and connections)</TooltipContent>
+            </Tooltip>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Clear the canvas?</AlertDialogTitle>
@@ -310,15 +346,20 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
 
           {showDelete && (
             <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <button
-                  type='button'
-                  disabled={toolbarDisabled}
-                  className='flex items-center gap-1 px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-60'
-                >
-                  <Trash2 size={14} /> Delete
-                </button>
-              </AlertDialogTrigger>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      type='button'
+                      disabled={toolbarDisabled}
+                      className='flex items-center gap-1 px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-60'
+                    >
+                      <Trash2 size={14} /> Delete
+                    </button>
+                  </AlertDialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent sideOffset={6} className="bg-black/90 text-white text-sm px-3 py-1.5 rounded-md shadow-lg">Delete the saved model from the backend</TooltipContent>
+              </Tooltip>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete this saved model?</AlertDialogTitle>

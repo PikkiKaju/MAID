@@ -5,8 +5,8 @@ export function TrainingConfigProvider({ children }: { children: ReactNode }) {
   const [optimizer, setOptimizer] = useState<string>('adam');
   const [loss, setLoss] = useState<string>('MeanSquaredError');
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['mae']);
-  const [epochs, setEpochs] = useState<number>(10);
-  const [batchSize, setBatchSize] = useState<number>(32);
+  const [epochs, setEpochs] = useState<number>(100);
+  const [batchSize, setBatchSize] = useState<number>(25);
   const [learningRate, setLearningRate] = useState<number | ''>('');
   const [shuffle, setShuffle] = useState<boolean>(true);
   const [valBatchSize, setValBatchSize] = useState<number | ''>('');

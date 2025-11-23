@@ -104,6 +104,10 @@ export default function TrainTab() {
   const [liveLoss, setLiveLoss] = useState<number[]>([]); // Training loss values for live charting
   const [liveValLoss, setLiveValLoss] = useState<number[]>([]); // Validation loss values for live charting
 
+  // Chart colors for loss and validation loss
+  const chartLossColor = '#1661ecff'; // Blue for training loss
+  const chartValLossColor = '#2c6d0eff'; // Purple for validation loss
+
   // ============================================================
   // EFFECTS - Data fetching and state synchronization
   // ============================================================
@@ -606,332 +610,336 @@ export default function TrainTab() {
         <div className="h-full grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Left column: all inputs */}
           <div className="h-full overflow-auto">
-            <div className="bg-white border rounded-lg p-6 space-y-6">
-              {/* Compilation Settings */}
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <Settings size={18} className="text-slate-600" />
-                  <h3 className="font-semibold text-slate-700">Compilation Settings</h3>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Optimizer
-                    </label>
-                    <select
-                      value={optimizer}
-                      onChange={(e) => setOptimizer(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {optimizers.map((name) => (
-                        <option key={name} value={name}>{name}</option>
-                      ))}
-                    </select>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Controls how weights update during training. Adam is a solid default; SGD can work well with momentum for large datasets.</p>
+            <div className="bg-white border rounded-lg p-6 space-y-6 h-full flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-auto">
+                {/* Compilation Settings */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Settings size={18} className="text-slate-600" />
+                    <h3 className="font-semibold text-slate-700">Compilation Settings</h3>
                   </div>
 
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Gradient Clipping (clipnorm)
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      min="0"
-                      value={clipnorm === undefined ? '' : clipnorm}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setClipnorm(v === '' ? '' : Number(v));
-                      }}
-                      placeholder="e.g. 1.0"
-                      className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="mt-1 text-xs text-slate-500">
-                      Clips gradients by norm to prevent exploding gradients. Leave empty to disable.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Loss Function
-                    </label>
-                    <select
-                      value={loss}
-                      onChange={(e) => setLoss(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {losses.map((name) => (
-                        <option key={name} value={name}>{name}</option>
-                      ))}
-                    </select>
-                    <p className="mt-1 text-xs text-slate-500">Must match your problem and label format: regression (MSE/MAE), binary (BinaryCrossentropy), multiclass (Categorical or SparseCategorical Crossentropy).</p>
-                    {/* Hint if selected loss seems mismatched with inferred target kind */}
-                    <div className="mt-1 text-xs">
-                      {(() => {
-                        const ll = (loss || '').toLowerCase();
-                        const looksClass = targetKind === 'binary' || targetKind === 'multiclass';
-                        const looksReg = targetKind === 'regression';
-                        const key = ll.replace(/_/g, '');
-                        const isClassLoss = key.includes('categoricalcrossentropy') || key.includes('sparsecategoricalcrossentropy') || key.includes('binarycrossentropy');
-                        const isRegLoss = !isClassLoss; // heuristic
-                        if (looksClass && isRegLoss) {
-                          return <span className="text-amber-600">Heads up: target looks like classification but a regression loss is selected. Consider sparse_categorical_crossentropy (integer labels) or categorical_crossentropy (one-hot), or binary_crossentropy for 2 classes.</span>;
-                        }
-                        if (looksReg && !isRegLoss) {
-                          return <span className="text-amber-600">Heads up: target looks continuous but a classification loss is selected. Consider mse/mae for regression.</span>;
-                        }
-                        return null;
-                      })()}
-                    </div>
-                    {/* Recommendation based on target encoding */}
-                    {recommendedLoss && recommendedLoss !== loss && (
-                      <div className="mt-1 text-xs text-slate-600">
-                        Recommended for your target ({dataset?.preprocessingConfig.targetEncoding}): <span className="font-medium">{recommendedLoss}</span>
-                        {losses.includes(recommendedLoss) && (
-                          <button
-                            type="button"
-                            className="ml-2 underline text-blue-600 hover:text-blue-700"
-                            onClick={() => setLoss(recommendedLoss)}
-                          >
-                            Apply
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Training Parameters */}
-              <div>
-                <h3 className="font-semibold text-slate-700 mb-4">Training Parameters</h3>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Epochs
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="1000"
-                      value={epochs}
-                      onChange={(e) => setEpochs(parseInt(e.target.value) || 1)}
-                      className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="mt-1 text-xs text-slate-500">One epoch = one full pass over the training data. More epochs can improve fit but risk overfitting. Use EarlyStopping to stop automatically.</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Batch Size
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="512"
-                      value={batchSize}
-                      onChange={(e) => setBatchSize(parseInt(e.target.value) || 1)}
-                      className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="mt-1 text-xs text-slate-500">Samples per gradient step. Larger batches are faster but may generalize worse; smaller batches add noise that can help generalization.</p>
-                  </div>
-                  {/* No manual Validation Split; it's derived from Dataset tab */}
-                  <div className="col-span-2 text-xs text-slate-500">
-                    Using dataset splits: val={computedSplits.validation}, test={computedSplits.test}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Learning rate (optional)</label>
-                    <input
-                      type="number"
-                      step="any"
-                      min="0"
-                      value={learningRate === '' ? '' : learningRate}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setLearningRate(v === '' ? '' : Number(v));
-                      }}
-                      placeholder="e.g. 0.001"
-                      className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="mt-1 text-xs text-slate-500">Step size for weight updates. Too high can diverge; too low can be slow. Typical values: 1e-3 to 1e-4 for Adam.</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Validation batch size (optional)</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={valBatchSize === '' ? '' : valBatchSize}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setValBatchSize(v === '' ? '' : Math.max(1, Number(v)));
-                      }}
-                      placeholder="leave empty to match batch size"
-                      className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="mt-1 text-xs text-slate-500">If empty, uses the training batch size. Only affects validation throughput, not training dynamics.</p>
-                  </div>
-                  <div className="col-span-2 flex items-center gap-3">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" checked={shuffle} onChange={(e) => setShuffle(e.target.checked)} />
-                      Shuffle training data each epoch
-                    </label>
-                    <span className="text-xs text-slate-500">Recommended. Prevents learning spurious order; disable only for sequence-sensitive data already batched in order.</span>
-                  </div>
-
-                  <div className="col-span-2 border-t pt-4 mt-2">
-                    <h4 className="text-sm font-medium text-slate-700 mb-3">Checkpoints & Logs</h4>
-                    <div className="flex flex-col gap-3">
-                      <label className={`flex items-center gap-2 text-sm ${useEarlyStopping && esRestoreBest ? 'opacity-50' : ''}`}>
-                        <input
-                          type="checkbox"
-                          checked={saveBestModel}
-                          onChange={(e) => setSaveBestModel(e.target.checked)}
-                          disabled={useEarlyStopping && esRestoreBest}
-                        />
-                        Save Best Model
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Optimizer<span className="text-red-600 ml-1">*</span>
                       </label>
-                      {useEarlyStopping && esRestoreBest && (
-                        <p className="text-xs text-amber-600 ml-6 -mt-2">
-                          Disabled because "Restore best weights" is active. The final model will already be the best model.
-                        </p>
+                      <select
+                        value={optimizer}
+                        onChange={(e) => setOptimizer(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {optimizers.map((name) => (
+                          <option key={name} value={name}>{name}</option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Controls how weights update during training. Adam is a solid default; SGD can work well with momentum for large datasets.</p>
+                    </div>
+
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Gradient Clipping (clipnorm)
+                      </label>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        value={clipnorm === undefined ? '' : clipnorm}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setClipnorm(v === '' ? '' : Number(v));
+                        }}
+                        placeholder="e.g. 1.0"
+                        className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">
+                        Clips gradients by norm to prevent exploding gradients. Leave empty to disable.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Loss Function<span className="text-red-600 ml-1">*</span>
+                      </label>
+                      <select
+                        value={loss}
+                        onChange={(e) => setLoss(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {losses.map((name) => (
+                          <option key={name} value={name}>{name}</option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-xs text-slate-500">Must match your problem and label format: regression (MSE/MAE), binary (BinaryCrossentropy), multiclass (Categorical or SparseCategorical Crossentropy), etc.</p>
+                      {/* Hint if selected loss seems mismatched with inferred target kind */}
+                      <div className="mt-1 text-xs">
+                        {(() => {
+                          const ll = (loss || '').toLowerCase();
+                          const looksClass = targetKind === 'binary' || targetKind === 'multiclass';
+                          const looksReg = targetKind === 'regression';
+                          const key = ll.replace(/_/g, '');
+                          const isClassLoss = key.includes('categoricalcrossentropy') || key.includes('sparsecategoricalcrossentropy') || key.includes('binarycrossentropy');
+                          const isRegLoss = !isClassLoss; // heuristic
+                          if (looksClass && isRegLoss) {
+                            return <span className="text-amber-600">Heads up: target looks like classification but a regression loss is selected. Consider sparse_categorical_crossentropy (integer labels) or categorical_crossentropy (one-hot), or binary_crossentropy for 2 classes.</span>;
+                          }
+                          if (looksReg && !isRegLoss) {
+                            return <span className="text-amber-600">Heads up: target looks continuous but a classification loss is selected. Consider mse/mae for regression.</span>;
+                          }
+                          return null;
+                        })()}
+                      </div>
+                      {/* Recommendation based on target encoding */}
+                      {recommendedLoss && recommendedLoss !== loss && (
+                        <div className="mt-1 text-xs text-slate-600">
+                          Recommended for your target ({dataset?.preprocessingConfig.targetEncoding}): <span className="font-medium">{recommendedLoss}</span>
+                          {losses.includes(recommendedLoss) && (
+                            <button
+                              type="button"
+                              className="ml-2 underline text-blue-600 hover:text-blue-700 hover:cursor-pointer"
+                              onClick={() => setLoss(recommendedLoss)}
+                            >
+                              Apply
+                            </button>
+                          )}
+                        </div>
                       )}
-                      <label className="flex items-center gap-2 text-sm">
-                        <input type="checkbox" checked={saveTrainingLogs} onChange={(e) => setSaveTrainingLogs(e.target.checked)} />
-                        Save Training Logs (CSV)
-                      </label>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Callbacks */}
-              <div>
-                <h3 className="font-semibold text-slate-700 mb-3">Callbacks</h3>
-                <div className="space-y-4">
-                  <div className="border rounded p-3">
-                    <label className="flex items-center gap-2 text-sm mb-2">
-                      <input type="checkbox" checked={useEarlyStopping} onChange={(e) => setUseEarlyStopping(e.target.checked)} />
-                      EarlyStopping
-                    </label>
-                    <p className="-mt-1 mb-2 text-xs text-slate-500">Stop training when a monitored metric stops improving. Helps avoid overfitting and saves time.</p>
-                    {useEarlyStopping && (
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs text-slate-600 mb-1">Monitor</label>
-                          <select value={esMonitor} onChange={(e) => setEsMonitor(e.target.value)} className="w-full px-2 py-2 border rounded text-sm">
-                            <option value="val_loss">val_loss</option>
-                            <option value="loss">loss</option>
-                            <option value="accuracy">accuracy</option>
-                            <option value="sparse_categorical_accuracy">sparse_categorical_accuracy</option>
-                            <option value="categorical_accuracy">categorical_accuracy</option>
-                            <option value="binary_accuracy">binary_accuracy</option>
-                          </select>
-                          <p className="mt-1 text-xs text-slate-500">Which metric to watch. For classification, prefer a relevant accuracy; for regression, use val_loss/loss.</p>
-                        </div>
-                        <div>
-                          <label className="block text-xs text-slate-600 mb-1">Mode</label>
-                          <select value={esMode} onChange={(e) => setEsMode(e.target.value as 'auto' | 'min' | 'max')} className="w-full px-2 py-2 border rounded text-sm">
-                            <option value="auto">auto</option>
-                            <option value="min">min</option>
-                            <option value="max">max</option>
-                          </select>
-                          <p className="mt-1 text-xs text-slate-500">Choose "min" for losses (lower is better) and "max" for accuracies (higher is better). "auto" infers it.</p>
-                        </div>
-                        <div>
-                          <label className="block text-xs text-slate-600 mb-1">Patience</label>
-                          <input type="number" min="0" value={esPatience} onChange={(e) => setEsPatience(Math.max(0, Number(e.target.value) || 0))} className="w-full px-2 py-2 border rounded text-sm" />
-                          <p className="mt-1 text-xs text-slate-500">How many epochs with no improvement before stopping.</p>
-                        </div>
-                        <div>
-                          <label className="block text-xs text-slate-600 mb-1">Min delta</label>
-                          <input type="number" step="any" value={esMinDelta} onChange={(e) => setEsMinDelta(Number(e.target.value) || 0)} className="w-full px-2 py-2 border rounded text-sm" />
-                          <p className="mt-1 text-xs text-slate-500">Minimum change to qualify as an improvement (helps ignore tiny fluctuations).</p>
-                        </div>
-                        <div className="col-span-2 flex items-center gap-2">
-                          <input type="checkbox" checked={esRestoreBest} onChange={(e) => setEsRestoreBest(e.target.checked)} />
-                          <span className="text-sm">Restore best weights</span>
-                          <span className="text-xs text-slate-500">After stopping, roll back to the best-performing epoch.</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                {/* Training Parameters */}
+                <div className="mt-6">
+                  <h3 className="font-semibold text-slate-700 mb-4">Training Parameters</h3>
 
-                  <div className="border rounded p-3">
-                    <label className="flex items-center gap-2 text-sm mb-2">
-                      <input type="checkbox" checked={useReduceLR} onChange={(e) => setUseReduceLR(e.target.checked)} />
-                      ReduceLROnPlateau
-                    </label>
-                    <p className="-mt-1 mb-2 text-xs text-slate-500">Reduce the learning rate when a metric has stopped improving to fine-tune training.</p>
-                    {useReduceLR && (
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs text-slate-600 mb-1">Monitor</label>
-                          <select value={rlrMonitor} onChange={(e) => setRlrMonitor(e.target.value)} className="w-full px-2 py-2 border rounded text-sm">
-                            <option value="val_loss">val_loss</option>
-                            <option value="loss">loss</option>
-                            <option value="accuracy">accuracy</option>
-                            <option value="sparse_categorical_accuracy">sparse_categorical_accuracy</option>
-                            <option value="categorical_accuracy">categorical_accuracy</option>
-                            <option value="binary_accuracy">binary_accuracy</option>
-                          </select>
-                          <p className="mt-1 text-xs text-slate-500">Metric used to decide when to reduce the learning rate.</p>
-                        </div>
-                        <div>
-                          <label className="block text-xs text-slate-600 mb-1">Factor</label>
-                          <input type="number" step="any" min="0" max="1" value={rlrFactor} onChange={(e) => setRlrFactor(Number(e.target.value) || 0.1)} className="w-full px-2 py-2 border rounded text-sm" />
-                          <p className="mt-1 text-xs text-slate-500">Multiplicative drop. Example: 0.1 will change 1e-3 to 1e-4.</p>
-                        </div>
-                        <div>
-                          <label className="block text-xs text-slate-600 mb-1">Patience</label>
-                          <input type="number" min="0" value={rlrPatience} onChange={(e) => setRlrPatience(Math.max(0, Number(e.target.value) || 0))} className="w-full px-2 py-2 border rounded text-sm" />
-                          <p className="mt-1 text-xs text-slate-500">How many epochs with no improvement before reducing the learning rate.</p>
-                        </div>
-                        <div>
-                          <label className="block text-xs text-slate-600 mb-1">Min LR</label>
-                          <input type="number" step="any" min="0" value={rlrMinLR} onChange={(e) => setRlrMinLR(Math.max(0, Number(e.target.value) || 0))} className="w-full px-2 py-2 border rounded text-sm" />
-                          <p className="mt-1 text-xs text-slate-500">Lower bound to stop decreasing LR. Typical: 1e-6 to 1e-7.</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Metrics Selection */}
-              <div>
-                <h3 className="font-semibold text-slate-700 mb-4">Metrics</h3>
-                <div className="text-xs text-slate-500 mb-2">
-                  Showing metrics suitable for {(() => {
-                    const ll = (loss || '').toLowerCase();
-                    if (ll.includes('sparse_categorical_crossentropy') || ll.includes('categorical_crossentropy') || ll.includes('binary_crossentropy')) return 'classification';
-                    return 'regression';
-                  })()} (based on selected loss).
-                </div>
-                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-auto pr-1">
-                  {availableMetrics.map((name) => {
-                    const checked = selectedMetrics.includes(name);
-                    return (
-                      <label key={name} className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          className="rounded"
-                          checked={checked}
-                          onChange={(e) => {
-                            if (e.target.checked) setSelectedMetrics((prev) => Array.from(new Set([...prev, name])));
-                            else setSelectedMetrics((prev) => prev.filter((m) => m !== name));
-                          }}
-                        />
-                        <span>{name}</span>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Epochs<span className="text-red-600 ml-1">*</span>
                       </label>
-                    );
-                  })}
-                </div>
-              </div>
+                      <input
+                        type="number"
+                        min="1"
+                        max="1000"
+                        value={epochs}
+                        onChange={(e) => setEpochs(parseInt(e.target.value) || 1)}
+                        className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">One epoch = one full pass over the training data. More epochs can improve fit but risk overfitting. Use EarlyStopping to stop automatically.</p>
+                    </div>
 
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Batch Size<span className="text-red-600 ml-1">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="512"
+                        value={batchSize}
+                        onChange={(e) => setBatchSize(parseInt(e.target.value) || 1)}
+                        className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">Samples per gradient step. Larger batches are faster but may generalize worse; smaller batches add noise that can help generalization.</p>
+                    </div>
+                    {/* No manual Validation Split; it's derived from Dataset tab */}
+                    <div className="col-span-2 text-xs text-slate-500">
+                      Using dataset splits: val={computedSplits.validation}, test={computedSplits.test}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Learning rate (optional)</label>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        value={learningRate === '' ? '' : learningRate}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setLearningRate(v === '' ? '' : Number(v));
+                        }}
+                        placeholder="e.g. 0.001"
+                        className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">Step size for weight updates. Too high can diverge; too low can be slow. Typical values: 1e-3 to 1e-4 for Adam.</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Validation batch size (optional)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={valBatchSize === '' ? '' : valBatchSize}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setValBatchSize(v === '' ? '' : Math.max(1, Number(v)));
+                        }}
+                        placeholder="leave empty to match batch size"
+                        className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">If empty, uses the training batch size. Only affects validation throughput, not training dynamics.</p>
+                    </div>
+                    <div className="col-span-2 flex items-center gap-3">
+                      <label className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" checked={shuffle} onChange={(e) => setShuffle(e.target.checked)} />
+                        Shuffle training data each epoch
+                      </label>
+                      <span className="text-xs text-slate-500">Recommended. Prevents learning spurious order; disable only for sequence-sensitive data already batched in order.</span>
+                    </div>
+
+                    <div className="col-span-2 border-t pt-4 mt-2">
+                      <h4 className="text-sm font-medium text-slate-700 mb-3">Checkpoints & Logs</h4>
+                      <div className="flex flex-col gap-3">
+                        <label className={`flex items-center gap-2 text-sm ${useEarlyStopping && esRestoreBest ? 'opacity-50' : ''}`}>
+                          <input
+                            type="checkbox"
+                            checked={saveBestModel}
+                            onChange={(e) => setSaveBestModel(e.target.checked)}
+                            disabled={useEarlyStopping && esRestoreBest}
+                          />
+                          Save Best Model
+                        </label>
+                        {useEarlyStopping && esRestoreBest && (
+                          <p className="text-xs text-amber-600 ml-6 -mt-2">
+                            Disabled because "Restore best weights" is active. The final model will already be the best model.
+                          </p>
+                        )}
+                        <label className="flex items-center gap-2 text-sm">
+                          <input type="checkbox" checked={saveTrainingLogs} onChange={(e) => setSaveTrainingLogs(e.target.checked)} />
+                          Save Training Logs (CSV)
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Callbacks */}
+                <div className="mt-6">
+                  <h3 className="font-semibold text-slate-700 mb-3">Callbacks</h3>
+                  <div className="space-y-4">
+                    <div className="border rounded p-3">
+                      <label className="flex items-center gap-2 text-sm mb-2">
+                        <input type="checkbox" checked={useEarlyStopping} onChange={(e) => setUseEarlyStopping(e.target.checked)} />
+                        EarlyStopping
+                      </label>
+                      <p className="-mt-1 mb-2 text-xs text-slate-500">Stop training when a monitored metric stops improving. Helps avoid overfitting and saves time.</p>
+                      {useEarlyStopping && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs text-slate-600 mb-1">Monitor</label>
+                            <select value={esMonitor} onChange={(e) => setEsMonitor(e.target.value)} className="w-full px-2 py-2 border rounded text-sm">
+                              <option value="val_loss">val_loss</option>
+                              <option value="loss">loss</option>
+                              <option value="accuracy">accuracy</option>
+                              <option value="sparse_categorical_accuracy">sparse_categorical_accuracy</option>
+                              <option value="categorical_accuracy">categorical_accuracy</option>
+                              <option value="binary_accuracy">binary_accuracy</option>
+                            </select>
+                            <p className="mt-1 text-xs text-slate-500">Which metric to watch. For classification, prefer a relevant accuracy; for regression, use val_loss/loss.</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-slate-600 mb-1">Mode</label>
+                            <select value={esMode} onChange={(e) => setEsMode(e.target.value as 'auto' | 'min' | 'max')} className="w-full px-2 py-2 border rounded text-sm">
+                              <option value="auto">auto</option>
+                              <option value="min">min</option>
+                              <option value="max">max</option>
+                            </select>
+                            <p className="mt-1 text-xs text-slate-500">Choose "min" for losses (lower is better) and "max" for accuracies (higher is better). "auto" infers it.</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-slate-600 mb-1">Patience</label>
+                            <input type="number" min="0" value={esPatience} onChange={(e) => setEsPatience(Math.max(0, Number(e.target.value) || 0))} className="w-full px-2 py-2 border rounded text-sm" />
+                            <p className="mt-1 text-xs text-slate-500">How many epochs with no improvement before stopping.</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-slate-600 mb-1">Min delta</label>
+                            <input type="number" step="any" value={esMinDelta} onChange={(e) => setEsMinDelta(Number(e.target.value) || 0)} className="w-full px-2 py-2 border rounded text-sm" />
+                            <p className="mt-1 text-xs text-slate-500">Minimum change to qualify as an improvement (helps ignore tiny fluctuations).</p>
+                          </div>
+                          <div className="col-span-2 flex items-center gap-2">
+                            <input type="checkbox" checked={esRestoreBest} onChange={(e) => setEsRestoreBest(e.target.checked)} />
+                            <span className="text-sm">Restore best weights</span>
+                            <span className="text-xs text-slate-500">After stopping, roll back to the best-performing epoch.</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="border rounded p-3">
+                      <label className="flex items-center gap-2 text-sm mb-2">
+                        <input type="checkbox" checked={useReduceLR} onChange={(e) => setUseReduceLR(e.target.checked)} />
+                        ReduceLROnPlateau
+                      </label>
+                      <p className="-mt-1 mb-2 text-xs text-slate-500">Reduce the learning rate when a metric has stopped improving to fine-tune training.</p>
+                      {useReduceLR && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs text-slate-600 mb-1">Monitor</label>
+                            <select value={rlrMonitor} onChange={(e) => setRlrMonitor(e.target.value)} className="w-full px-2 py-2 border rounded text-sm">
+                              <option value="val_loss">val_loss</option>
+                              <option value="loss">loss</option>
+                              <option value="accuracy">accuracy</option>
+                              <option value="sparse_categorical_accuracy">sparse_categorical_accuracy</option>
+                              <option value="categorical_accuracy">categorical_accuracy</option>
+                              <option value="binary_accuracy">binary_accuracy</option>
+                            </select>
+                            <p className="mt-1 text-xs text-slate-500">Metric used to decide when to reduce the learning rate.</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-slate-600 mb-1">Factor</label>
+                            <input type="number" step="any" min="0" max="1" value={rlrFactor} onChange={(e) => setRlrFactor(Number(e.target.value) || 0.1)} className="w-full px-2 py-2 border rounded text-sm" />
+                            <p className="mt-1 text-xs text-slate-500">Multiplicative drop. Example: 0.1 will change 1e-3 to 1e-4.</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-slate-600 mb-1">Patience</label>
+                            <input type="number" min="0" value={rlrPatience} onChange={(e) => setRlrPatience(Math.max(0, Number(e.target.value) || 0))} className="w-full px-2 py-2 border rounded text-sm" />
+                            <p className="mt-1 text-xs text-slate-500">How many epochs with no improvement before reducing the learning rate.</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-slate-600 mb-1">Min LR</label>
+                            <input type="number" step="any" min="0" value={rlrMinLR} onChange={(e) => setRlrMinLR(Math.max(0, Number(e.target.value) || 0))} className="w-full px-2 py-2 border rounded text-sm" />
+                            <p className="mt-1 text-xs text-slate-500">Lower bound to stop decreasing LR. Typical: 1e-6 to 1e-7.</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Metrics Selection */}
+                <div className="mt-6">
+                  <h3 className="font-semibold text-slate-700 mb-4">Metrics</h3>
+                  <div className="text-xs text-slate-500 mb-2">
+                    Showing metrics suitable for {(() => {
+                      const ll = (loss || '').toLowerCase();
+                      if (ll.includes('sparse_categorical_crossentropy') || ll.includes('categorical_crossentropy') || ll.includes('binary_crossentropy')) return 'classification';
+                      return 'regression';
+                    })()} (based on selected loss).
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 max-h-48 overflow-auto pr-1">
+                    {availableMetrics.map((name) => {
+                      const checked = selectedMetrics.includes(name);
+                      return (
+                        <label key={name} className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={checked}
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedMetrics((prev) => Array.from(new Set([...prev, name])));
+                              else setSelectedMetrics((prev) => prev.filter((m) => m !== name));
+                            }}
+                          />
+                          <span>{name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+              </div>
             </div>
           </div>
 
@@ -1080,12 +1088,12 @@ export default function TrainTab() {
                     if (!hasHistory && !hasLive) return null;
                     const series = hasHistory
                       ? [
-                        { label: 'loss', color: '#2563eb', data: histLoss || [] },
-                        ...(Array.isArray(histValLoss) && histValLoss.length ? [{ label: 'val_loss', color: '#7c3aed', data: histValLoss }] : []),
+                        { label: 'loss', color: chartLossColor, data: histLoss || [] },
+                        ...(Array.isArray(histValLoss) && histValLoss.length ? [{ label: 'val_loss', color: chartValLossColor, data: histValLoss }] : []),
                       ]
                       : [
-                        { label: 'loss', color: '#2563eb', data: liveLoss },
-                        ...(liveValLoss.length ? [{ label: 'val_loss', color: '#7c3aed', data: liveValLoss }] : []),
+                        { label: 'loss', color: chartLossColor, data: liveLoss },
+                        ...(liveValLoss.length ? [{ label: 'val_loss', color: chartValLossColor, data: liveValLoss }] : []),
                       ];
                     return (
                       <div className="mt-3">

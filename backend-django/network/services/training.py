@@ -24,8 +24,8 @@ class TrainParams:
     optimizer: str = "adam"
     loss: str = "mse"
     metrics: List[str] | None = None
-    epochs: int = 10
-    batch_size: int = 32
+    epochs: int = 100
+    batch_size: int = 25
     validation_split: float = 0.1
     test_split: float = 0.1
     y_one_hot: bool = False
