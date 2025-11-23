@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, Table, X, Database, Settings, Play, AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Eye } from 'lucide-react';
 import { Button } from '../../../ui/button';
 import { datasetService, DatasetMyMetadata } from '../../../api/datasetService';
@@ -15,9 +15,46 @@ export default function DatasetTab() {
   const [loadingDatasets, setLoadingDatasets] = useState(false);
   const [availableDatasets, setAvailableDatasets] = useState<DatasetMyMetadata[]>([]);
   const [showDatasetList, setShowDatasetList] = useState(false);
-  const [showColumnConfig, setShowColumnConfig] = useState(false);
+  const [showColumnConfig, setShowColumnConfig] = useState(true);
   const [showTransformed, setShowTransformed] = useState(false);
+  const [previewCount, setPreviewCount] = useState<number>(50);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!dataset) return;
+    const total = dataset.isProcessed ? (dataset.transformed?.X.length ?? dataset.cleaned?.length ?? dataset.totalRows) : dataset.totalRows;
+    setPreviewCount((prev) => Math.min(prev, Math.max(1, total)));
+  }, [dataset]);
+
+  // Download the transformed dataset (CSV) if available
+  const downloadTransformed = () => {
+    if (!dataset || !dataset.transformed) {
+      alert('No transformed data available. Please process the dataset first.');
+      return;
+    }
+    const header = [...dataset.transformed.featureNames, dataset.preprocessingConfig.targetColumn || 'target'];
+    const rows = dataset.transformed.X.map((row, idx) => {
+      const cells = row.map((v) => {
+        const s = String(v);
+        return s.includes(',') || s.includes('"') ? '"' + s.replace(/"/g, '""') + '"' : s;
+      });
+      const targetVal = dataset.transformed?.y[idx];
+      const t = targetVal !== undefined && targetVal !== null ? String(targetVal) : '';
+      const tCell = t.includes(',') || t.includes('"') ? '"' + t.replace(/"/g, '""') + '"' : t;
+      return cells.concat([tCell]).join(',');
+    });
+    const csv = [header.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const name = dataset.datasetName ? `${dataset.datasetName}_transformed.csv` : 'transformed.csv';
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  };
 
   const parseCSV = (text: string): { headers: string[]; rows: CsvRow[] } => {
     const lines = text.trim().split('\n');
@@ -320,32 +357,71 @@ export default function DatasetTab() {
                     <h3 className="font-semibold text-slate-700">Data Preview</h3>
                     {dataset.isProcessed && dataset.cleaned && (
                       <p className="text-[10px] text-slate-500">
-                        {showTransformed ? 'Showing encoded & normalized feature matrix' : `Showing cleaned data (${dataset.cleaned.length} rows)`}
+                        {showTransformed ?
+                          `Showing encoded & normalized feature matrix (${Math.min(previewCount, dataset.transformed?.X.length ?? 0)} of ${dataset.transformed?.X.length ?? 0} rows)` :
+                          `Showing cleaned data (${Math.min(previewCount, dataset.cleaned.length)} of ${dataset.cleaned.length} rows)`}
                       </p>
                     )}
                   </div>
                 </div>
-                {dataset.isProcessed && dataset.trainData && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowTransformed(!showTransformed)}
-                    className="text-xs"
-                  >
-                    <Eye size={14} className="mr-1" />
-                    {showTransformed ? 'View Cleaned' : 'View Transformed'}
-                  </Button>
-                )}
+                <div className="flex items-center gap-3">
+                  {dataset && (
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-slate-500">Rows:</label>
+                      <select
+                        value={previewCount}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          const total = dataset.isProcessed ? (dataset.transformed?.X.length ?? dataset.cleaned?.length ?? dataset.totalRows) : dataset.totalRows;
+                          if (v === 'all') setPreviewCount(total);
+                          else setPreviewCount(parseInt(v, 10));
+                        }}
+                        className="text-xs px-2 py-1 border rounded bg-white"
+                      >
+                        <option value={10}>10</option>
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                        <option value={dataset.isProcessed ? (dataset.transformed?.X.length ?? dataset.cleaned?.length ?? dataset.totalRows) : dataset.totalRows}>All</option>
+                      </select>
+                      {((dataset.transformed?.X.length ?? dataset.cleaned?.length ?? dataset.totalRows) || 0) > 1000 && (
+                        <span className="text-[10px] text-slate-500 ml-2">All may be slow for large datasets</span>
+                      )}
+                    </div>
+                  )}
+                  {dataset.isProcessed && (dataset.transformed || dataset.trainData) && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setShowTransformed(!showTransformed)}
+                        className="text-xs"
+                      >
+                        <Eye size={14} className="mr-1" />
+                        {showTransformed ? 'View Cleaned' : 'View Transformed'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={downloadTransformed}
+                        disabled={!dataset.transformed}
+                        className="text-xs"
+                      >
+                        Download Transformed
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex-1 overflow-auto">
-              {showTransformed && dataset.isProcessed && dataset.trainData ? (
+              {showTransformed && dataset.isProcessed && dataset.transformed ? (
                 // Show transformed/encoded/normalized data
                 <table className="w-full text-xs border-collapse">
                   <thead className="bg-slate-100 sticky top-0">
                     <tr>
                       <th className="px-3 py-2 text-left font-semibold text-slate-600 border-r border-b">#</th>
-                      {dataset.trainData.featureNames.map((name, idx) => (
+                      {dataset.transformed.featureNames.map((name, idx) => (
                         <th key={idx} className="px-3 py-2 text-left border-r border-b">
                           <div className="flex flex-col gap-1">
                             <span className="font-semibold text-slate-600">{name}</span>
@@ -362,7 +438,7 @@ export default function DatasetTab() {
                     </tr>
                   </thead>
                   <tbody>
-                    {dataset.trainData.X.slice(0, 50).map((row, rowIdx) => (
+                    {dataset.transformed.X.slice(0, previewCount).map((row, rowIdx) => (
                       <tr key={rowIdx} className="border-b hover:bg-slate-50">
                         <td className="px-3 py-2 text-slate-400 border-r font-medium">{rowIdx + 1}</td>
                         {row.map((val, cellIdx) => (
@@ -371,9 +447,9 @@ export default function DatasetTab() {
                           </td>
                         ))}
                         <td className="px-3 py-2 border-r font-mono text-[11px] bg-green-50">
-                          {typeof dataset.trainData?.y[rowIdx] === 'number'
-                            ? formatNumber(dataset.trainData.y[rowIdx])
-                            : dataset.trainData?.y[rowIdx]}
+                          {typeof dataset.transformed?.y[rowIdx] === 'number'
+                            ? formatNumber(dataset.transformed.y[rowIdx])
+                            : dataset.transformed?.y[rowIdx]}
                         </td>
                       </tr>
                     ))}
@@ -400,7 +476,7 @@ export default function DatasetTab() {
                     </tr>
                   </thead>
                   <tbody>
-                    {(dataset.isProcessed && dataset.cleaned ? dataset.cleaned : dataset.original).slice(0, 50).map((row, rowIdx) => (
+                    {(dataset.isProcessed && dataset.cleaned ? dataset.cleaned : dataset.original).slice(0, previewCount).map((row, rowIdx) => (
                       <tr key={rowIdx} className="border-b hover:bg-slate-50">
                         <td className="px-3 py-2 text-slate-400 border-r font-medium">{rowIdx + 1}</td>
                         {dataset.columns.map((col, cellIdx) => (
