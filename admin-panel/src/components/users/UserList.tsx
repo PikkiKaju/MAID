@@ -105,6 +105,7 @@ export const UserList = () => (
         label="Akcje"
         render={(record: any) => (
           <Box
+            onClick={(e) => e.stopPropagation()} // Zatrzymaj propagację kliknięć w kolumnie Akcje
             sx={{
               display: "flex",
               gap: 1.5,
@@ -112,7 +113,7 @@ export const UserList = () => (
               flexWrap: "wrap",
             }}
           >
-            <BlockUserButton userId={record.id} />
+            <BlockUserButton userId={record.id} isBlocked={record.isBlocked} />
             <ShowButton
               record={record}
               sx={{

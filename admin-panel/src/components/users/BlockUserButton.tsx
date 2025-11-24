@@ -1,6 +1,6 @@
 import React from "react";
 import { Button, Tooltip, Box, Alert } from "@mui/material";
-import { Block, CheckCircle } from "@mui/icons-material";
+import { Block, CheckCircle, LockOpen } from "@mui/icons-material";
 import { useRefresh } from "react-admin";
 import { httpClient, ASP_NET_API_URL } from "../../api/httpClient";
 
@@ -8,9 +8,11 @@ const apiUrl = `${ASP_NET_API_URL}/Admin`;
 
 export default function BlockUserButton({
   userId,
+  isBlocked,
   onBlocked,
 }: {
   userId: string;
+  isBlocked?: boolean;
   onBlocked?: () => void;
 }) {
   const refresh = useRefresh();
@@ -18,12 +20,13 @@ export default function BlockUserButton({
   const [error, setError] = React.useState("");
   const [success, setSuccess] = React.useState(false);
 
-  const handleBlock = async () => {
+  const handleToggleBlock = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Zatrzymaj propagację, aby nie przekierowywać do szczegółów
     setLoading(true);
     setError("");
     setSuccess(false);
     try {
-      const response = await httpClient(`${apiUrl}/block/${userId}`, {
+      await httpClient(`${apiUrl}/block/${userId}`, {
         method: "POST",
       });
       setSuccess(true);
@@ -33,11 +36,14 @@ export default function BlockUserButton({
       }, 2000);
       if (onBlocked) onBlocked();
     } catch (err: any) {
-      console.error("Error blocking user:", err);
+      console.error(
+        `Error ${isBlocked ? "unblocking" : "blocking"} user:`,
+        err
+      );
       const errorMessage =
         err?.body?.message ||
         err?.message ||
-        "Błąd podczas blokowania użytkownika";
+        `Błąd podczas ${isBlocked ? "odblokowania" : "blokowania"} użytkownika`;
       setError(errorMessage);
       setTimeout(() => setError(""), 5000);
     } finally {
@@ -47,7 +53,13 @@ export default function BlockUserButton({
 
   if (success) {
     return (
-      <Tooltip title="Użytkownik został zablokowany">
+      <Tooltip
+        title={
+          isBlocked
+            ? "Użytkownik został odblokowany"
+            : "Użytkownik został zablokowany"
+        }
+      >
         <Button
           variant="contained"
           color="success"
@@ -63,7 +75,7 @@ export default function BlockUserButton({
             },
           }}
         >
-          Zablokowano
+          {isBlocked ? "Odblokowano" : "Zablokowano"}
         </Button>
       </Tooltip>
     );
@@ -71,13 +83,15 @@ export default function BlockUserButton({
 
   return (
     <Box>
-      <Tooltip title="Zablokuj użytkownika">
+      <Tooltip
+        title={isBlocked ? "Odblokuj użytkownika" : "Zablokuj użytkownika"}
+      >
         <Button
           variant="outlined"
-          color="error"
+          color={isBlocked ? "success" : "error"}
           size="small"
-          startIcon={<Block />}
-          onClick={handleBlock}
+          startIcon={isBlocked ? <LockOpen /> : <Block />}
+          onClick={handleToggleBlock}
           disabled={loading}
           sx={{
             minWidth: 120,
@@ -87,12 +101,18 @@ export default function BlockUserButton({
             fontWeight: 500,
             "&:hover": {
               borderWidth: 1.5,
-              backgroundColor: "error.light",
-              color: "error.contrastText",
+              backgroundColor: isBlocked ? "success.light" : "error.light",
+              color: isBlocked ? "success.contrastText" : "error.contrastText",
             },
           }}
         >
-          {loading ? "Blokowanie..." : "Zablokuj"}
+          {loading
+            ? isBlocked
+              ? "Odblokowywanie..."
+              : "Blokowanie..."
+            : isBlocked
+            ? "Odblokuj"
+            : "Zablokuj"}
         </Button>
       </Tooltip>
       {error && (

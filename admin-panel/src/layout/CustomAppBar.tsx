@@ -1,15 +1,14 @@
 import React from "react";
-import { AppBar, TitlePortal, UserMenu, Logout } from "react-admin";
 import {
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
-  IconButton,
-  Tooltip,
-} from "@mui/material";
-import { Brightness4, Brightness7 } from "@mui/icons-material";
+  AppBar,
+  TitlePortal,
+  UserMenu,
+  Logout,
+  ToggleThemeButton,
+  RefreshButton,
+} from "react-admin";
+import { MenuItem, ListItemIcon, ListItemText, Box } from "@mui/material";
 import AddIcon from "@mui/icons-material/PersonAdd";
-import { useThemeMode } from "../contexts/ThemeContext";
 import AddAdminDialog from "./AddAdminDialog";
 
 const AddAdminMenuItem = ({ onClick }: { onClick: () => void }) => (
@@ -23,7 +22,6 @@ const AddAdminMenuItem = ({ onClick }: { onClick: () => void }) => (
 
 export default function CustomAppBar() {
   const [open, setOpen] = React.useState(false);
-  const { mode, toggleMode } = useThemeMode();
 
   return (
     <>
@@ -35,16 +33,10 @@ export default function CustomAppBar() {
           </UserMenu>
         }
         toolbar={
-          <Tooltip title={mode === "dark" ? "Tryb jasny" : "Tryb ciemny"}>
-            <IconButton
-              onClick={toggleMode}
-              color="inherit"
-              sx={{ ml: 1 }}
-              aria-label="Przełącz tryb motywu"
-            >
-              {mode === "dark" ? <Brightness7 /> : <Brightness4 />}
-            </IconButton>
-          </Tooltip>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <RefreshButton />
+            <ToggleThemeButton />
+          </Box>
         }
       >
         <TitlePortal />
