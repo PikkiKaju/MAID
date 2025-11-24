@@ -59,7 +59,10 @@
     "usernameRequired": "Nazwa użytkownika jest wymagana.",
     "passwordRequired": "Hasło jest wymagane.",
     "usernameMinLength": "Nazwa użytkownika musi mieć co najmniej 3 znaki.",
-    "passwordMinLength": "Hasło musi mieć co najmniej 4 znaki."
+    "passwordMinLength": "Hasło musi mieć co najmniej 4 znaki.",
+    "userBlocked": "Twoje konto jest zablokowane do {{date}}.",
+    "userBlockedGeneric": "Twoje konto jest zablokowane.",
+    "invalidCredentials": "Niepoprawna nazwa użytkownika lub hasło."
   },
   "home": {
     "recent": "Ostatnie",

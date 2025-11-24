@@ -59,7 +59,10 @@
     "usernameRequired": "Username is required.",
     "passwordRequired": "Password is required.",
     "usernameMinLength": "Username must be at least 3 characters long.",
-    "passwordMinLength": "Password must be at least 4 characters long."
+    "passwordMinLength": "Password must be at least 4 characters long.",
+    "userBlocked": "Your account is blocked until {{date}}.",
+    "userBlockedGeneric": "Your account is blocked.",
+    "invalidCredentials": "Invalid username or password."
   },
   "home": {
     "recent": "Recent",
