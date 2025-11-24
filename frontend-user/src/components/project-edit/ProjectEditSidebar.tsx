@@ -21,6 +21,7 @@ interface ProjectEditSidebarProps {
   onDatasetChange: (value: string) => void;
   onHasUnsavedChanges: () => void;
   fromPage?: string;
+  isReadOnly?: boolean;
 }
 
 export default function ProjectEditSidebar({
@@ -34,6 +35,7 @@ export default function ProjectEditSidebar({
   onDatasetChange,
   onHasUnsavedChanges,
   fromPage = "/",
+  isReadOnly = false,
 }: ProjectEditSidebarProps) {
   const handleDetailChange = (updates: Partial<ProjectDetail>) => {
     onDetailChange({ ...detail, ...updates });
@@ -65,6 +67,7 @@ export default function ProjectEditSidebar({
         loading={loadingColumns}
         datasetId={meta.datasetId}
         onChange={(value) => handleDetailChange({ xColumn: value })}
+        disabled={isReadOnly}
       />
 
       <ColumnSelect
@@ -75,6 +78,7 @@ export default function ProjectEditSidebar({
         datasetId={meta.datasetId}
         optional
         onChange={(value) => handleDetailChange({ x2Column: value })}
+        disabled={isReadOnly}
       />
 
       <ColumnSelect
@@ -84,16 +88,19 @@ export default function ProjectEditSidebar({
         loading={loadingColumns}
         datasetId={meta.datasetId}
         onChange={(value) => handleDetailChange({ yColumn: value })}
+        disabled={isReadOnly}
       />
 
       <PublicCheckbox
         checked={!!detail.isPublic}
         onChange={(checked) => handleDetailChange({ isPublic: checked })}
+        disabled={isReadOnly}
       />
 
       <StatusSelect
         value={detail.status}
         onChange={(status) => handleDetailChange({ status })}
+        disabled={isReadOnly}
       />
 
       <DatasetSelect
@@ -101,11 +108,13 @@ export default function ProjectEditSidebar({
         datasets={datasets}
         datasetSearch={datasetSearch}
         onChange={onDatasetChange}
+        disabled={isReadOnly}
       />
 
       <AlgorithmSelect
         value={detail.algorithm}
         onChange={(value) => handleDetailChange({ algorithm: value })}
+        disabled={isReadOnly}
       />
 
       <ParameterInputs
@@ -113,6 +122,7 @@ export default function ProjectEditSidebar({
         parameters={detail.parameters}
         onChange={(parameters) => handleDetailChange({ parameters })}
         onHasUnsavedChanges={onHasUnsavedChanges}
+        disabled={isReadOnly}
       />
     </div>
   );

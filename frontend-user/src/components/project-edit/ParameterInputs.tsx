@@ -12,6 +12,7 @@ interface ParameterInputsProps {
   parameters?: Record<string, string | number>;
   onChange: (parameters: Record<string, string | number>) => void;
   onHasUnsavedChanges: () => void;
+  disabled?: boolean;
 }
 
 export default function ParameterInputs({
@@ -19,6 +20,7 @@ export default function ParameterInputs({
   parameters = {},
   onChange,
   onHasUnsavedChanges,
+  disabled = false,
 }: ParameterInputsProps) {
   const config = paramConfig[algorithm];
 
@@ -42,6 +44,7 @@ export default function ParameterInputs({
             <Select
               value={parameters[p.key] ? String(parameters[p.key]) : undefined}
               onValueChange={(value) => handleChange(p.key, value)}
+              disabled={disabled}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Wybierz" />
@@ -60,6 +63,7 @@ export default function ParameterInputs({
               min={p.min}
               value={parameters[p.key] ?? ""}
               onChange={(e) => handleChange(p.key, e.target.value)}
+              disabled={disabled}
               className="border border-border px-2 py-1 w-full rounded bg-input-background dark:bg-input/30 text-card-foreground"
             />
           )}

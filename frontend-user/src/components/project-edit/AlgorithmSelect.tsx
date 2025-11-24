@@ -10,18 +10,20 @@ import { algorithms } from "../../data/algorithms";
 interface AlgorithmSelectProps {
   value: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }
 
 export default function AlgorithmSelect({
   value,
   onChange,
+  disabled = false,
 }: AlgorithmSelectProps) {
   return (
     <div className="mb-6">
       <label className="block text-sm font-medium text-muted-foreground mb-1">
         Metoda obliczeń
       </label>
-      <Select value={value} onValueChange={onChange}>
+      <Select value={value} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger className="w-full">
           <SelectValue />
         </SelectTrigger>

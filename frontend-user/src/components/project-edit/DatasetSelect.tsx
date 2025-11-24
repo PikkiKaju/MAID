@@ -12,6 +12,7 @@ interface DatasetSelectProps {
   datasets: DatasetMetadata[];
   datasetSearch: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }
 
 export default function DatasetSelect({
@@ -19,6 +20,7 @@ export default function DatasetSelect({
   datasets,
   datasetSearch,
   onChange,
+  disabled = false,
 }: DatasetSelectProps) {
   const filteredDatasets = datasets.filter((ds) =>
     ds.name.toLowerCase().includes(datasetSearch.toLowerCase())
@@ -32,6 +34,7 @@ export default function DatasetSelect({
       <Select
         value={value || undefined}
         onValueChange={(val) => onChange(val || "")}
+        disabled={disabled}
       >
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Wybierz dataset" />

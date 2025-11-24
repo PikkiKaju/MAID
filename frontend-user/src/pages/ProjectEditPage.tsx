@@ -34,6 +34,9 @@ export default function ProjectEditPage() {
   // Get the source page from location state, default to "/" if not provided
   const fromPage = (location.state as { from?: string })?.from || "/";
 
+  // If user came from home page, set read-only mode
+  const isReadOnly = fromPage === "/";
+
   // Load project data
   useEffect(() => {
     if (!id || !token) return;
@@ -182,6 +185,7 @@ export default function ProjectEditPage() {
         onDatasetChange={handleDatasetChange}
         onHasUnsavedChanges={() => setHasUnsavedChanges(true)}
         fromPage={fromPage}
+        isReadOnly={isReadOnly}
       />
 
       <div className="flex-1 p-6 relative bg-background text-foreground overflow-y-auto">
@@ -190,6 +194,7 @@ export default function ProjectEditPage() {
           onSave={handleSaveDetails}
           onStartCalculation={handleStartCalculation}
           onDelete={handleDeleteProject}
+          isReadOnly={isReadOnly}
         />
 
         <CalculationResults

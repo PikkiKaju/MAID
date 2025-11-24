@@ -11,9 +11,14 @@ import { useTranslation } from "react-i18next";
 interface StatusSelectProps {
   value?: number;
   onChange: (value: number) => void;
+  disabled?: boolean;
 }
 
-export default function StatusSelect({ value, onChange }: StatusSelectProps) {
+export default function StatusSelect({
+  value,
+  onChange,
+  disabled = false,
+}: StatusSelectProps) {
   const { t } = useTranslation();
   const statusValue = value !== undefined ? getStatusString(value) : "Draft";
 
@@ -26,7 +31,11 @@ export default function StatusSelect({ value, onChange }: StatusSelectProps) {
       <label className="block text-sm font-medium text-muted-foreground mb-1">
         {t("projects.status")}
       </label>
-      <Select value={statusValue} onValueChange={handleChange}>
+      <Select
+        value={statusValue}
+        onValueChange={handleChange}
+        disabled={disabled}
+      >
         <SelectTrigger className="w-full">
           <SelectValue />
         </SelectTrigger>

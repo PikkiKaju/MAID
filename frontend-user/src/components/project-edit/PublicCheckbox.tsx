@@ -1,11 +1,13 @@
 interface PublicCheckboxProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
+  disabled?: boolean;
 }
 
 export default function PublicCheckbox({
   checked,
   onChange,
+  disabled = false,
 }: PublicCheckboxProps) {
   return (
     <div className="mb-4">
@@ -16,6 +18,7 @@ export default function PublicCheckbox({
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
+        disabled={disabled}
         className="mr-2"
       />
       <span>Publiczny</span>

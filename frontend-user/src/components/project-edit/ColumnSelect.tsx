@@ -15,6 +15,7 @@ interface ColumnSelectProps {
   datasetId: string;
   optional?: boolean;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }
 
 export default function ColumnSelect({
@@ -25,7 +26,10 @@ export default function ColumnSelect({
   datasetId,
   optional = false,
   onChange,
+  disabled = false,
 }: ColumnSelectProps) {
+  const isDisabled = disabled || loading;
+
   return (
     <div className="mb-4">
       <label className="block text-sm font-medium text-muted-foreground mb-1">
@@ -38,7 +42,7 @@ export default function ColumnSelect({
             // Zamień specjalną wartość na pusty string
             onChange(val === "__CLEAR__" ? "" : val);
           }}
-          disabled={loading}
+          disabled={isDisabled}
         >
           <SelectTrigger className="w-full">
             <SelectValue placeholder={optional ? "Brak" : "Wybierz kolumnę"} />
@@ -64,7 +68,7 @@ export default function ColumnSelect({
               ? "Ładowanie kolumn..."
               : "Brak dostępnych kolumn"
           }
-          disabled={loading}
+          disabled={isDisabled}
           className="border border-border px-2 py-1 w-full rounded bg-input-background dark:bg-input/30 text-card-foreground"
         />
       )}

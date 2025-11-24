@@ -6,6 +6,7 @@ interface ProjectEditTopbarProps {
   onSave: () => void;
   onStartCalculation: () => void;
   onDelete: () => void;
+  isReadOnly?: boolean;
 }
 
 export default function ProjectEditTopbar({
@@ -13,10 +14,16 @@ export default function ProjectEditTopbar({
   onSave,
   onStartCalculation,
   onDelete,
+  isReadOnly = false,
 }: ProjectEditTopbarProps) {
   return (
     <div className="flex justify-center gap-4 mb-6 p-4 bg-muted/50 rounded-lg border border-border">
-      <Button onClick={onSave} variant="default" className="rounded-full px-6">
+      <Button
+        onClick={onSave}
+        variant="default"
+        className="rounded-full px-6"
+        disabled={isReadOnly}
+      >
         <Save className="h-4 w-4" />
         Zapisz zmiany
       </Button>
@@ -38,6 +45,7 @@ export default function ProjectEditTopbar({
         onClick={onDelete}
         variant="destructive"
         className="rounded-full px-6"
+        disabled={isReadOnly}
       >
         <Trash2 className="h-4 w-4" />
         Usuń projekt
