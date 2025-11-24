@@ -35,6 +35,9 @@ export default function PublicDatasetsSection() {
   const itemsPerPage = 7;
 
   const formattedPublicDatasets = useMemo(() => {
+    if (!Array.isArray(publicDatasets)) {
+      return [];
+    }
     return publicDatasets.map((dataset: Dataset) => {
       const fileType = dataset.dataType === 0 ? "CSV" : "ZIP";
       const uploadDate = formatUploadDate(dataset.createdAt);

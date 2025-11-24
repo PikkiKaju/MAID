@@ -66,3 +66,29 @@ Komponenty do zarządzania projektami:
 Komponenty do zarządzania motywem:
 
 - ThemeProvider, ThemeToggle
+
+#### `/header`
+
+Komponenty nagłówka:
+
+- ProfileDropdown - Menu rozwijane z profilem użytkownika
+
+#### `/project-edit`
+
+Komponenty do edycji projektów:
+
+- ProjectEditSidebar - Boczny panel z formularzem edycji projektu
+- ProjectEditTopbar - Górny pasek narzędzi w edytorze projektu
+- AlgorithmSelect - Wybór algorytmu uczenia maszynowego
+- DatasetSelect - Wybór zbioru danych
+- ColumnSelect - Wybór kolumn z zbioru danych
+- ParameterInputs - Pola do wprowadzania parametrów algorytmu
+- StatusSelect - Wybór statusu projektu
+- PublicCheckbox - Checkbox do ustawienia projektu jako publiczny
+- CalculationResults - Wyświetlanie wyników obliczeń
+
+#### `/toast`
+
+Komponenty do wyświetlania powiadomień:
+
+- ToastProvider - Provider kontekstu do zarządzania powiadomieniami toast
