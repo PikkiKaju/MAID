@@ -30,7 +30,7 @@ export function ContactTab() {
                   dd307860@student.polsl.pl
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  ag307868@student.polsl.pl
+                  iz308058@student.polsl.pl
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
                   {t("help.responseTime")}
