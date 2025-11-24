@@ -4,6 +4,7 @@ import {
   TextField,
   FunctionField,
   ShowButton,
+  DeleteButton,
   DateField,
 } from "react-admin";
 import { Box, Chip, Avatar } from "@mui/material";
@@ -92,24 +93,45 @@ export const ProjectList = () => (
       <FunctionField
         label="Akcje"
         render={(record: any) => (
-          <ShowButton
-            record={record}
-            sx={{
-              "& .RaButton-icon": {
-                fontSize: "1rem",
-              },
-              minWidth: 100,
-              textTransform: "none",
-              borderRadius: 2,
-              fontWeight: 500,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              "&:hover": {
-                boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-                transform: "translateY(-1px)",
-                transition: "all 0.2s",
-              },
-            }}
-          />
+          <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
+            <ShowButton
+              record={record}
+              sx={{
+                "& .RaButton-icon": {
+                  fontSize: "1rem",
+                },
+                minWidth: 100,
+                textTransform: "none",
+                borderRadius: 2,
+                fontWeight: 500,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                "&:hover": {
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+                  transform: "translateY(-1px)",
+                  transition: "all 0.2s",
+                },
+              }}
+            />
+            <DeleteButton
+              record={record}
+              mutationMode="pessimistic"
+              sx={{
+                "& .RaButton-icon": {
+                  fontSize: "1rem",
+                },
+                minWidth: 100,
+                textTransform: "none",
+                borderRadius: 2,
+                fontWeight: 500,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                "&:hover": {
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+                  transform: "translateY(-1px)",
+                  transition: "all 0.2s",
+                },
+              }}
+            />
+          </Box>
         )}
       />
     </Datagrid>

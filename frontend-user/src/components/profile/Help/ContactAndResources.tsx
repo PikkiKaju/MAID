@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../../../ui/card";
 import { Button } from "../../../ui/button";
-import { Mail, FileText, ExternalLink, Github } from "lucide-react";
+import { Mail, FileText, Github } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export function ContactTab() {

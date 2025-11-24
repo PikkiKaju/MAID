@@ -88,8 +88,16 @@ export const dataProvider: DataProvider = {
         resource: string,
         params: DeleteParams<RecordType>
     ): Promise<DeleteResult<RecordType>> => {
-        const deleteUrl = `${apiUrl}/user/${params.id}`;
+        const resourceMap: Record<string, string> = {
+            'users': 'user',
+            'projects': 'project',
+            'datasets': 'dataset',
+        };
         
+        const resourceEndpoint = resourceMap[resource] || resource.slice(0, resource.length - 1);
+        const deleteUrl = `${apiUrl}/${resourceEndpoint}/${params.id}`;
+        
+        console.log(`Usuwanie ${resource} z endpointu: ${deleteUrl}`);
         await httpClient(deleteUrl, { method: 'DELETE' });
         
         const deletedRecord = (params.previousData || { id: params.id }) as RecordType;
@@ -99,10 +107,16 @@ export const dataProvider: DataProvider = {
     },
 
     deleteMany: async (resource, params) => {
-        const resourceName = resource.slice(0, resource.length - 1)
+        const resourceMap: Record<string, string> = {
+            'users': 'user',
+            'projects': 'project',
+            'datasets': 'dataset',
+        };
+        
+        const resourceEndpoint = resourceMap[resource] || resource.slice(0, resource.length - 1);
 
         const deletePromises = params.ids.map(id => {
-            const deleteUrl = `${apiUrl}/${resourceName}/${id}`;
+            const deleteUrl = `${apiUrl}/${resourceEndpoint}/${id}`;
             return httpClient(deleteUrl, { method: 'DELETE' });
         });
 

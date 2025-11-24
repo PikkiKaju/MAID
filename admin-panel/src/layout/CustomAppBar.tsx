@@ -1,7 +1,15 @@
 import React from "react";
 import { AppBar, TitlePortal, UserMenu, Logout } from "react-admin";
-import { MenuItem, ListItemIcon, ListItemText } from "@mui/material";
+import {
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  IconButton,
+  Tooltip,
+} from "@mui/material";
+import { Brightness4, Brightness7 } from "@mui/icons-material";
 import AddIcon from "@mui/icons-material/PersonAdd";
+import { useThemeMode } from "../contexts/ThemeContext";
 import AddAdminDialog from "./AddAdminDialog";
 
 const AddAdminMenuItem = ({ onClick }: { onClick: () => void }) => (
@@ -15,6 +23,7 @@ const AddAdminMenuItem = ({ onClick }: { onClick: () => void }) => (
 
 export default function CustomAppBar() {
   const [open, setOpen] = React.useState(false);
+  const { mode, toggleMode } = useThemeMode();
 
   return (
     <>
@@ -24,6 +33,18 @@ export default function CustomAppBar() {
             <AddAdminMenuItem onClick={() => setOpen(true)} />
             <Logout />
           </UserMenu>
+        }
+        toolbar={
+          <Tooltip title={mode === "dark" ? "Tryb jasny" : "Tryb ciemny"}>
+            <IconButton
+              onClick={toggleMode}
+              color="inherit"
+              sx={{ ml: 1 }}
+              aria-label="Przełącz tryb motywu"
+            >
+              {mode === "dark" ? <Brightness7 /> : <Brightness4 />}
+            </IconButton>
+          </Tooltip>
         }
       >
         <TitlePortal />

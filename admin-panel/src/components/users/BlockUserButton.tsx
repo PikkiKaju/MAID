@@ -1,6 +1,7 @@
 import React from "react";
 import { Button, Tooltip, Box, Alert } from "@mui/material";
 import { Block, CheckCircle } from "@mui/icons-material";
+import { useRefresh } from "react-admin";
 import { httpClient, ASP_NET_API_URL } from "../../api/httpClient";
 
 const apiUrl = `${ASP_NET_API_URL}/Admin`;
@@ -12,6 +13,7 @@ export default function BlockUserButton({
   userId: string;
   onBlocked?: () => void;
 }) {
+  const refresh = useRefresh();
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
   const [success, setSuccess] = React.useState(false);
@@ -21,12 +23,22 @@ export default function BlockUserButton({
     setError("");
     setSuccess(false);
     try {
-      await httpClient(`${apiUrl}/block/${userId}`, { method: "POST" });
+      const response = await httpClient(`${apiUrl}/block/${userId}`, {
+        method: "POST",
+      });
       setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      setTimeout(() => {
+        setSuccess(false);
+        refresh(); // Odśwież listę użytkowników
+      }, 2000);
       if (onBlocked) onBlocked();
     } catch (err: any) {
-      setError(err.message || "Błąd podczas blokowania użytkownika");
+      console.error("Error blocking user:", err);
+      const errorMessage =
+        err?.body?.message ||
+        err?.message ||
+        "Błąd podczas blokowania użytkownika";
+      setError(errorMessage);
       setTimeout(() => setError(""), 5000);
     } finally {
       setLoading(false);

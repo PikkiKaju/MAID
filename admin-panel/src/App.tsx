@@ -13,14 +13,16 @@ import { DatasetList, DatasetEdit } from "./components/datasets";
 import CustomLayout from "./layout/CustomLayout";
 import CustomLoginPage from "./layout/CustomLoginPage";
 
-function App() {
+function AppContent() {
   const { mode } = useThemeMode();
   const theme = mode === "dark" ? darkTheme : lightTheme;
 
+  // Użyj key aby wymusić re-render gdy zmienia się motyw
   return (
     <MuiThemeProvider theme={theme}>
       <CssBaseline />
       <Admin
+        key={mode} // To wymusi re-render Admin component przy zmianie motywu
         authProvider={authProvider}
         dataProvider={dataProvider}
         layout={CustomLayout}
@@ -35,6 +37,10 @@ function App() {
       </Admin>
     </MuiThemeProvider>
   );
+}
+
+function App() {
+  return <AppContent />;
 }
 
 export default App;
