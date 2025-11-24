@@ -24,8 +24,8 @@ class TrainParams:
     optimizer: str = "adam"
     loss: str = "mse"
     metrics: List[str] | None = None
-    epochs: int = 10
-    batch_size: int = 32
+    epochs: int = 100
+    batch_size: int = 25
     validation_split: float = 0.1
     test_split: float = 0.1
     y_one_hot: bool = False
@@ -45,6 +45,18 @@ class TrainParams:
     rlrop_factor: float = 0.1
     rlrop_patience: int = 3
     rlrop_min_lr: float = 1e-6
+    # Gradient Clipping
+    clipnorm: float | None = None
+    clipvalue: float | None = None
+    # Auto-Balancing
+    auto_balance: bool = False
+    # Learning Rate Schedule
+    lr_schedule: str = "constant"
+    lr_decay_steps: int = 1000
+    lr_decay_rate: float = 0.96
+    # Checkpointing & Logs
+    save_best_model: bool = False
+    save_training_logs: bool = False
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "TrainParams":
@@ -73,6 +85,14 @@ class TrainParams:
             rlrop_factor=float(data.get("rlrop_factor", 0.1)),
             rlrop_patience=int(data.get("rlrop_patience", 3)),
             rlrop_min_lr=float(data.get("rlrop_min_lr", 1e-6)),
+            clipnorm=(float(data["clipnorm"]) if data.get("clipnorm") not in (None, "") else None),
+            clipvalue=(float(data["clipvalue"]) if data.get("clipvalue") not in (None, "") else None),
+            auto_balance=bool(str(data.get("auto_balance", "false")).lower() in {"1", "true", "yes", "on"}),
+            lr_schedule=str(data.get("lr_schedule", "constant")),
+            lr_decay_steps=int(data.get("lr_decay_steps", 1000)),
+            lr_decay_rate=float(data.get("lr_decay_rate", 0.96)),
+            save_best_model=bool(str(data.get("save_best_model", "false")).lower() in {"1", "true", "yes", "on"}),
+            save_training_logs=bool(str(data.get("save_training_logs", "false")).lower() in {"1", "true", "yes", "on"}),
         )
 
 
@@ -324,7 +344,21 @@ def run_training_job(job_id: str) -> None:
             raise ValueError(message)
 
         # 7) Compile model with normalized metrics
-        opt = optimizers.get(params.optimizer)
+        opt_config: Dict[str, Any] = {}
+        if params.clipnorm is not None:
+            opt_config['clipnorm'] = params.clipnorm
+        if params.clipvalue is not None:
+            opt_config['clipvalue'] = params.clipvalue
+
+        try:
+            # Get the class from the string name
+            opt_instance = optimizers.get(params.optimizer)
+            opt_class = opt_instance.__class__
+            # Re-instantiate with user params
+            opt = opt_class(**opt_config)
+        except Exception:
+            # Fallback
+            opt = optimizers.get(params.optimizer)
         # Apply learning rate override if provided
         try:
             if params.learning_rate is not None and hasattr(opt, "learning_rate"):
@@ -356,7 +390,7 @@ def run_training_job(job_id: str) -> None:
         # 8) Fit
         # Callback to push progress and live metrics after each epoch
         from tensorflow.keras.callbacks import Callback  # type: ignore
-        from keras.callbacks import EarlyStopping, ReduceLROnPlateau  # type: ignore
+        from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint, CSVLogger  # type: ignore
 
         class _JobProgressCallback(Callback):  # pragma: no cover - relies on Keras runtime
             def __init__(self, jid: str, total_epochs: int):
@@ -445,6 +479,38 @@ def run_training_job(job_id: str) -> None:
         cb = _JobProgressCallback(str(job.id), params.epochs)
         # Add optional callbacks
         callbacks_list: List[Any] = [cb]
+        
+        # Checkpointing & Logs
+        best_model_path = None
+        log_path = None
+        
+        if params.save_best_model:
+
+            # Use a temp name to avoid collision with the final storage key if using local storage
+            best_model_path = os.path.join(_ensure_artifacts_dir(), f"temp_{job.id}_best.keras")
+            try:
+                callbacks_list.append(ModelCheckpoint(
+                    filepath=best_model_path,
+                    save_best_only=True,
+                    monitor=params.es_monitor, # Reuse ES monitor or default to val_loss
+                    mode=params.es_mode,
+                    verbose=0
+                ))
+            except Exception:
+                pass
+                
+        if params.save_training_logs:
+            # Use a temp name
+            log_path = os.path.join(_ensure_artifacts_dir(), f"temp_{job.id}_log.csv")
+            try:
+                callbacks_list.append(CSVLogger(
+                    filename=log_path,
+                    separator=',',
+                    append=False
+                ))
+            except Exception:
+                pass
+
         if params.early_stopping:
             try:
                 callbacks_list.append(
@@ -515,31 +581,78 @@ def run_training_job(job_id: str) -> None:
         import tempfile, shutil
 
         tmpf = None
+        tmp_path = None
         try:
             tmpf = tempfile.NamedTemporaryFile(delete=False, suffix=".keras")
             tmp_path = tmpf.name
             tmpf.close()
             model.save(tmp_path)
-            # Upload to storage under artifacts/<job.id>.keras
-            key = f"artifacts/{job.id}.keras"
-            with open(tmp_path, "rb") as fh:
-                saved = storage.save_file(key, fh)
-            job.artifact_path = str(saved)
+
+            artifacts_dir = _ensure_artifacts_dir()
+            os.makedirs(artifacts_dir, exist_ok=True)
+            final_path = os.path.join(artifacts_dir, f"{job.id}.keras")
+            # Replace existing artifact if retraining the same job id
+            try:
+                os.replace(tmp_path, final_path)
+                tmp_path = None
+            except Exception:
+                # Fallback to copy if replace fails across filesystems
+                shutil.copy2(tmp_path, final_path)
+            job.artifact_path = final_path
         except Exception as exc:
             # Saving is optional in phase 1; continue even if save fails
             job.error = job.error + f"\nArtifact save warning: {exc}" if job.error else f"Artifact save warning: {exc}"
         finally:
             try:
-                if tmpf:
-                    if os.path.exists(tmp_path):
-                        os.remove(tmp_path)
+                if tmp_path and os.path.exists(tmp_path):
+                    os.remove(tmp_path)
             except Exception:
                 pass
+
+        # Upload best model if exists
+        best_model_artifact = None
+        if params.save_best_model and best_model_path and os.path.exists(best_model_path):
+            try:
+                best_dest = os.path.join(_ensure_artifacts_dir(), f"{job.id}_best.keras")
+                try:
+                    os.replace(best_model_path, best_dest)
+                except Exception:
+                    shutil.copy2(best_model_path, best_dest)
+                best_model_artifact = best_dest
+            except Exception as e:
+                print(f"Failed to save best model artifact: {e}")
+            finally:
+                try:
+                    if os.path.exists(best_model_path):
+                        os.remove(best_model_path)
+                except Exception:
+                    pass
+        
+        # Upload logs if exists
+        training_log_artifact = None
+        if params.save_training_logs and log_path and os.path.exists(log_path):
+            try:
+                log_dest = os.path.join(_ensure_artifacts_dir(), f"{job.id}_log.csv")
+                try:
+                    os.replace(log_path, log_dest)
+                except Exception:
+                    shutil.copy2(log_path, log_dest)
+                training_log_artifact = log_dest
+            except Exception as e:
+                print(f"Failed to save training log artifact: {e}")
+            finally:
+                try:
+                    if os.path.exists(log_path):
+                        os.remove(log_path)
+                except Exception:
+                    pass
 
         # 11) Persist results
         job.result = {
             "history": {k: [float(x) for x in v] for k, v in (history.history or {}).items()},
             "evaluation": eval_res,
+            "best_model_artifact": best_model_artifact,
+            "training_log_artifact": training_log_artifact,
         }
         job.status = TrainingStatus.SUCCEEDED
         job.progress = 1.0

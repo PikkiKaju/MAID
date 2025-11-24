@@ -96,7 +96,8 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
         nodes_payload, edges_payload = self._resolve_graph_payload(graph, None)
 
         try:
-            result = compile_graph(nodes_payload, edges_payload)
+            # Relax strict manifest checks to allow any valid Keras model
+            result = compile_graph(nodes_payload, edges_payload, strict=False)
         except GraphValidationError as exc:
             return Response(getattr(exc, "detail", str(exc)), status=status.HTTP_400_BAD_REQUEST)
         except Exception as exc:  # pragma: no cover - defensive catch to surface error
@@ -124,7 +125,8 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
         nodes_payload, edges_payload = self._resolve_graph_payload(None, request.data)
 
         try:
-            result = compile_graph(nodes_payload, edges_payload)
+            # Relax strict manifest checks to allow any valid Keras model
+            result = compile_graph(nodes_payload, edges_payload, strict=False)
         except GraphValidationError as exc:
             return Response(getattr(exc, "detail", str(exc)), status=status.HTTP_400_BAD_REQUEST)
         except Exception as exc:  # pragma: no cover - defensive catch to surface error
@@ -142,10 +144,12 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
         nodes_payload, edges_payload = self._resolve_graph_payload(graph, request.query_params)
 
         try:
+            # Relax strict manifest checks to allow exporting any valid Keras model
             script = export_graph_to_python_script(
                 nodes_payload,
                 edges_payload,
                 model_name=graph.name,
+                strict=False,
             )
         except GraphValidationError as exc:
             return Response(getattr(exc, "detail", str(exc)), status=status.HTTP_400_BAD_REQUEST)
@@ -167,10 +171,12 @@ class NetworkGraphViewSet(viewsets.ModelViewSet):
         model_name = request.data.get("name", "model")
 
         try:
+            # Relax strict manifest checks to allow exporting any valid Keras model
             script = export_graph_to_python_script(
                 nodes_payload,
                 edges_payload,
                 model_name=model_name,
+                strict=False,
             )
         except GraphValidationError as exc:
             return Response(getattr(exc, "detail", str(exc)), status=status.HTTP_400_BAD_REQUEST)

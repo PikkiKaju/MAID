@@ -41,6 +41,26 @@ export type TrainingConfigState = {
   setRlrPatience: (v: number) => void;
   rlrMinLR: number;
   setRlrMinLR: (v: number) => void;
+  // Gradient Clipping
+  clipnorm: number | '';
+  setClipnorm: (v: number | '') => void;
+  clipvalue: number | '';
+  setClipvalue: (v: number | '') => void;
+  // Auto-Balancing
+  autoBalance: boolean;
+  setAutoBalance: (v: boolean) => void;
+  // Learning Rate Schedule
+  lrSchedule: string;
+  setLrSchedule: (v: string) => void;
+  lrDecaySteps: number;
+  setLrDecaySteps: (v: number) => void;
+  lrDecayRate: number;
+  setLrDecayRate: (v: number) => void;
+  // Checkpointing & Logs
+  saveBestModel: boolean;
+  setSaveBestModel: (v: boolean) => void;
+  saveTrainingLogs: boolean;
+  setSaveTrainingLogs: (v: boolean) => void;
   // Training job state (persist across tabs)
   jobId: string | null;
   setJobId: (v: string | null) => void;

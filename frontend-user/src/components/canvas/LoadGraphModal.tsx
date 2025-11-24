@@ -98,25 +98,25 @@ export default function LoadGraphModal({ open, onOpenChange, onLoad }: Props) {
 
         <div className="flex-1 overflow-y-auto pr-2">
           {success && (
-            <div className="mb-3 bg-green-50 border border-green-200 rounded p-2 text-green-700 text-sm">
+            <div className="mb-3 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 rounded p-2 text-emerald-700 dark:text-emerald-200 text-sm">
               {success}
             </div>
           )}
           {loading && (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="animate-spin mr-2" size={24} />
-              <span className="text-sm text-slate-600">Loading graphs...</span>
+              <span className="text-sm text-muted-foreground">Loading graphs...</span>
             </div>
           )}
 
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded p-4 text-sm text-red-700">
+            <div className="bg-destructive/10 border border-destructive/30 rounded p-4 text-sm text-destructive">
               {error}
             </div>
           )}
 
           {!loading && !error && graphs.length === 0 && (
-            <div className="text-center py-12 text-slate-500">
+            <div className="text-center py-12 text-muted-foreground">
               <Layers size={48} className="mx-auto mb-4 opacity-50" />
               <p className="text-sm">No saved graphs found</p>
               <p className="text-xs mt-2">Create and save a graph to see it here</p>
@@ -128,19 +128,19 @@ export default function LoadGraphModal({ open, onOpenChange, onLoad }: Props) {
               {graphs.map((graph) => (
                 <div
                   key={graph.id}
-                  className="border rounded-lg p-4 hover:border-blue-500 hover:bg-blue-50/50 transition group"
+                  className="border border-border rounded-lg p-4 hover:border-primary hover:bg-primary/5 transition group"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1 cursor-pointer" onClick={() => handleLoadGraph(graph)}>
-                      <h3 className="font-semibold text-slate-800 group-hover:text-blue-700">
+                      <h3 className="font-semibold text-foreground group-hover:text-primary">
                         {graph.name || 'Untitled Graph'}
                       </h3>
                       {graph.description && (
-                        <p className="text-sm text-slate-600 mt-1 line-clamp-2">
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                           {graph.description}
                         </p>
                       )}
-                      <div className="mt-2 text-xs text-slate-500 flex flex-col gap-1">
+                      <div className="mt-2 text-xs text-muted-foreground flex flex-col gap-1">
                         <span className="flex items-center gap-1 whitespace-nowrap">
                           <Calendar size={12} />
                           {formatDate(graph.updated_at || graph.created_at)}
@@ -150,7 +150,7 @@ export default function LoadGraphModal({ open, onOpenChange, onLoad }: Props) {
                           {(graph.nodes || []).length} layers
                         </span>
                         {graph.framework && (
-                          <span className="bg-slate-100 px-2 py-0.5 rounded whitespace-nowrap w-fit">
+                          <span className="bg-muted px-2 py-0.5 rounded whitespace-nowrap w-fit">
                             {graph.framework}
                           </span>
                         )}
@@ -171,7 +171,7 @@ export default function LoadGraphModal({ open, onOpenChange, onLoad }: Props) {
                       <div className="h-8 flex items-center">
                         {confirmDeleteId === graph.id ? (
                           <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-600 whitespace-nowrap">Delete?</span>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">Delete?</span>
                             <Button
                               size="sm"
                               variant="destructive"
@@ -191,7 +191,7 @@ export default function LoadGraphModal({ open, onOpenChange, onLoad }: Props) {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="opacity-0 group-hover:opacity-100 transition text-red-600 border-red-200 hover:bg-red-50"
+                            className="opacity-0 group-hover:opacity-100 transition text-destructive border-destructive/30 hover:bg-destructive/10"
                             onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(graph.id || null); }}
                           >
                             Delete

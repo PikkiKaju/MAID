@@ -115,16 +115,16 @@ export default function LayerPalette() {
       {layerCategories.map(category => {
         const opened = openGroups[category.id];
         return (
-          <div key={category.id} className='border rounded bg-white/60 backdrop-blur-sm shadow-sm overflow-hidden'>
+          <div key={category.id} className='border border-border rounded bg-card/60 backdrop-blur-sm shadow-sm overflow-hidden'>
             <button
               type='button'
               onClick={() => toggleGroup(category.id)}
-              className='w-full flex items-center justify-between px-2 py-1 text-left text-[11px] font-semibold text-slate-600 hover:bg-slate-100 rounded-t'
+              className='w-full flex items-center justify-between px-2 py-1 text-left text-[11px] font-semibold text-muted-foreground hover:bg-accent rounded-t'
             >
               <span className='flex items-center gap-2'>
-                {opened ? <ChevronDown size={14}/> : <ChevronRight size={14}/>} {category.name}
+                {opened ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {category.name}
               </span>
-              <span className='text-[10px] font-normal text-slate-400'>{category.layers.length}</span>
+              <span className='text-[10px] font-normal text-muted-foreground/70'>{category.layers.length}</span>
             </button>
             {opened && (
               <div className='p-2 pt-0 grid gap-1 overflow-y-auto'>
@@ -136,13 +136,13 @@ export default function LayerPalette() {
                       draggable
                       onDragStart={(e) => handleDragStart(e, p)}
                       onClick={() => addNode(p.type, p.defaults)}
-                      className='w-full text-left px-2 py-1 rounded border bg-white hover:border-blue-500 hover:bg-blue-50 transition cursor-grab active:cursor-grabbing box-border'
+                      className='w-full text-left px-2 py-1 rounded border border-border bg-card hover:border-primary hover:bg-primary/5 transition cursor-grab active:cursor-grabbing box-border'
                       title='Drag to canvas or click to add'
                     >
-                      <span className='block text-[11px] font-medium text-slate-700'>{p.label}</span>
+                      <span className='block text-[11px] font-medium text-foreground'>{p.label}</span>
                       {Object.keys(p.defaults).length > 0 && (
-                        <span className='block text-[9px] text-slate-400 whitespace-normal break-words'>
-                          {Object.keys(p.defaults).slice(0,3).join(', ')}
+                        <span className='block text-[9px] text-muted-foreground whitespace-normal break-words'>
+                          {Object.keys(p.defaults).slice(0, 3).join(', ')}
                         </span>
                       )}
                     </button>

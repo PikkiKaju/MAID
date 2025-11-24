@@ -27,16 +27,16 @@ export interface DatasetPreprocessingConfig {
   // Column handling
   categoricalEncoding: 'one-hot' | 'label' | 'remove';
   missingValueStrategy: 'remove-rows' | 'fill-mean' | 'fill-median' | 'fill-mode' | 'fill-zero';
-  
+
   // Feature scaling
   normalizationMethod: 'standard' | 'minmax' | 'none';
-  
+
   // Data splitting
   trainSplit: number;
   validationSplit: number;
   testSplit: number;
   randomSeed: number;
-  
+
   // Target configuration
   targetColumn: string | null;
   // When target is categorical, select how to encode it for training
@@ -49,7 +49,7 @@ export interface ProcessedDataset {
   cleaned?: CsvRow[]; // Rows after cleaning (missing values handled, rows removed, etc.)
   columns: ColumnInfo[];
   preprocessingConfig: DatasetPreprocessingConfig;
-  
+
   // Processed splits
   trainData?: {
     X: number[][];
@@ -60,11 +60,16 @@ export interface ProcessedDataset {
     X: number[][];
     y: number[];
   };
+  transformed?: {
+    X: number[][];
+    y: number[];
+    featureNames: string[];
+  };
   testData?: {
     X: number[][];
     y: number[];
   };
-  
+
   // Metadata
   datasetName: string;
   datasetId?: string;
@@ -92,7 +97,7 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
 
   const updatePreprocessingConfig = (config: Partial<DatasetPreprocessingConfig>) => {
     if (!dataset) return;
-    
+
     setDatasetState({
       ...dataset,
       preprocessingConfig: {
@@ -114,9 +119,9 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
     // 2) Build per-column arrays
     // Keep raw rows aligned via index
     let rows = [...dataset.original];
-    
+
     // Create a cleaned rows copy that we'll update with filled values
-    let cleanedRows = rows.map(r => ({...r}));
+    let cleanedRows = rows.map(r => ({ ...r }));
 
     // Helper to detect missing according to config
     const isMissing = (val: unknown) => {
@@ -139,7 +144,7 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
         validIndices.push(idx);
       });
       rows = validIndices.map(i => rows[i]);
-      cleanedRows = validIndices.map(i => ({...cleanedRows[i]}));
+      cleanedRows = validIndices.map(i => ({ ...cleanedRows[i] }));
     }
 
     // 4) Convert features to numeric arrays / categorical values as needed
@@ -300,6 +305,7 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
 
     const Xclean = validIndices.map((i) => X[i]);
     const yclean = validIndices.map((i) => y[i]);
+    const cleanedFilteredRows = validIndices.map((i) => cleanedRows[i]);
 
     // 8) Split data
     const splits = splitData(
@@ -320,10 +326,11 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
     // 9) Persist processed splits into dataset
     setDatasetState({
       ...dataset,
-      cleaned: cleanedRows, // Store the cleaned rows with filled values for preview
+      cleaned: cleanedFilteredRows, // Store rows aligned with transformed data for preview
       trainData: { X: trainX, y: trainY, featureNames },
       validationData: { X: valX, y: valY },
       testData: { X: testX, y: testY },
+      transformed: { X: Xclean, y: yclean, featureNames },
       isProcessed: true,
     });
   };

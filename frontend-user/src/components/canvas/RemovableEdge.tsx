@@ -20,7 +20,12 @@ function RemovableEdge(props: EdgeProps) {
       <BaseEdge
         path={path}
         markerEnd={markerEnd}
-        style={{ ...style, strokeWidth: selected ? 2.5 : 2, stroke: selected ? '#2563eb' : style?.stroke || '#555' }}
+        style={{
+          ...style,
+          strokeWidth: selected ? 2.5 : 2,
+          stroke: selected ? 'var(--primary)' : 'var(--muted-foreground)',
+          opacity: 1
+        }}
         interactionWidth={24}
       />
       <EdgeLabelRenderer>

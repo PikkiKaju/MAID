@@ -249,6 +249,14 @@ const networkGraphService = {
       rlrop_factor?: number;
       rlrop_patience?: number;
       rlrop_min_lr?: number;
+      clipnorm?: number;
+      clipvalue?: number;
+      auto_balance?: boolean;
+      lr_schedule?: string;
+      lr_decay_steps?: number;
+      lr_decay_rate?: number;
+      save_best_model?: boolean;
+      save_training_logs?: boolean;
     }
   ) => {
     const payload: Record<string, unknown> = {
@@ -286,6 +294,14 @@ const networkGraphService = {
     assign('rlrop_factor', options.rlrop_factor);
     assign('rlrop_patience', options.rlrop_patience);
     assign('rlrop_min_lr', options.rlrop_min_lr);
+    assign('clipnorm', options.clipnorm);
+    assign('clipvalue', options.clipvalue);
+    assign('auto_balance', options.auto_balance);
+    assign('lr_schedule', options.lr_schedule);
+    assign('lr_decay_steps', options.lr_decay_steps);
+    assign('lr_decay_rate', options.lr_decay_rate);
+    assign('save_best_model', options.save_best_model);
+    assign('save_training_logs', options.save_training_logs);
 
     if (USE_PRESIGNED_UPLOADS) {
       const presignResp = await djangoClient.post(`network/graphs/${graphId}/presign-upload/`, payload, {
@@ -360,10 +376,10 @@ const networkGraphService = {
   // Download artifact: backend may either return a presigned JSON {url: ...}
   // or stream the file directly. We first attempt to fetch JSON, then
   // fall back to a blob request if the server streams binary data.
-  downloadArtifact: async (jobId: string): Promise<Blob | { url: string } | string> => {
+  downloadArtifact: async (jobId: string, artifactType: 'final' | 'best' | 'log' | 'tflite' = 'final'): Promise<Blob | { url: string } | string> => {
     // try JSON response first (presigned URL)
     try {
-      const respJson = await djangoClient.get(`network/training-jobs/${jobId}/artifact/`);
+      const respJson = await djangoClient.get(`network/training-jobs/${jobId}/artifact/?type=${artifactType}`);
       if (respJson.status === 200 && respJson.data) {
         // If backend returned a presigned url object, return it
         if (typeof respJson.data === 'object' && respJson.data.url) {
@@ -379,7 +395,7 @@ const networkGraphService = {
     }
 
     // Fallback: request binary stream
-    const resp = await djangoClient.get(`network/training-jobs/${jobId}/artifact/`, { responseType: 'blob' });
+    const resp = await djangoClient.get(`network/training-jobs/${jobId}/artifact/?type=${artifactType}`, { responseType: 'blob' });
     if (resp.status === 200) return resp.data as Blob;
     throw new Error('Failed to download artifact');
   },
@@ -389,11 +405,18 @@ const networkGraphService = {
    * - If backend returns a presigned URL ({url}), opens that URL in a new tab.
    * - If backend streams a Blob, creates an object URL and triggers a download.
    */
-  downloadArtifactToBrowser: async (jobId: string, filename: string = 'model.keras'): Promise<void> => {
+  downloadArtifactToBrowser: async (jobId: string, artifactType: 'final' | 'best' | 'log' | 'tflite' = 'final'): Promise<void> => {
     // Inline fetch similar to downloadArtifact to avoid circular typing issues
     // Try JSON/presigned URL first
+    const endpoint = `network/training-jobs/${jobId}/artifact/?type=${artifactType}`;
+    // Determine a friendly filename for fallback blob download
+    let filename = `job_${jobId}_model.keras`;
+    if (artifactType === 'best') filename = `job_${jobId}_best_model.keras`;
+    if (artifactType === 'log') filename = `job_${jobId}_training_log.csv`;
+    if (artifactType === 'tflite') filename = `job_${jobId}_model.tflite`;
+
     try {
-      const respJson = await djangoClient.get(`network/training-jobs/${jobId}/artifact/`);
+      const respJson = await djangoClient.get(endpoint);
       if (respJson.status === 200 && respJson.data) {
         if (typeof respJson.data === 'object' && 'url' in respJson.data) {
           const url = String((respJson.data as unknown as { url?: string }).url ?? '');
@@ -420,7 +443,7 @@ const networkGraphService = {
     }
 
     // Fallback: fetch binary blob and trigger download
-    const resp = await djangoClient.get(`network/training-jobs/${jobId}/artifact/`, { responseType: 'blob' });
+    const resp = await djangoClient.get(endpoint, { responseType: 'blob' });
     if (resp.status === 200 && resp.data instanceof Blob) {
       const blob: Blob = resp.data;
       const blobUrl = URL.createObjectURL(blob);
@@ -435,6 +458,12 @@ const networkGraphService = {
     }
 
     throw new Error('Failed to download artifact');
+  },
+
+  exportModel: async (jobId: string, format: 'tflite'): Promise<void> => {
+    const resp = await djangoClient.post(`network/training-jobs/${jobId}/export/`, { format });
+    if (resp.status === 202) return;
+    throw new Error('Failed to start model export');
   },
 };
 

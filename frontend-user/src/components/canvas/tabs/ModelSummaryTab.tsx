@@ -118,9 +118,9 @@ export default function ModelSummaryTab() {
   }
 
   return (
-    <div className="h-full flex flex-col p-4 bg-slate-50">
+    <div className="h-full flex flex-col p-4 bg-background">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-800">Model Summary</h2>
+        <h2 className="text-lg font-semibold text-foreground">Model Summary</h2>
         <Button onClick={generateSummary} disabled={loading}>
           <RefreshCw size={16} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
           {loading ? 'Generating...' : 'Generate Summary'}
@@ -129,52 +129,52 @@ export default function ModelSummaryTab() {
 
       <div className="flex-1 overflow-auto">
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 flex items-start gap-3">
-            <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-4 flex items-start gap-3">
+            <AlertCircle size={20} className="text-destructive flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-red-800">Error generating summary</p>
-              <p className="text-sm text-red-600 mt-1">{error}</p>
+              <p className="text-sm font-medium text-destructive">Error generating summary</p>
+              <p className="text-sm text-destructive mt-1">{error}</p>
             </div>
           </div>
         )}
 
         {!summary ? (
-          <div className="bg-white border rounded-lg p-8 text-center">
-            <Layers size={64} className="mx-auto mb-4 text-slate-300" />
-            <h3 className="text-lg font-medium text-slate-600 mb-2">No Model Summary Available</h3>
-            <p className="text-sm text-slate-500 mb-6">
+          <div className="bg-card border border-border rounded-lg p-8 text-center">
+            <Layers size={64} className="mx-auto mb-4 text-muted" />
+            <h3 className="text-lg font-medium text-muted-foreground mb-2">No Model Summary Available</h3>
+            <p className="text-sm text-muted-foreground mb-6">
               Click "Generate Summary" to compile your model and view its structure
             </p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">
               This will show layer names, output shapes, and parameter counts
             </p>
           </div>
         ) : (
-          <div className="bg-white border rounded-lg overflow-hidden">
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
             {/* Summary Header */}
-            <div className="bg-slate-800 text-white px-4 py-3">
+            <div className="bg-muted text-foreground px-4 py-3">
               <h3 className="font-mono text-sm">Model: "network_model"</h3>
             </div>
 
             {/* Layers Table */}
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-slate-100 border-b-2 border-slate-300">
+                <thead className="bg-muted/50 border-b-2 border-border">
                   <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-slate-700">Layer (type)</th>
-                    <th className="px-4 py-3 text-left font-semibold text-slate-700">Output Shape</th>
-                    <th className="px-4 py-3 text-right font-semibold text-slate-700">Param #</th>
+                    <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Layer (type)</th>
+                    <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Output Shape</th>
+                    <th className="px-4 py-3 text-right font-semibold text-muted-foreground">Param #</th>
                   </tr>
                 </thead>
                 <tbody className="font-mono">
                   {summary.map((layer, idx) => (
-                    <tr key={idx} className="border-b hover:bg-slate-50">
+                    <tr key={idx} className="border-b border-border hover:bg-muted/50">
                       <td className="px-4 py-3">
-                        <div className="font-medium">{layer.name}</div>
-                        <div className="text-xs text-slate-500">({layer.type})</div>
+                        <div className="font-medium text-foreground">{layer.name}</div>
+                        <div className="text-xs text-muted-foreground">({layer.type})</div>
                       </td>
-                      <td className="px-4 py-3 text-slate-600">{layer.outputShape}</td>
-                      <td className="px-4 py-3 text-right text-slate-800 font-medium">
+                      <td className="px-4 py-3 text-muted-foreground">{layer.outputShape}</td>
+                      <td className="px-4 py-3 text-right text-foreground font-medium">
                         {layer.params.toLocaleString()}
                       </td>
                     </tr>
@@ -184,18 +184,18 @@ export default function ModelSummaryTab() {
             </div>
 
             {/* Summary Footer */}
-            <div className="border-t-2 border-slate-300 bg-slate-50 px-4 py-3 space-y-1 font-mono text-sm">
+            <div className="border-t-2 border-border bg-muted/30 px-4 py-3 space-y-1 font-mono text-sm">
               <div className="flex justify-between">
-                <span className="text-slate-600">Total params:</span>
-                <span className="font-semibold text-slate-800">{totalParams.toLocaleString()}</span>
+                <span className="text-muted-foreground">Total params:</span>
+                <span className="font-semibold text-foreground">{totalParams.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-600">Trainable params:</span>
-                <span className="font-semibold text-slate-800">{totalParams.toLocaleString()}</span>
+                <span className="text-muted-foreground">Trainable params:</span>
+                <span className="font-semibold text-foreground">{totalParams.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-600">Non-trainable params:</span>
-                <span className="font-semibold text-slate-800">0</span>
+                <span className="text-muted-foreground">Non-trainable params:</span>
+                <span className="font-semibold text-foreground">0</span>
               </div>
             </div>
           </div>

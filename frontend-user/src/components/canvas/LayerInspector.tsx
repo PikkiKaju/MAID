@@ -114,10 +114,10 @@ export default function LayerInspector() {
 
   return (
     <div className='space-y-3'>
-      <h3 className='font-semibold text-slate-700 text-sm'>{layerName} Parameters</h3>
-      {!node && <p className='text-sm text-slate-500'>Select a layer to edit its parameters.</p>}
-      {loading && <p className='text-xs text-slate-500'>Loading parameter definitions…</p>}
-      {error && <p className='text-xs text-rose-600'>Failed to load: {error}</p>}
+      <h3 className='font-semibold text-foreground text-sm'>{layerName} Parameters</h3>
+      {!node && <p className='text-sm text-muted-foreground'>Select a layer to edit its parameters.</p>}
+      {loading && <p className='text-xs text-muted-foreground'>Loading parameter definitions…</p>}
+      {error && <p className='text-xs text-destructive'>Failed to load: {error}</p>}
 
       {node && paramsSpec && paramsSpec.length > 0 ? (
         paramsSpec.map((p) => {
@@ -129,16 +129,16 @@ export default function LayerInspector() {
             <label
               key={p.name}
               id={`param-field-${p.name}`}
-              className={`block text-xs mb-2 rounded ${highlightedParamName === p.name ? 'ring-2 ring-amber-400 border-amber-400 bg-amber-50 animate-pulse' : ''}`}
+              className={`block text-xs mb-2 rounded ${highlightedParamName === p.name ? 'ring-2 ring-yellow-400 dark:ring-yellow-600 border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/30 animate-pulse' : ''}`}
             >
               <span className='font-medium inline-flex items-center gap-1'>
                 {p.name}
-                {p.required && <span className='text-rose-500'>*</span>}
+                {p.required && <span className='text-destructive'>*</span>}
                 {p.doc && <Tooltip content={p.doc} />}
               </span>
               {p.enum && p.enum.length > 0 ? (
                 <select
-                  className={`mt-1 w-full border rounded px-2 py-1 text-xs bg-white ${isEmptyRequired ? 'border-rose-400 ring-1 ring-rose-200' : ''}`}
+                  className={`mt-1 w-full border rounded px-2 py-1 text-xs bg-background text-foreground ${isEmptyRequired ? 'border-destructive ring-1 ring-destructive/30' : 'border-border'}`}
                   value={String(v)}
                   onChange={(e) => handleParamChange(p.name, e.target.value, typeHint)}
                   onKeyDown={stopKeyPropagation}
@@ -158,11 +158,11 @@ export default function LayerInspector() {
                     onChange={(e) => handleParamChange(p.name, e.target.checked, typeHint)}
                     onKeyDown={stopKeyPropagation}
                   />
-                  <label htmlFor={`chk-${p.name}`} className='text-[11px] text-slate-600'>Enable</label>
+                  <label htmlFor={`chk-${p.name}`} className='text-[11px] text-muted-foreground'>Enable</label>
                 </div>
               ) : (
                 <input
-                  className={`mt-1 w-full border rounded px-2 py-1 text-xs ${isEmptyRequired ? 'border-rose-400 ring-1 ring-rose-200 placeholder:text-rose-400' : ''}`}
+                  className={`mt-1 w-full border rounded px-2 py-1 text-xs bg-background text-foreground ${isEmptyRequired ? 'border-destructive ring-1 ring-destructive/30 placeholder:text-destructive/60' : 'border-border'}`}
                   value={String(v)}
                   onChange={e => handleParamChange(p.name, e.target.value, typeHint)}
                   onKeyDown={stopKeyPropagation}
@@ -170,7 +170,7 @@ export default function LayerInspector() {
                 />
               )}
               {isEmptyRequired && (
-                <div className='text-[10px] text-rose-600 mt-1'>This field is required.</div>
+                <div className='text-[10px] text-destructive mt-1'>This field is required.</div>
               )}
             </label>
           );
@@ -179,13 +179,13 @@ export default function LayerInspector() {
         <>
           {/* Fallback to whatever params exist on the node if API spec is unavailable */}
           {Object.keys(currentParams).length === 0 && !loading && (
-            <p className='text-xs text-slate-500'>No parameters</p>
+            <p className='text-xs text-muted-foreground'>No parameters</p>
           )}
           {Object.entries(currentParams).map(([k, v]) => (
             <label key={k} className='block text-xs mb-2'>
               <span className='font-medium inline-flex items-center gap-1'>{k}</span>
               <input
-                className='mt-1 w-full border rounded px-2 py-1 text-xs'
+                className='mt-1 w-full border border-border rounded px-2 py-1 text-xs bg-background text-foreground'
                 value={String(v)}
                 onChange={e => handleParamChange(k, e.target.value)}
                 onKeyDown={stopKeyPropagation}
@@ -195,7 +195,7 @@ export default function LayerInspector() {
         </>
       )}
 
-      <pre className='text-[10px] bg-slate-200 p-2 rounded overflow-x-auto'>{JSON.stringify(currentParams, null, 2)}</pre>
+      <pre className='text-[10px] bg-muted text-muted-foreground p-2 rounded overflow-x-auto'>{JSON.stringify(currentParams, null, 2)}</pre>
     </div>
   );
 }
@@ -205,10 +205,10 @@ function Tooltip({ content }: { content: string }) {
   return (
     <span className='relative inline-flex'>
       <span className='group inline-flex'>
-        <Info size={12} className='text-slate-400 hover:text-slate-600 cursor-help' />
+        <Info size={12} className='text-muted-foreground hover:text-foreground cursor-help' />
         {/* Tooltip bubble positioned to the right to avoid overlap with canvas; higher z-index to sit above ReactFlow */}
         <span className='pointer-events-none absolute left-full top-1/2 hidden w-50 -translate-y-1/2 translate-x-2 z-50 group-hover:block'>
-          <span className='block rounded border border-slate-300 bg-white px-2 py-1 text-[10px] leading-snug shadow-lg text-slate-600'>
+          <span className='block rounded border border-border bg-popover px-2 py-1 text-[10px] leading-snug shadow-lg text-popover-foreground'>
             {content}
           </span>
         </span>

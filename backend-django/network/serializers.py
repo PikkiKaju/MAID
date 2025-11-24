@@ -399,8 +399,8 @@ class TrainingStartSerializer(serializers.Serializer):
     optimizer = serializers.CharField(required=False, default="adam")
     loss = serializers.CharField(required=False, default="mse")
     metrics = serializers.ListField(child=serializers.CharField(), required=False, allow_empty=True)
-    epochs = serializers.IntegerField(required=False, min_value=1, default=10)
-    batch_size = serializers.IntegerField(required=False, min_value=1, default=32)
+    epochs = serializers.IntegerField(required=False, min_value=1, default=100)
+    batch_size = serializers.IntegerField(required=False, min_value=1, default=25)
     validation_split = serializers.FloatField(required=False, min_value=0.0, max_value=1.0, default=0.1)
     test_split = serializers.FloatField(required=False, min_value=0.0, max_value=1.0, default=0.1)
     y_one_hot = serializers.BooleanField(required=False, default=False)
@@ -422,6 +422,10 @@ class TrainingStartSerializer(serializers.Serializer):
     rlrop_factor = serializers.FloatField(required=False, default=0.1)
     rlrop_patience = serializers.IntegerField(required=False, min_value=0, default=3)
     rlrop_min_lr = serializers.FloatField(required=False, default=1e-6)
+
+    # Checkpoints & logs
+    save_best_model = serializers.BooleanField(required=False, default=False)
+    save_training_logs = serializers.BooleanField(required=False, default=False)
 
     def to_internal_value(self, data):
         # Allow JSON strings for list fields (common from multipart/form-data)

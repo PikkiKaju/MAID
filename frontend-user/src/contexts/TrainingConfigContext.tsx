@@ -1,56 +1,12 @@
-import { createContext, useState, ReactNode } from 'react';
-
-type EsMode = 'auto' | 'min' | 'max';
-
-export type TrainingConfigState = {
-  optimizer: string;
-  setOptimizer: (v: string) => void;
-  loss: string;
-  setLoss: (v: string) => void;
-  selectedMetrics: string[];
-  setSelectedMetrics: (v: string[] | ((prev: string[]) => string[])) => void;
-  epochs: number;
-  setEpochs: (v: number) => void;
-  batchSize: number;
-  setBatchSize: (v: number) => void;
-  learningRate: number | '';
-  setLearningRate: (v: number | '') => void;
-  shuffle: boolean;
-  setShuffle: (v: boolean) => void;
-  valBatchSize: number | '';
-  setValBatchSize: (v: number | '') => void;
-  useEarlyStopping: boolean;
-  setUseEarlyStopping: (v: boolean) => void;
-  esMonitor: string;
-  setEsMonitor: (v: string) => void;
-  esMode: EsMode;
-  setEsMode: (v: EsMode) => void;
-  esPatience: number;
-  setEsPatience: (v: number) => void;
-  esMinDelta: number;
-  setEsMinDelta: (v: number) => void;
-  esRestoreBest: boolean;
-  setEsRestoreBest: (v: boolean) => void;
-  useReduceLR: boolean;
-  setUseReduceLR: (v: boolean) => void;
-  rlrMonitor: string;
-  setRlrMonitor: (v: string) => void;
-  rlrFactor: number;
-  setRlrFactor: (v: number) => void;
-  rlrPatience: number;
-  setRlrPatience: (v: number) => void;
-  rlrMinLR: number;
-  setRlrMinLR: (v: number) => void;
-};
-
-export const TrainingConfigContext = createContext<TrainingConfigState | undefined>(undefined);
+import { useState, ReactNode } from 'react';
+import { TrainingConfigContext, TrainingConfigState, EsMode } from './trainingConfigContext';
 
 export function TrainingConfigProvider({ children }: { children: ReactNode }) {
   const [optimizer, setOptimizer] = useState<string>('adam');
   const [loss, setLoss] = useState<string>('MeanSquaredError');
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['mae']);
-  const [epochs, setEpochs] = useState<number>(10);
-  const [batchSize, setBatchSize] = useState<number>(32);
+  const [epochs, setEpochs] = useState<number>(100);
+  const [batchSize, setBatchSize] = useState<number>(25);
   const [learningRate, setLearningRate] = useState<number | ''>('');
   const [shuffle, setShuffle] = useState<boolean>(true);
   const [valBatchSize, setValBatchSize] = useState<number | ''>('');
@@ -65,6 +21,23 @@ export function TrainingConfigProvider({ children }: { children: ReactNode }) {
   const [rlrFactor, setRlrFactor] = useState<number>(0.1);
   const [rlrPatience, setRlrPatience] = useState<number>(3);
   const [rlrMinLR, setRlrMinLR] = useState<number>(1e-6);
+
+  // New fields
+  const [clipnorm, setClipnorm] = useState<number | ''>('');
+  const [clipvalue, setClipvalue] = useState<number | ''>('');
+  const [autoBalance, setAutoBalance] = useState<boolean>(false);
+  const [lrSchedule, setLrSchedule] = useState<string>('constant');
+  const [lrDecaySteps, setLrDecaySteps] = useState<number>(1000);
+  const [lrDecayRate, setLrDecayRate] = useState<number>(0.96);
+  const [saveBestModel, setSaveBestModel] = useState<boolean>(false);
+  const [saveTrainingLogs, setSaveTrainingLogs] = useState<boolean>(false);
+
+  // Job state
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [jobStatus, setJobStatus] = useState<string | null>(null);
+  const [jobProgress, setJobProgress] = useState<number | null>(null);
+  const [jobError, setJobError] = useState<string | null>(null);
+  const [jobResult, setJobResult] = useState<unknown | null>(null);
 
   const value: TrainingConfigState = {
     optimizer, setOptimizer,
@@ -86,6 +59,21 @@ export function TrainingConfigProvider({ children }: { children: ReactNode }) {
     rlrFactor, setRlrFactor,
     rlrPatience, setRlrPatience,
     rlrMinLR, setRlrMinLR,
+
+    clipnorm, setClipnorm,
+    clipvalue, setClipvalue,
+    autoBalance, setAutoBalance,
+    lrSchedule, setLrSchedule,
+    lrDecaySteps, setLrDecaySteps,
+    lrDecayRate, setLrDecayRate,
+    saveBestModel, setSaveBestModel,
+    saveTrainingLogs, setSaveTrainingLogs,
+
+    jobId, setJobId,
+    jobStatus, setJobStatus,
+    jobProgress, setJobProgress,
+    jobError, setJobError,
+    jobResult, setJobResult,
   };
 
   return (

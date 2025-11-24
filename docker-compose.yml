@@ -12,7 +12,8 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - MongoDB__ConnectionString=mongodb://mongo:27017
       - MongoDB__DatabaseName=mydb
-      - PostgreSQL__ConnectionString=Host=postgres;Database=maid_app;Username=postgres;Password=postgres
+      - PostgreSQL__ConnectionString=Host=postgres;Port=5432;Database=maid_app;Username=aspdotnet;Password=aspdotnet
+      - DJANGO_BASE_URL=http://host.docker.internal:8000
     depends_on:
       postgres:
         condition: service_healthy

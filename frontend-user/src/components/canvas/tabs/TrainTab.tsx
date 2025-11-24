@@ -23,6 +23,9 @@ type TrainingResult = {
   };
   history?: Record<string, number[]>;
   evaluation?: Record<string, number> | null;
+  exports?: string[];
+  best_model_artifact?: string;
+  training_log_artifact?: string;
 };
 
 /**
@@ -51,6 +54,7 @@ export default function TrainTab() {
   // ============================================================
   const {
     optimizer, setOptimizer,
+    clipnorm, setClipnorm,
     loss, setLoss,
     selectedMetrics, setSelectedMetrics,
     epochs, setEpochs,
@@ -69,6 +73,8 @@ export default function TrainTab() {
     rlrFactor, setRlrFactor,
     rlrPatience, setRlrPatience,
     rlrMinLR, setRlrMinLR,
+    saveBestModel, setSaveBestModel,
+    saveTrainingLogs, setSaveTrainingLogs,
   } = useTrainingConfig();
 
   // ============================================================
@@ -76,6 +82,8 @@ export default function TrainTab() {
   // ============================================================
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
   const {
     jobId, setJobId,
     jobStatus, setJobStatus,
@@ -95,6 +103,10 @@ export default function TrainTab() {
   const lastEpochRef = useRef<number>(0); // Tracks the last epoch received to avoid duplicate chart points
   const [liveLoss, setLiveLoss] = useState<number[]>([]); // Training loss values for live charting
   const [liveValLoss, setLiveValLoss] = useState<number[]>([]); // Validation loss values for live charting
+
+  // Chart colors for loss and validation loss
+  const chartLossColor = 'var(--primary)'; // Primary color for training loss
+  const chartValLossColor = 'var(--chart-2)'; // Secondary chart color for validation loss
 
   // ============================================================
   // EFFECTS - Data fetching and state synchronization
@@ -155,6 +167,17 @@ export default function TrainTab() {
     })();
     return () => { cancelled = true; };
   }, [optimizer, loss, setOptimizer, setLoss, setLosses, setMetricsCatalog]);
+
+  // Effect to handle "Final vs Best" logic
+  useEffect(() => {
+    if (useEarlyStopping && esRestoreBest) {
+      // If restoring best weights, the final model IS the best model.
+      // Disable saveBestModel to avoid redundancy
+      if (saveBestModel) {
+        setSaveBestModel(false);
+      }
+    }
+  }, [useEarlyStopping, esRestoreBest, saveBestModel, setSaveBestModel]);
 
   // ============================================================
   // COMPUTED VALUES - Derived from dataset and configuration
@@ -405,6 +428,8 @@ export default function TrainTab() {
         rlrop_factor: rlrFactor,
         rlrop_patience: rlrPatience,
         rlrop_min_lr: rlrMinLR,
+        save_best_model: saveBestModel,
+        save_training_logs: saveTrainingLogs,
       });
       setJobId(job.id);
       setJobStatus(job.status || 'queued');
@@ -469,15 +494,24 @@ export default function TrainTab() {
    */
   useEffect(() => {
     const isFinal = jobStatus === 'succeeded' || jobStatus === 'failed' || jobStatus === 'cancelled';
-    if (!jobId || isFinal) return; // No job or job already finished
+    const shouldPoll = (jobId && !isFinal) || (jobId && isExporting);
+
+    if (!shouldPoll) return; // No job or job already finished and not exporting
     if (pollerRef.current) return; // Already polling, don't create duplicate
 
     const interval = window.setInterval(async () => {
       try {
+        if (!jobId) return;
         const j = await networkGraphService.getTrainingJob(jobId);
         setJobStatus(j.status);
         if (typeof j.progress === 'number') setJobProgress(j.progress);
         if (j.result) setJobResult(j.result as TrainingResult);
+
+        // Check if export finished
+        if (isExporting && j.result?.exports?.includes('tflite')) {
+          setIsExporting(false);
+        }
+
         if (j.status === 'running' && j.result?.live) {
           const epoch = Number(j.result.live.epoch || 0);
           if (epoch > lastEpochRef.current) {
@@ -489,7 +523,8 @@ export default function TrainTab() {
           }
         }
         const final = j.status === 'succeeded' || j.status === 'failed' || j.status === 'cancelled';
-        if (final) {
+        // Only stop polling if final AND not exporting
+        if (final && !isExporting) {
           clearInterval(interval);
           if (j.status === 'succeeded') {
             setJobResult(j.result);
@@ -513,7 +548,7 @@ export default function TrainTab() {
         pollerRef.current = null;
       }
     };
-  }, [jobId, jobStatus, setJobError, setJobProgress, setJobResult, setJobStatus]);
+  }, [jobId, jobStatus, isExporting, setJobError, setJobProgress, setJobResult, setJobStatus]);
 
   /**
    * Cancel the currently running training job.
@@ -542,9 +577,9 @@ export default function TrainTab() {
   const canStartTraining = graphId && dataset?.isProcessed && dataset.trainData;
 
   return (
-    <div className="h-full flex flex-col p-4 bg-slate-50">
+    <div className="h-full flex flex-col p-4 bg-background">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-800">Training Configuration</h2>
+        <h2 className="text-lg font-semibold text-foreground">Training Configuration</h2>
         {jobId && (jobStatus === 'running' || jobStatus === 'queued') ? (
           <Button onClick={handleCancelTraining} disabled={isStopping} variant="destructive">
             <Square size={16} className="mr-2" />
@@ -560,7 +595,7 @@ export default function TrainTab() {
 
       {/* Hint when training is blocked */}
       {!canStartTraining && (
-        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+        <div className="mb-4 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-sm text-amber-600 dark:text-amber-400">
           <div className="font-medium mb-1">Cannot start training:</div>
           <ul className="list-disc list-inside space-y-1 text-xs">
             {!graphId && <li>Model graph is not compiled. Go to the Canvas tab and compile your model.</li>}
@@ -575,306 +610,356 @@ export default function TrainTab() {
         <div className="h-full grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Left column: all inputs */}
           <div className="h-full overflow-auto">
-            <div className="bg-white border rounded-lg p-6 space-y-6">
-              {/* Compilation Settings */}
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <Settings size={18} className="text-slate-600" />
-                  <h3 className="font-semibold text-slate-700">Compilation Settings</h3>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Optimizer
-                    </label>
-                    <select
-                      value={optimizer}
-                      onChange={(e) => setOptimizer(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {optimizers.map((name) => (
-                        <option key={name} value={name}>{name}</option>
-                      ))}
-                    </select>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Controls how weights update during training. Adam is a solid default; SGD can work well with momentum for large datasets.</p>
+            <div className="bg-card border border-border rounded-lg p-6 space-y-6 h-full flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-auto">
+                {/* Compilation Settings */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Settings size={18} className="text-muted-foreground" />
+                    <h3 className="font-semibold text-foreground">Compilation Settings</h3>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Loss Function
-                    </label>
-                    <select
-                      value={loss}
-                      onChange={(e) => setLoss(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {losses.map((name) => (
-                        <option key={name} value={name}>{name}</option>
-                      ))}
-                    </select>
-                    <p className="mt-1 text-xs text-slate-500">Must match your problem and label format: regression (MSE/MAE), binary (BinaryCrossentropy), multiclass (Categorical or SparseCategorical Crossentropy).</p>
-                    {/* Hint if selected loss seems mismatched with inferred target kind */}
-                    <div className="mt-1 text-xs">
-                      {(() => {
-                        const ll = (loss || '').toLowerCase();
-                        const looksClass = targetKind === 'binary' || targetKind === 'multiclass';
-                        const looksReg = targetKind === 'regression';
-                        const key = ll.replace(/_/g, '');
-                        const isClassLoss = key.includes('categoricalcrossentropy') || key.includes('sparsecategoricalcrossentropy') || key.includes('binarycrossentropy');
-                        const isRegLoss = !isClassLoss; // heuristic
-                        if (looksClass && isRegLoss) {
-                          return <span className="text-amber-600">Heads up: target looks like classification but a regression loss is selected. Consider sparse_categorical_crossentropy (integer labels) or categorical_crossentropy (one-hot), or binary_crossentropy for 2 classes.</span>;
-                        }
-                        if (looksReg && !isRegLoss) {
-                          return <span className="text-amber-600">Heads up: target looks continuous but a classification loss is selected. Consider mse/mae for regression.</span>;
-                        }
-                        return null;
-                      })()}
-                    </div>
-                    {/* Recommendation based on target encoding */}
-                    {recommendedLoss && recommendedLoss !== loss && (
-                      <div className="mt-1 text-xs text-slate-600">
-                        Recommended for your target ({dataset?.preprocessingConfig.targetEncoding}): <span className="font-medium">{recommendedLoss}</span>
-                        {losses.includes(recommendedLoss) && (
-                          <button
-                            type="button"
-                            className="ml-2 underline text-blue-600 hover:text-blue-700"
-                            onClick={() => setLoss(recommendedLoss)}
-                          >
-                            Apply
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Training Parameters */}
-              <div>
-                <h3 className="font-semibold text-slate-700 mb-4">Training Parameters</h3>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Epochs
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="1000"
-                      value={epochs}
-                      onChange={(e) => setEpochs(parseInt(e.target.value) || 1)}
-                      className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="mt-1 text-xs text-slate-500">One epoch = one full pass over the training data. More epochs can improve fit but risk overfitting. Use EarlyStopping to stop automatically.</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Batch Size
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="512"
-                      value={batchSize}
-                      onChange={(e) => setBatchSize(parseInt(e.target.value) || 1)}
-                      className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="mt-1 text-xs text-slate-500">Samples per gradient step. Larger batches are faster but may generalize worse; smaller batches add noise that can help generalization.</p>
-                  </div>
-                  {/* No manual Validation Split; it's derived from Dataset tab */}
-                  <div className="col-span-2 text-xs text-slate-500">
-                    Using dataset splits: val={computedSplits.validation}, test={computedSplits.test}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Learning rate (optional)</label>
-                    <input
-                      type="number"
-                      step="any"
-                      min="0"
-                      value={learningRate === '' ? '' : learningRate}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setLearningRate(v === '' ? '' : Number(v));
-                      }}
-                      placeholder="e.g. 0.001"
-                      className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="mt-1 text-xs text-slate-500">Step size for weight updates. Too high can diverge; too low can be slow. Typical values: 1e-3 to 1e-4 for Adam.</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Validation batch size (optional)</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={valBatchSize === '' ? '' : valBatchSize}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setValBatchSize(v === '' ? '' : Math.max(1, Number(v)));
-                      }}
-                      placeholder="leave empty to match batch size"
-                      className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="mt-1 text-xs text-slate-500">If empty, uses the training batch size. Only affects validation throughput, not training dynamics.</p>
-                  </div>
-                  <div className="col-span-2 flex items-center gap-3">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" checked={shuffle} onChange={(e) => setShuffle(e.target.checked)} />
-                      Shuffle training data each epoch
-                    </label>
-                    <span className="text-xs text-slate-500">Recommended. Prevents learning spurious order; disable only for sequence-sensitive data already batched in order.</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Callbacks */}
-              <div>
-                <h3 className="font-semibold text-slate-700 mb-3">Callbacks</h3>
-                <div className="space-y-4">
-                  <div className="border rounded p-3">
-                    <label className="flex items-center gap-2 text-sm mb-2">
-                      <input type="checkbox" checked={useEarlyStopping} onChange={(e) => setUseEarlyStopping(e.target.checked)} />
-                      EarlyStopping
-                    </label>
-                    <p className="-mt-1 mb-2 text-xs text-slate-500">Stop training when a monitored metric stops improving. Helps avoid overfitting and saves time.</p>
-                    {useEarlyStopping && (
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs text-slate-600 mb-1">Monitor</label>
-                          <select value={esMonitor} onChange={(e) => setEsMonitor(e.target.value)} className="w-full px-2 py-2 border rounded text-sm">
-                            <option value="val_loss">val_loss</option>
-                            <option value="loss">loss</option>
-                            <option value="accuracy">accuracy</option>
-                            <option value="sparse_categorical_accuracy">sparse_categorical_accuracy</option>
-                            <option value="categorical_accuracy">categorical_accuracy</option>
-                            <option value="binary_accuracy">binary_accuracy</option>
-                          </select>
-                          <p className="mt-1 text-xs text-slate-500">Which metric to watch. For classification, prefer a relevant accuracy; for regression, use val_loss/loss.</p>
-                        </div>
-                        <div>
-                          <label className="block text-xs text-slate-600 mb-1">Mode</label>
-                          <select value={esMode} onChange={(e) => setEsMode(e.target.value as 'auto' | 'min' | 'max')} className="w-full px-2 py-2 border rounded text-sm">
-                            <option value="auto">auto</option>
-                            <option value="min">min</option>
-                            <option value="max">max</option>
-                          </select>
-                          <p className="mt-1 text-xs text-slate-500">Choose "min" for losses (lower is better) and "max" for accuracies (higher is better). "auto" infers it.</p>
-                        </div>
-                        <div>
-                          <label className="block text-xs text-slate-600 mb-1">Patience</label>
-                          <input type="number" min="0" value={esPatience} onChange={(e) => setEsPatience(Math.max(0, Number(e.target.value) || 0))} className="w-full px-2 py-2 border rounded text-sm" />
-                          <p className="mt-1 text-xs text-slate-500">How many epochs with no improvement before stopping.</p>
-                        </div>
-                        <div>
-                          <label className="block text-xs text-slate-600 mb-1">Min delta</label>
-                          <input type="number" step="any" value={esMinDelta} onChange={(e) => setEsMinDelta(Number(e.target.value) || 0)} className="w-full px-2 py-2 border rounded text-sm" />
-                          <p className="mt-1 text-xs text-slate-500">Minimum change to qualify as an improvement (helps ignore tiny fluctuations).</p>
-                        </div>
-                        <div className="col-span-2 flex items-center gap-2">
-                          <input type="checkbox" checked={esRestoreBest} onChange={(e) => setEsRestoreBest(e.target.checked)} />
-                          <span className="text-sm">Restore best weights</span>
-                          <span className="text-xs text-slate-500">After stopping, roll back to the best-performing epoch.</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="border rounded p-3">
-                    <label className="flex items-center gap-2 text-sm mb-2">
-                      <input type="checkbox" checked={useReduceLR} onChange={(e) => setUseReduceLR(e.target.checked)} />
-                      ReduceLROnPlateau
-                    </label>
-                    <p className="-mt-1 mb-2 text-xs text-slate-500">Reduce the learning rate when a metric has stopped improving to fine-tune training.</p>
-                    {useReduceLR && (
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs text-slate-600 mb-1">Monitor</label>
-                          <select value={rlrMonitor} onChange={(e) => setRlrMonitor(e.target.value)} className="w-full px-2 py-2 border rounded text-sm">
-                            <option value="val_loss">val_loss</option>
-                            <option value="loss">loss</option>
-                            <option value="accuracy">accuracy</option>
-                            <option value="sparse_categorical_accuracy">sparse_categorical_accuracy</option>
-                            <option value="categorical_accuracy">categorical_accuracy</option>
-                            <option value="binary_accuracy">binary_accuracy</option>
-                          </select>
-                          <p className="mt-1 text-xs text-slate-500">Metric used to decide when to reduce the learning rate.</p>
-                        </div>
-                        <div>
-                          <label className="block text-xs text-slate-600 mb-1">Factor</label>
-                          <input type="number" step="any" min="0" max="1" value={rlrFactor} onChange={(e) => setRlrFactor(Number(e.target.value) || 0.1)} className="w-full px-2 py-2 border rounded text-sm" />
-                          <p className="mt-1 text-xs text-slate-500">Multiplicative drop. Example: 0.1 will change 1e-3 to 1e-4.</p>
-                        </div>
-                        <div>
-                          <label className="block text-xs text-slate-600 mb-1">Patience</label>
-                          <input type="number" min="0" value={rlrPatience} onChange={(e) => setRlrPatience(Math.max(0, Number(e.target.value) || 0))} className="w-full px-2 py-2 border rounded text-sm" />
-                          <p className="mt-1 text-xs text-slate-500">How many epochs with no improvement before reducing the learning rate.</p>
-                        </div>
-                        <div>
-                          <label className="block text-xs text-slate-600 mb-1">Min LR</label>
-                          <input type="number" step="any" min="0" value={rlrMinLR} onChange={(e) => setRlrMinLR(Math.max(0, Number(e.target.value) || 0))} className="w-full px-2 py-2 border rounded text-sm" />
-                          <p className="mt-1 text-xs text-slate-500">Lower bound to stop decreasing LR. Typical: 1e-6 to 1e-7.</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Metrics Selection */}
-              <div>
-                <h3 className="font-semibold text-slate-700 mb-4">Metrics</h3>
-                <div className="text-xs text-slate-500 mb-2">
-                  Showing metrics suitable for {(() => {
-                    const ll = (loss || '').toLowerCase();
-                    if (ll.includes('sparse_categorical_crossentropy') || ll.includes('categorical_crossentropy') || ll.includes('binary_crossentropy')) return 'classification';
-                    return 'regression';
-                  })()} (based on selected loss).
-                </div>
-                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-auto pr-1">
-                  {availableMetrics.map((name) => {
-                    const checked = selectedMetrics.includes(name);
-                    return (
-                      <label key={name} className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          className="rounded"
-                          checked={checked}
-                          onChange={(e) => {
-                            if (e.target.checked) setSelectedMetrics((prev) => Array.from(new Set([...prev, name])));
-                            else setSelectedMetrics((prev) => prev.filter((m) => m !== name));
-                          }}
-                        />
-                        <span>{name}</span>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Optimizer<span className="text-destructive ml-1">*</span>
                       </label>
-                    );
-                  })}
-                </div>
-              </div>
+                      <select
+                        value={optimizer}
+                        onChange={(e) => setOptimizer(e.target.value)}
+                        className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        {optimizers.map((name) => (
+                          <option key={name} value={name}>{name}</option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Controls how weights update during training. Adam is a solid default; SGD can work well with momentum for large datasets.</p>
+                    </div>
 
+
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Gradient Clipping (clipnorm)
+                      </label>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        value={clipnorm === undefined ? '' : clipnorm}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setClipnorm(v === '' ? '' : Number(v));
+                        }}
+                        placeholder="e.g. 1.0"
+                        className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Clips gradients by norm to prevent exploding gradients. Leave empty to disable.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Loss Function<span className="text-destructive ml-1">*</span>
+                      </label>
+                      <select
+                        value={loss}
+                        onChange={(e) => setLoss(e.target.value)}
+                        className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        {losses.map((name) => (
+                          <option key={name} value={name}>{name}</option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-xs text-muted-foreground">Must match your problem and label format: regression (MSE/MAE), binary (BinaryCrossentropy), multiclass (Categorical or SparseCategorical Crossentropy), etc.</p>
+                      {/* Hint if selected loss seems mismatched with inferred target kind */}
+                      <div className="mt-1 text-xs">
+                        {(() => {
+                          const ll = (loss || '').toLowerCase();
+                          const looksClass = targetKind === 'binary' || targetKind === 'multiclass';
+                          const looksReg = targetKind === 'regression';
+                          const key = ll.replace(/_/g, '');
+                          const isClassLoss = key.includes('categoricalcrossentropy') || key.includes('sparsecategoricalcrossentropy') || key.includes('binarycrossentropy');
+                          const isRegLoss = !isClassLoss; // heuristic
+                          if (looksClass && isRegLoss) {
+                            return <span className="text-amber-600 dark:text-amber-400">Heads up: target looks like classification but a regression loss is selected. Consider sparse_categorical_crossentropy (integer labels) or categorical_crossentropy (one-hot), or binary_crossentropy for 2 classes.</span>;
+                          }
+                          if (looksReg && !isRegLoss) {
+                            return <span className="text-amber-600 dark:text-amber-400">Heads up: target looks continuous but a classification loss is selected. Consider mse/mae for regression.</span>;
+                          }
+                          return null;
+                        })()}
+                      </div>
+                      {/* Recommendation based on target encoding */}
+                      {recommendedLoss && recommendedLoss !== loss && (
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          Recommended for your target ({dataset?.preprocessingConfig.targetEncoding}): <span className="font-medium">{recommendedLoss}</span>
+                          {losses.includes(recommendedLoss) && (
+                            <button
+                              type="button"
+                              className="ml-2 underline text-primary hover:text-primary/80 hover:cursor-pointer"
+                              onClick={() => setLoss(recommendedLoss)}
+                            >
+                              Apply
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Training Parameters */}
+                <div className="mt-6">
+                  <h3 className="font-semibold text-foreground mb-4">Training Parameters</h3>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Epochs<span className="text-destructive ml-1">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="1000"
+                        value={epochs}
+                        onChange={(e) => setEpochs(parseInt(e.target.value) || 1)}
+                        className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <p className="mt-1 text-xs text-muted-foreground">One epoch = one full pass over the training data. More epochs can improve fit but risk overfitting. Use EarlyStopping to stop automatically.</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Batch Size<span className="text-destructive ml-1">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="512"
+                        value={batchSize}
+                        onChange={(e) => setBatchSize(parseInt(e.target.value) || 1)}
+                        className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <p className="mt-1 text-xs text-muted-foreground">Samples per gradient step. Larger batches are faster but may generalize worse; smaller batches add noise that can help generalization.</p>
+                    </div>
+                    {/* No manual Validation Split; it's derived from Dataset tab */}
+                    <div className="col-span-2 text-xs text-muted-foreground">
+                      Using dataset splits: val={computedSplits.validation}, test={computedSplits.test}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Learning rate (optional)</label>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        value={learningRate === '' ? '' : learningRate}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setLearningRate(v === '' ? '' : Number(v));
+                        }}
+                        placeholder="e.g. 0.001"
+                        className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <p className="mt-1 text-xs text-muted-foreground">Step size for weight updates. Too high can diverge; too low can be slow. Typical values: 1e-3 to 1e-4 for Adam.</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Validation batch size (optional)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={valBatchSize === '' ? '' : valBatchSize}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setValBatchSize(v === '' ? '' : Math.max(1, Number(v)));
+                        }}
+                        placeholder="leave empty to match batch size"
+                        className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <p className="mt-1 text-xs text-muted-foreground">If empty, uses the training batch size. Only affects validation throughput, not training dynamics.</p>
+                    </div>
+                    <div className="col-span-2 flex items-center gap-3">
+                      <label className="flex items-center gap-2 text-sm text-foreground">
+                        <input type="checkbox" checked={shuffle} onChange={(e) => setShuffle(e.target.checked)} />
+                        Shuffle training data each epoch
+                      </label>
+                      <span className="text-xs text-muted-foreground">Recommended. Prevents learning spurious order; disable only for sequence-sensitive data already batched in order.</span>
+                    </div>
+
+                    <div className="col-span-2 border-t border-border pt-4 mt-2">
+                      <h4 className="text-sm font-medium text-foreground mb-3">Checkpoints & Logs</h4>
+                      <div className="flex flex-col gap-3">
+                        <label className={`flex items-center gap-2 text-sm text-foreground ${useEarlyStopping && esRestoreBest ? 'opacity-50' : ''}`}>
+                          <input
+                            type="checkbox"
+                            checked={saveBestModel}
+                            onChange={(e) => setSaveBestModel(e.target.checked)}
+                            disabled={useEarlyStopping && esRestoreBest}
+                          />
+                          Save Best Model
+                        </label>
+                        {useEarlyStopping && esRestoreBest && (
+                          <p className="text-xs text-amber-600 dark:text-amber-400 ml-6 -mt-2">
+                            Disabled because "Restore best weights" is active. The final model will already be the best model.
+                          </p>
+                        )}
+                        <label className="flex items-center gap-2 text-sm text-foreground">
+                          <input type="checkbox" checked={saveTrainingLogs} onChange={(e) => setSaveTrainingLogs(e.target.checked)} />
+                          Save Training Logs (CSV)
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Callbacks */}
+                <div className="mt-6">
+                  <h3 className="font-semibold text-foreground mb-3">Callbacks</h3>
+                  <div className="space-y-4">
+                    <div className="border border-border rounded p-3">
+                      <label className="flex items-center gap-2 text-sm mb-2 text-foreground">
+                        <input type="checkbox" checked={useEarlyStopping} onChange={(e) => setUseEarlyStopping(e.target.checked)} />
+                        EarlyStopping
+                      </label>
+                      <p className="-mt-1 mb-2 text-xs text-muted-foreground">Stop training when a monitored metric stops improving. Helps avoid overfitting and saves time.</p>
+                      {useEarlyStopping && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs text-muted-foreground mb-1">Monitor</label>
+                            <select value={esMonitor} onChange={(e) => setEsMonitor(e.target.value)} className="w-full px-2 py-2 bg-background border border-border rounded text-sm">
+                              <option value="val_loss">val_loss</option>
+                              <option value="loss">loss</option>
+                              <option value="accuracy">accuracy</option>
+                              <option value="sparse_categorical_accuracy">sparse_categorical_accuracy</option>
+                              <option value="categorical_accuracy">categorical_accuracy</option>
+                              <option value="binary_accuracy">binary_accuracy</option>
+                            </select>
+                            <p className="mt-1 text-xs text-muted-foreground">Which metric to watch. For classification, prefer a relevant accuracy; for regression, use val_loss/loss.</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-muted-foreground mb-1">Mode</label>
+                            <select value={esMode} onChange={(e) => setEsMode(e.target.value as 'auto' | 'min' | 'max')} className="w-full px-2 py-2 bg-background border border-border rounded text-sm">
+                              <option value="auto">auto</option>
+                              <option value="min">min</option>
+                              <option value="max">max</option>
+                            </select>
+                            <p className="mt-1 text-xs text-muted-foreground">Choose "min" for losses (lower is better) and "max" for accuracies (higher is better). "auto" infers it.</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-muted-foreground mb-1">Patience</label>
+                            <input type="number" min="0" value={esPatience} onChange={(e) => setEsPatience(Math.max(0, Number(e.target.value) || 0))} className="w-full px-2 py-2 bg-background border border-border rounded text-sm" />
+                            <p className="mt-1 text-xs text-muted-foreground">How many epochs with no improvement before stopping.</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-muted-foreground mb-1">Min delta</label>
+                            <input type="number" step="any" value={esMinDelta} onChange={(e) => setEsMinDelta(Number(e.target.value) || 0)} className="w-full px-2 py-2 bg-background border border-border rounded text-sm" />
+                            <p className="mt-1 text-xs text-muted-foreground">Minimum change to qualify as an improvement (helps ignore tiny fluctuations).</p>
+                          </div>
+                          <div className="col-span-2 flex items-center gap-2">
+                            <input type="checkbox" checked={esRestoreBest} onChange={(e) => setEsRestoreBest(e.target.checked)} />
+                            <span className="text-sm text-foreground">Restore best weights</span>
+                            <span className="text-xs text-muted-foreground">After stopping, roll back to the best-performing epoch.</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="border border-border rounded p-3">
+                      <label className="flex items-center gap-2 text-sm mb-2 text-foreground">
+                        <input type="checkbox" checked={useReduceLR} onChange={(e) => setUseReduceLR(e.target.checked)} />
+                        ReduceLROnPlateau
+                      </label>
+                      <p className="-mt-1 mb-2 text-xs text-muted-foreground">Reduce the learning rate when a metric has stopped improving to fine-tune training.</p>
+                      {useReduceLR && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs text-muted-foreground mb-1">Monitor</label>
+                            <select value={rlrMonitor} onChange={(e) => setRlrMonitor(e.target.value)} className="w-full px-2 py-2 bg-background border border-border rounded text-sm">
+                              <option value="val_loss">val_loss</option>
+                              <option value="loss">loss</option>
+                              <option value="accuracy">accuracy</option>
+                              <option value="sparse_categorical_accuracy">sparse_categorical_accuracy</option>
+                              <option value="categorical_accuracy">categorical_accuracy</option>
+                              <option value="binary_accuracy">binary_accuracy</option>
+                            </select>
+                            <p className="mt-1 text-xs text-muted-foreground">Metric used to decide when to reduce the learning rate.</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-muted-foreground mb-1">Factor</label>
+                            <input type="number" step="any" min="0" max="1" value={rlrFactor} onChange={(e) => setRlrFactor(Number(e.target.value) || 0.1)} className="w-full px-2 py-2 bg-background border border-border rounded text-sm" />
+                            <p className="mt-1 text-xs text-muted-foreground">Multiplicative drop. Example: 0.1 will change 1e-3 to 1e-4.</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-muted-foreground mb-1">Patience</label>
+                            <input type="number" min="0" value={rlrPatience} onChange={(e) => setRlrPatience(Math.max(0, Number(e.target.value) || 0))} className="w-full px-2 py-2 bg-background border border-border rounded text-sm" />
+                            <p className="mt-1 text-xs text-muted-foreground">How many epochs with no improvement before reducing the learning rate.</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-muted-foreground mb-1">Min LR</label>
+                            <input type="number" step="any" min="0" value={rlrMinLR} onChange={(e) => setRlrMinLR(Math.max(0, Number(e.target.value) || 0))} className="w-full px-2 py-2 bg-background border border-border rounded text-sm" />
+                            <p className="mt-1 text-xs text-muted-foreground">Lower bound to stop decreasing LR. Typical: 1e-6 to 1e-7.</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Metrics Selection */}
+                <div className="mt-6">
+                  <h3 className="font-semibold text-foreground mb-4">Metrics</h3>
+                  <div className="text-xs text-muted-foreground mb-2">
+                    Showing metrics suitable for {(() => {
+                      const ll = (loss || '').toLowerCase();
+                      if (ll.includes('sparse_categorical_crossentropy') || ll.includes('categorical_crossentropy') || ll.includes('binary_crossentropy')) return 'classification';
+                      return 'regression';
+                    })()} (based on selected loss).
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 max-h-48 overflow-auto pr-1">
+                    {availableMetrics.map((name) => {
+                      const checked = selectedMetrics.includes(name);
+                      return (
+                        <label key={name} className="flex items-center gap-2 text-sm text-foreground">
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={checked}
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedMetrics((prev) => Array.from(new Set([...prev, name])));
+                              else setSelectedMetrics((prev) => prev.filter((m) => m !== name));
+                            }}
+                          />
+                          <span>{name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+              </div>
             </div>
           </div>
 
           {/* Right column: training job status */}
           <div className="h-full overflow-auto">
-            <div className="bg-white border rounded-lg p-6 space-y-4">
-              <h3 className="font-semibold text-slate-700">Training Job</h3>
+            <div className="bg-card border border-border rounded-lg p-6 space-y-4">
+              <h3 className="font-semibold text-foreground">Training Job</h3>
               {!jobId ? (
-                <div className="text-sm text-slate-600">
+                <div className="text-sm text-muted-foreground">
                   No job yet. Configure parameters on the left and click "Start Training" to begin.
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <div className="text-sm text-slate-700">ID: <span className="font-mono">{jobId}</span></div>
-                  <div className="text-sm">Status: {jobStatus || '—'}{typeof jobProgress === 'number' ? ` · ${(jobProgress * 100).toFixed(0)}%` : ''}</div>
-                  {jobError && <div className="text-sm text-red-600">{jobError}</div>}
+                  <div className="text-sm text-foreground">ID: <span className="font-mono">{jobId}</span></div>
+                  <div className="text-sm text-foreground">Status: {jobStatus || '—'}{typeof jobProgress === 'number' ? ` · ${(jobProgress * 100).toFixed(0)}%` : ''}</div>
+                  {jobError && <div className="text-sm text-destructive">{jobError}</div>}
                   {jobStatus === 'running' && jobResult?.live && (
-                    <div className="text-sm text-slate-700 mt-2">
+                    <div className="text-sm text-foreground mt-2">
                       <div className="font-medium">Live</div>
-                      <div className="text-xs text-slate-600">
+                      <div className="text-xs text-muted-foreground">
                         {(() => {
                           const live = jobResult.live || {};
                           const parts: string[] = [];
@@ -892,20 +977,103 @@ export default function TrainTab() {
                   )}
                   {/* Download artifact button when job succeeded */}
                   {jobStatus === 'succeeded' && (
-                    <div className="mt-3">
-                      <Button
-                        onClick={async () => {
-                          try {
-                            if (!jobId) return;
-                            await networkGraphService.downloadArtifactToBrowser(jobId, 'model.keras');
-                          } catch (e) {
-                            console.error('Failed to download artifact', e);
-                            setJobError(e instanceof Error ? e.message : String(e));
-                          }
-                        }}
-                      >
-                        Download Model
-                      </Button>
+                    <div className="mt-3 flex flex-col gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          onClick={async () => {
+                            try {
+                              if (!jobId) return;
+                              await networkGraphService.downloadArtifactToBrowser(jobId, 'final');
+                            } catch (e) {
+                              console.error('Failed to download artifact', e);
+                              setJobError(e instanceof Error ? e.message : String(e));
+                            }
+                          }}
+                          variant="outline"
+                          size="sm"
+                        >
+                          Download Final Model
+                        </Button>
+
+                        {/* Show Best Model button ONLY if artifact exists in result */}
+                        {jobResult?.best_model_artifact && (
+                          <Button
+                            onClick={async () => {
+                              try {
+                                if (!jobId) return;
+                                await networkGraphService.downloadArtifactToBrowser(jobId, 'best');
+                              } catch (e) {
+                                console.error('Failed to download artifact', e);
+                                setJobError(e instanceof Error ? e.message : String(e));
+                              }
+                            }}
+                            variant="outline"
+                            size="sm"
+                          >
+                            Download Best Model
+                          </Button>
+                        )}
+
+                        {jobResult?.training_log_artifact && (
+                          <Button
+                            onClick={async () => {
+                              try {
+                                if (!jobId) return;
+                                await networkGraphService.downloadArtifactToBrowser(jobId, 'log');
+                              } catch (e) {
+                                console.error('Failed to download artifact', e);
+                                setJobError(e instanceof Error ? e.message : String(e));
+                              }
+                            }}
+                            variant="outline"
+                            size="sm"
+                          >
+                            Download Logs (CSV)
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Export Section */}
+                      <div className="border-t border-border pt-2 mt-1">
+                        <div className="text-xs font-medium text-muted-foreground mb-2">Export Formats</div>
+                        <div className="flex flex-wrap gap-2">
+                          {/* ONNX export removed; only TFLite supported */}
+
+                          {/* TFLite */}
+                          {jobResult?.exports?.includes('tflite') ? (
+                            <Button
+                              onClick={() => jobId && networkGraphService.downloadArtifactToBrowser(jobId, 'tflite')}
+                              variant="secondary"
+                              size="sm"
+                              className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
+                            >
+                              Download TFLite
+                            </Button>
+                          ) : (
+                            <Button
+                              onClick={async () => {
+                                if (!jobId) return;
+                                try {
+                                  setExportingFormat('tflite');
+                                  setIsExporting(true);
+                                  await networkGraphService.exportModel(jobId, 'tflite');
+                                } catch (e) {
+                                  console.error(e);
+                                  setJobError('Export failed');
+                                  setIsExporting(false);
+                                } finally {
+                                  setExportingFormat(null);
+                                }
+                              }}
+                              disabled={exportingFormat === 'tflite'}
+                              variant="outline"
+                              size="sm"
+                            >
+                              {exportingFormat === 'tflite' ? 'Exporting...' : 'Export to TFLite'}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -920,17 +1088,17 @@ export default function TrainTab() {
                     if (!hasHistory && !hasLive) return null;
                     const series = hasHistory
                       ? [
-                        { label: 'loss', color: '#2563eb', data: histLoss || [] },
-                        ...(Array.isArray(histValLoss) && histValLoss.length ? [{ label: 'val_loss', color: '#7c3aed', data: histValLoss }] : []),
+                        { label: 'loss', color: chartLossColor, data: histLoss || [] },
+                        ...(Array.isArray(histValLoss) && histValLoss.length ? [{ label: 'val_loss', color: chartValLossColor, data: histValLoss }] : []),
                       ]
                       : [
-                        { label: 'loss', color: '#2563eb', data: liveLoss },
-                        ...(liveValLoss.length ? [{ label: 'val_loss', color: '#7c3aed', data: liveValLoss }] : []),
+                        { label: 'loss', color: chartLossColor, data: liveLoss },
+                        ...(liveValLoss.length ? [{ label: 'val_loss', color: chartValLossColor, data: liveValLoss }] : []),
                       ];
                     return (
                       <div className="mt-3">
-                        <div className="text-xs font-medium text-slate-500 mb-1">Loss over epochs</div>
-                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-600 mb-2">
+                        <div className="text-xs font-medium text-muted-foreground mb-1">Loss over epochs</div>
+                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground mb-2">
                           {series.map((s) => (
                             <div key={s.label} className="flex items-center gap-1">
                               <span
@@ -953,9 +1121,9 @@ export default function TrainTab() {
                     );
                   })()}
                   {!!jobResult && (
-                    <div className="text-sm text-slate-700 mt-2">
+                    <div className="text-sm text-foreground mt-2">
                       <div>Final metrics:</div>
-                      <pre className="bg-slate-50 p-2 rounded border overflow-auto max-h-80 text-xs">{JSON.stringify(jobResult, null, 2)}</pre>
+                      <pre className="bg-muted/30 p-2 rounded border border-border overflow-auto max-h-80 text-xs">{JSON.stringify(jobResult, null, 2)}</pre>
                     </div>
                   )}
                 </div>

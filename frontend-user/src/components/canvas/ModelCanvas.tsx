@@ -45,16 +45,18 @@ const initialEdges: Edge[] = [];
 
 export default function ModelCanvas() {
   const { nodes: storeNodes, edges: storeEdges, setGraph } = useModelCanvasStore();
-  const { setGraphId } = useGraph();
+  const { graphId, setGraphId, graphName, setGraphName } = useGraph();
   const [nodes, setNodes] = useNodesState(storeNodes.length ? storeNodes : initialNodes);
   const [edges, setEdges] = useEdgesState(storeEdges.length ? storeEdges : initialEdges);
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
-  const [persistedGraphId, setPersistedGraphId] = useState<string | null>(null);
-  const [modelName, setModelName] = useState('Untitled graph');
+  const [persistedGraphId, setPersistedGraphId] = useState<string | null>(graphId);
+  const [modelName, setModelName] = useState(graphName ?? 'Untitled graph');
   const [saveErrors, setSaveErrors] = useState<string[] | null>(null);
   const [errorItems, setErrorItems] = useState<Array<{ text: string; nodeId?: string; param?: string }> | null>(null);
   const [errorNodeIds, setErrorNodeIds] = useState<Set<string>>(new Set());
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isDeletingGraph, setIsDeletingGraph] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   // No raw/details to keep UI concise; we only show summarized messages.
   const flowWrapperRef = useRef<HTMLDivElement | null>(null);
   // Memoize these to avoid React Flow warning about re-creating nodeTypes/edgeTypes each render
@@ -62,6 +64,10 @@ export default function ModelCanvas() {
   const edgeTypes = useMemo(() => ({ removable: RemovableEdge }), []);
   const setSelected = useModelCanvasStore(s => s.setSelected);
   const setHighlightedParam = useModelCanvasStore(s => s.setHighlightedParam);
+  const handleModelNameChange = useCallback((name: string) => {
+    setModelName(name);
+    setGraphName(name === '' ? '' : name);
+  }, [setGraphName]);
   const MAX_EDGE_RAW_LENGTH = 27;
   const ensureEdgeRawId = (raw: string | null | undefined): string => {
     if (!raw) return `edge-${nanoid(10)}`;
@@ -82,6 +88,32 @@ export default function ModelCanvas() {
       return newEdges;
     });
   }, [setEdges, nodes, setGraph]);
+
+  useEffect(() => {
+    setPersistedGraphId(graphId);
+  }, [graphId]);
+
+  useEffect(() => {
+    if (graphName === null) {
+      setModelName('Untitled graph');
+    } else {
+      setModelName(graphName);
+    }
+  }, [graphName]);
+
+  // Track whether the app/root is in dark mode by observing the <html> class list.
+  useEffect(() => {
+    try {
+      const check = () => setIsDarkMode(typeof document !== 'undefined' && document.documentElement.classList.contains('dark'));
+      check();
+      const obs = new MutationObserver(check);
+      obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+      return () => obs.disconnect();
+    } catch {
+      // Server-side or unsupported environment: assume light mode
+      setIsDarkMode(false);
+    }
+  }, []);
 
   // Keep ReactFlow internal state in sync when store changes externally (e.g. removeNode)
   useEffect(() => {
@@ -237,11 +269,38 @@ export default function ModelCanvas() {
     if (graph.id) {
       setPersistedGraphId(graph.id);
       setGraphId(graph.id);
+    } else {
+      setPersistedGraphId(null);
+      setGraphId(null);
     }
-    if (graph.name) {
-      setModelName(graph.name);
+    const incomingName = graph.name && graph.name.trim().length ? graph.name : null;
+    setGraphName(incomingName);
+    setModelName(incomingName ?? 'Untitled graph');
+  }, [setNodes, setEdges, setGraph, setGraphId, setGraphName]);
+
+  const handleDeletePersistedGraph = useCallback(async () => {
+    if (!persistedGraphId) return;
+    try {
+      setIsDeletingGraph(true);
+      await networkGraphService.deleteGraph(persistedGraphId);
+      setPersistedGraphId(null);
+      setGraphId(null);
+      setGraphName(null);
+      setSuccessMessage('Graph deleted');
+      setSaveErrors(null);
+      setErrorItems(null);
+      setErrorNodeIds(new Set());
+    } catch (err) {
+      console.error('Failed to delete graph', err);
+      setSuccessMessage(null);
+      const message = err instanceof Error ? err.message : 'Failed to delete graph';
+      setErrorItems(null);
+      setErrorNodeIds(new Set());
+      setSaveErrors([message]);
+    } finally {
+      setIsDeletingGraph(false);
     }
-  }, [setNodes, setEdges, setGraph, setGraphId]);
+  }, [persistedGraphId, setGraphId, setGraphName, setSuccessMessage, setSaveErrors, setErrorItems, setErrorNodeIds]);
 
   const sanitizeEdgesForPersist = (currentEdges: Edge[]): Edge[] => {
     return currentEdges.map((edge) => {
@@ -369,20 +428,23 @@ export default function ModelCanvas() {
   }, [rfInstance, setNodes, setGraph, nodes, edges]);
 
   return (
-    <div className='h-full flex flex-col bg-white border border-slate-300 rounded-lg shadow-sm mx-3 my-2'>
+    <div className='h-full flex flex-col bg-card border border-border rounded-lg shadow-sm mx-3 my-2'>
       {successMessage && (
-        <div className='mx-3 mt-3 mb-2 border border-emerald-200 bg-emerald-50 text-emerald-800 rounded p-2 text-sm'>
+        <div
+          className='mx-3 mt-3 mb-2 border rounded p-2 text-sm'
+          style={isDarkMode ? undefined : { backgroundColor: '#ecfdf5', borderColor: '#bbf7d0', color: '#065f46' }}
+        >
           <div className='flex items-start justify-between'>
             <div className='font-semibold mb-1'>{successMessage}</div>
-            <button onClick={() => setSuccessMessage(null)} className='text-emerald-800 hover:underline text-xs'>Dismiss</button>
+            <button onClick={() => setSuccessMessage(null)} className='hover:underline text-xs' style={isDarkMode ? { color: undefined } : { color: '#065f46' }}>Dismiss</button>
           </div>
         </div>
       )}
       {(errorItems || saveErrors) && (
-        <div className='mx-3 mt-3 mb-3 border border-red-200 bg-red-50 text-red-700 rounded p-2 text-sm'>
+        <div className='mx-3 mt-3 mb-3 border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-200 rounded p-2 text-sm'>
           <div className='flex items-start justify-between'>
             <div className='font-semibold mb-1'>There were issues with your graph</div>
-            <button onClick={() => { setSaveErrors(null); setErrorItems(null); setErrorNodeIds(new Set()); }} className='text-red-700 hover:underline text-xs'>Dismiss</button>
+            <button onClick={() => { setSaveErrors(null); setErrorItems(null); setErrorNodeIds(new Set()); }} className='text-red-700 dark:text-red-200 hover:underline text-xs'>Dismiss</button>
           </div>
           <ul className='list-disc ml-5 space-y-1 max-h-40 overflow-auto pr-2'>
             {(errorItems || []).map((item, i) => (
@@ -418,7 +480,10 @@ export default function ModelCanvas() {
         onSave={handlePersist}
         onLoadGraph={loadGraphFromPayload}
         modelName={modelName}
-        onModelNameChange={setModelName}
+        onModelNameChange={handleModelNameChange}
+        canDeleteModel={!!persistedGraphId}
+        onDeleteModel={handleDeletePersistedGraph}
+        deletingModel={isDeletingGraph}
         onShowErrors={(messages, raw) => {
           if (messages && messages.length) setSuccessMessage(null);
           if (raw !== undefined) {
@@ -435,8 +500,8 @@ export default function ModelCanvas() {
         onShowSuccess={(msg) => { setSuccessMessage(msg); setSaveErrors(null); setErrorItems(null); setErrorNodeIds(new Set()); }}
       />
       <div className='flex flex-1 min-h-0'>
-        <div className='w-56 border-r border-slate-200 p-2 space-y-2 overflow-y-auto text-xs'>
-          <h3 className='font-semibold text-slate-600 text-sm'>Layers</h3>
+        <div className='w-56 border-r border-border p-2 space-y-2 overflow-y-auto text-xs'>
+          <h3 className='font-semibold text-muted-foreground text-sm'>Layers</h3>
           <LayerPalette />
         </div>
         <div className='flex-1' ref={flowWrapperRef}>
@@ -463,12 +528,16 @@ export default function ModelCanvas() {
             onDrop={onDrop}
             onDragOver={onDragOver}
           >
-            <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
-            <MiniMap pannable zoomable />
-            <Controls />
+            <Background variant={BackgroundVariant.Dots} gap={16} size={1} className="[&_*]:fill-muted-foreground/20" />
+            <MiniMap
+              pannable
+              zoomable
+              className="!bg-card !border-border [&_.react-flow__minimap-mask]:!fill-muted/20 [&_.react-flow__minimap-node]:!fill-muted-foreground/60"
+            />
+            <Controls className="!bg-card !border-border [&_button]:!border-border [&_button]:!fill-foreground [&_button:hover]:!bg-accent [&_button]:!text-foreground" />
           </ReactFlow>
         </div>
-        <div className='w-70 border-l border-slate-200 p-3 overflow-y-auto'>
+        <div className='w-70 border-l border-border p-3 overflow-y-auto'>
           <LayerInspector />
         </div>
       </div>

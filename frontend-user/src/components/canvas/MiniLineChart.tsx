@@ -65,21 +65,21 @@ export default function MiniLineChart({ series, height = 160, strokeWidth = 2, c
     <div className={`w-full overflow-hidden ${className}`} style={{ height }}>
       <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} preserveAspectRatio="none">
         {/* Background */}
-        <rect x={0} y={0} width={width} height={height} fill="#ffffff" />
+        <rect x={0} y={0} width={width} height={height} className="fill-card" />
         {/* Grid lines and y labels */}
         {yTicks.map((t, i) => {
           const y = toY(t);
           return (
             <g key={i}>
-              <line x1={padding.left} y1={y} x2={width - padding.right} y2={y} stroke="#e5e7eb" strokeWidth={1} />
-              <text x={padding.left - 6} y={y + 4} textAnchor="end" fontSize={12} fill="#64748b">
+              <line x1={padding.left} y1={y} x2={width - padding.right} y2={y} className="stroke-border" strokeWidth={1} />
+              <text x={padding.left - 6} y={y + 4} textAnchor="end" fontSize={12} className="fill-muted-foreground">
                 {Number.isFinite(t) ? t.toFixed(3) : ''}
               </text>
             </g>
           );
         })}
         {/* Border */}
-        <rect x={padding.left} y={padding.top} width={innerW} height={innerH} fill="none" stroke="#e5e7eb" strokeWidth={1} />
+        <rect x={padding.left} y={padding.top} width={innerW} height={innerH} fill="none" className="stroke-border" strokeWidth={1} />
 
         {/* Series paths */}
         {series.map((s, idx) => (
@@ -95,7 +95,7 @@ export default function MiniLineChart({ series, height = 160, strokeWidth = 2, c
 
         {/* X-axis epochs labels at start/middle/end if enough points */}
         {count > 0 && (
-          <g fontSize={12} fill="#64748b">
+          <g fontSize={12} className="fill-muted-foreground">
             {(() => {
               const start = Number.isFinite(xMin as number) ? (xMin as number) : 0;
               const end = Number.isFinite(xMax as number) ? (xMax as number) : (count - 1);
@@ -118,7 +118,7 @@ export default function MiniLineChart({ series, height = 160, strokeWidth = 2, c
       {/* Legend */}
       <div className="flex items-center gap-4 mt-1">
         {series.map((s, i) => (
-          <div key={i} className="flex items-center gap-2 text-xs text-slate-600">
+          <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
             <span className="inline-block" style={{ width: 12, height: 2, backgroundColor: s.color }} />
             <span>{s.label}</span>
           </div>
