@@ -237,7 +237,7 @@ namespace backend_aspdotnet.Controllers
                 blocked = new Blocked
                 {
                     UserId = id,
-                    BlockedUntil = DateTime.Now.AddDays(1)
+                    BlockedUntil = DateTime.UtcNow.AddDays(1)
                 };
                 await _postgers.Blocked.AddAsync(blocked);
             }
