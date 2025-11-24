@@ -64,22 +64,43 @@ export default function MiniLineChart({ series, height = 160, strokeWidth = 2, c
   return (
     <div className={`w-full overflow-hidden ${className}`} style={{ height }}>
       <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} preserveAspectRatio="none">
-        {/* Background */}
-        <rect x={0} y={0} width={width} height={height} className="fill-card" />
+        {/* Background (transparent) */}
+        <rect x={0} y={0} width={width} height={height} fill="none" />
         {/* Grid lines and y labels */}
         {yTicks.map((t, i) => {
           const y = toY(t);
           return (
             <g key={i}>
-              <line x1={padding.left} y1={y} x2={width - padding.right} y2={y} className="stroke-border" strokeWidth={1} />
-              <text x={padding.left - 6} y={y + 4} textAnchor="end" fontSize={12} className="fill-muted-foreground">
+              <line
+                x1={padding.left}
+                y1={y}
+                x2={width - padding.right}
+                y2={y}
+                stroke="var(--border, rgba(0,0,0,0.12))"
+                strokeWidth={1}
+              />
+              <text
+                x={padding.left - 6}
+                y={y + 4}
+                textAnchor="end"
+                fontSize={12}
+                fill="var(--muted-foreground, rgba(0,0,0,0.6))"
+              >
                 {Number.isFinite(t) ? t.toFixed(3) : ''}
               </text>
             </g>
           );
         })}
         {/* Border */}
-        <rect x={padding.left} y={padding.top} width={innerW} height={innerH} fill="none" className="stroke-border" strokeWidth={1} />
+        <rect
+          x={padding.left}
+          y={padding.top}
+          width={innerW}
+          height={innerH}
+          fill="none"
+          stroke="var(--border, rgba(0,0,0,0.12))"
+          strokeWidth={1}
+        />
 
         {/* Series paths */}
         {series.map((s, idx) => (
@@ -95,19 +116,19 @@ export default function MiniLineChart({ series, height = 160, strokeWidth = 2, c
 
         {/* X-axis epochs labels at start/middle/end if enough points */}
         {count > 0 && (
-          <g fontSize={12} className="fill-muted-foreground">
+          <g fontSize={12}>
             {(() => {
               const start = Number.isFinite(xMin as number) ? (xMin as number) : 0;
               const end = Number.isFinite(xMax as number) ? (xMax as number) : (count - 1);
               const mid = Math.floor((start + end) / 2);
               return (
                 <>
-                  <text x={padding.left} y={height - 4}>{start}</text>
+                  <text x={padding.left} y={height - 4} fill="var(--muted-foreground, rgba(0,0,0,0.6))">{start}</text>
                   {count > 2 && (
-                    <text x={padding.left + innerW / 2} y={height - 4} textAnchor="middle">{mid}</text>
+                    <text x={padding.left + innerW / 2} y={height - 4} textAnchor="middle" fill="var(--muted-foreground, rgba(0,0,0,0.6))">{mid}</text>
                   )}
                   {count > 1 && (
-                    <text x={padding.left + innerW} y={height - 4} textAnchor="end">{end}</text>
+                    <text x={padding.left + innerW} y={height - 4} textAnchor="end" fill="var(--muted-foreground, rgba(0,0,0,0.6))">{end}</text>
                   )}
                 </>
               );
