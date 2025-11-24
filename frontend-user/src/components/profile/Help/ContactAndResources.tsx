@@ -1,36 +1,39 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../../../ui/card";
 import { Button } from "../../../ui/button";
 import { Mail, FileText, ExternalLink } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function ContactTab() {
+  const { t } = useTranslation();
+
   return (
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
-            Send us a Message
+            {t("help.contactTitle")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-4">
             <div className="flex items-start gap-3">
               <div>
-                <p className="font-medium">Email Support</p>
+                <p className="font-medium">{t("help.emailSupport")}</p>
                 <p className="text-sm text-muted-foreground">
-                  ag307868@polsl.pl
+                  mk307890@student.polsl.pl
                 </p>
                 <p className="text-sm text-muted-foreground">
                   ag307868@student.polsl.pl
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  ag307868@polsl.pl
+                  dd307860@student.polsl.pl
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  ag307868@polsl.pl
+                  ag307868@student.polsl.pl
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  Response within 24 hours
+                <p className="text-xs text-muted-foreground mt-2">
+                  {t("help.responseTime")}
                 </p>
               </div>
             </div>
@@ -42,32 +45,34 @@ export function ContactTab() {
 }
 
 export function ResourcesTab() {
+  const { t } = useTranslation();
+
   return (
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Documentation
+            {t("help.resourcesTitle")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-2">
             <Button variant="ghost" className="w-full justify-start" size="sm">
               <ExternalLink className="h-4 w-4 mr-2" />
-              Getting Started Guide
+              {t("help.gettingStarted")}
             </Button>
             <Button variant="ghost" className="w-full justify-start" size="sm">
               <ExternalLink className="h-4 w-4 mr-2" />
-              API Documentation
+              {t("help.apiDocs")}
             </Button>
             <Button variant="ghost" className="w-full justify-start" size="sm">
               <ExternalLink className="h-4 w-4 mr-2" />
-              Best Practices
+              {t("help.bestPractices")}
             </Button>
             <Button variant="ghost" className="w-full justify-start" size="sm">
               <ExternalLink className="h-4 w-4 mr-2" />
-              Troubleshooting
+              {t("help.troubleshooting")}
             </Button>
           </div>
         </CardContent>

@@ -1,17 +1,20 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../../../ui/card";
 import { HelpCircle } from "lucide-react";
 import { Badge } from "../../../ui/badge";
+import { useTranslation } from "react-i18next";
 import type { FAQItem } from "../../../models/profile";
 
 type FAQListProps = { items: FAQItem[] };
 
 export function FAQList({ items }: FAQListProps) {
+  const { t } = useTranslation();
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <HelpCircle className="h-5 w-5" />
-          Frequently Asked Questions
+          {t("help.faqTitle")}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -34,9 +37,7 @@ export function FAQList({ items }: FAQListProps) {
 
           {items.length === 0 && (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">
-                No FAQ items found matching your search.
-              </p>
+              <p className="text-muted-foreground">{t("help.noFAQResults")}</p>
             </div>
           )}
         </div>
