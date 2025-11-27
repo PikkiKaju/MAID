@@ -1,8 +1,10 @@
 import { Handle, Position, NodeProps } from 'reactflow';
+import { useTranslation } from 'react-i18next';
 import { useModelCanvasStore } from '../../store/modelCanvasStore';
 import { X } from 'lucide-react';
 
 export default function LayerNode({ data, id, selected }: NodeProps) {
+  const { t } = useTranslation();
   const setSelected = useModelCanvasStore(s => s.setSelected);
   const removeNode = useModelCanvasStore(s => s.removeNode);
 
@@ -19,7 +21,7 @@ export default function LayerNode({ data, id, selected }: NodeProps) {
         <button
           onClick={(e) => { e.stopPropagation(); removeNode(id); }}
           className='absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-[10px] shadow hover:bg-destructive/90'
-          aria-label='Remove node'
+          aria-label={t('canvas.actions.removeNode')}
         >
           <X size={12} />
         </button>

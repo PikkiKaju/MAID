@@ -1,5 +1,7 @@
 {
   "common": {
+    "yes": "Yes",
+    "no": "No",
     "search": "Search projects, data...",
     "login": "Login",
     "register": "Register",
@@ -35,7 +37,10 @@
     "home": "Home",
     "myProjects": "My Projects",
     "datasets": "Datasets",
-    "canvas": "Model Builder"
+    "canvas": "Model Builder",
+    "toggle": "Toggle Sidebar",
+    "mobileTitle": "Sidebar",
+    "mobileDescription": "Displays the mobile sidebar."
   },
   "auth": {
     "login": "Login",
@@ -186,7 +191,6 @@
     "notifications": "Notifications",
     "dangerZone": "Danger Zone",
     "deleteAccount": "Delete Account",
-    "deleteAccountDescription": "This operation is irreversible",
     "skills": "Skills",
     "profileInformation": "Profile Information",
     "activityOverview": "Your activity and contributions overview",
@@ -242,6 +246,12 @@
     "switchTo": "Switch to",
     "polish": "Polish",
     "english": "English"
+  },
+  "theme": {
+    "toggle": "Toggle theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
   },
   "notFound": {
     "title": "Page not found",
@@ -300,6 +310,471 @@
       "q12": "How do I add a dataset to favorites?",
       "a12": "On the datasets page, click the heart icon next to the selected dataset to add it to favorites. You must be logged in to use this feature."
     }
+  },
+  "canvas": {
+    "tabs": {
+      "canvas": "Canvas",
+      "summary": "Model Summary",
+      "dataset": "Dataset",
+      "train": "Train",
+      "metrics": "Metrics",
+      "inference": "Inference"
+    },
+    "general": {
+      "untitledGraph": "Untitled graph",
+      "graphDeleted": "Graph deleted",
+      "saveErrorsTitle": "There were issues with your graph",
+      "clickToFocusNode": "Click to focus this node",
+      "dismiss": "Dismiss"
+    },
+    "palette": {
+      "addLayerTooltip": "Drag to canvas or click to add",
+      "layers": "Layers"
+    },
+    "inspector": {
+      "parameters": "Parameters",
+      "selectLayer": "Select a layer to edit its parameters.",
+      "loading": "Loading parameter definitions…",
+      "failedToLoad": "Failed to load: {{error}}",
+      "requiredField": "This field is required.",
+      "enable": "Enable",
+      "noParams": "No parameters"
+    },
+    "toolbar": {
+      "modelNamePlaceholder": "Model name...",
+      "save": "Save",
+      "saveTooltip": "Save the current canvas to your account",
+      "load": "Load",
+      "loadTooltip": "Open a saved graph from your account",
+      "compile": "Compile",
+      "compileTooltip": "Compile the current canvas on the backend (validates model and returns summary/errors)",
+      "importExport": "Import / Export",
+      "import": "Import",
+      "importKeras": "Import Keras JSON",
+      "importGraph": "Import Graph JSON",
+      "export": "Export",
+      "exportGraph": "Export Graph JSON",
+      "exportKeras": "Export Keras JSON",
+      "exportPython": "Export Python Script",
+      "clear": "Clear",
+      "clearTooltip": "Clear the canvas (removes all layers and connections)",
+      "clearDialogTitle": "Clear the canvas?",
+      "clearDialogDescription": "This removes all layers and connections from the workspace. You can still undo it by reloading a saved model.",
+      "deleteTooltip": "Delete the saved model from the backend",
+      "deleteDialogTitle": "Delete this saved model?",
+      "deleteDialogDescription": "The backend copy will be removed permanently. Your current canvas will remain open but will no longer be linked to the saved graph.",
+      "deleting": "Deleting…",
+      "confirmDelete": "Yes, delete",
+      "updateSuccess": "Graph updated successfully",
+      "createSuccess": "Graph saved to backend",
+      "compileSuccess": "Graph compiled successfully"
+    },
+    "dataset": {
+      "title": "Dataset Manager",
+      "uploadHeading": "Upload Dataset",
+      "uploadDescription": "Upload a CSV file to prepare for training",
+      "chooseCsv": "Choose CSV File",
+      "loadFromDb": "Load from Database",
+      "availableDatasets": "Available Datasets",
+      "noDatasets": "No datasets found",
+      "noTransformed": "No transformed data available. Please process the dataset first.",
+      "loginRequiredDb": "Please login to load datasets from the database",
+      "loadFailed": "Failed to load datasets from database",
+      "loadDetailsFailed": "Failed to load dataset details",
+      "clear": "Clear Dataset",
+      "loginRequiredToAccess": "Login required to access database datasets",
+      "loadButton": "Load",
+      "dataPreview": {
+        "title": "Data Preview",
+        "showingTransformed": "Showing encoded & normalized feature matrix ({{count}} of {{total}} rows)",
+        "showingCleaned": "Showing cleaned data ({{count}} of {{total}} rows)"
+      },
+      "rowsLabel": "Rows:",
+      "headerRows": "rows",
+      "headerColumns": "columns",
+      "afterCleaning": "after cleaning",
+      "all": "All",
+      "allMayBeSlow": "All may be slow for large datasets",
+      "viewCleaned": "View Cleaned",
+      "viewTransformed": "View Transformed",
+      "downloadTransformed": "Download Transformed",
+      "columnConfiguration": "Column Configuration",
+      "preprocessing": "Preprocessing",
+      "categoricalEncoding": {
+        "label": "Categorical Encoding",
+        "option_label": "Label Encoding",
+        "option_onehot": "One-Hot Encoding",
+        "option_remove": "Remove Categorical"
+      },
+      "targetEncoding": {
+        "label": "Target Encoding",
+        "option_label_desc": "Label (integers 0..K-1)",
+        "option_onehot_desc": "One-Hot (K columns in model)",
+        "tip": "Tip: One-hot pairs with CategoricalCrossentropy; Label pairs with SparseCategoricalCrossentropy."
+      },
+      "missingValueStrategy": {
+        "label": "Missing Value Strategy",
+        "option_fill_mean": "Fill with Mean",
+        "option_fill_median": "Fill with Median",
+        "option_fill_mode": "Fill with Mode",
+        "option_fill_zero": "Fill with Zero",
+        "option_remove_rows": "Remove Rows"
+      },
+      "normalizationMethod": {
+        "label": "Normalization Method",
+        "option_standard": "Standard Scaling (Z-score)",
+        "option_minmax": "Min-Max Scaling [0,1]",
+        "option_none": "No Normalization"
+      },
+      "dataSplitting": "Data Splitting",
+      "splits": {
+        "train": "Train",
+        "val": "Validation",
+        "test": "Test"
+      },
+      "randomSeed": "Random Seed",
+      "configurationErrorsTitle": "Configuration Errors:",
+      "processedSuccess": "Dataset Processed Successfully",
+      "processedStats": {
+        "train": "Train: {{count}} samples",
+        "validation": "Validation: {{count}} samples",
+        "test": "Test: {{count}} samples",
+        "features": "Features: {{count}} ({{preview}})"
+      },
+      "stats": {
+        "unique": "unique",
+        "missing": "missing"
+      },
+      "encoding": "Encoding",
+      "targetEncodingLabel": "Target Encoding",
+      "normalization": "Normalization",
+      "missingValues": "Missing Values",
+      "role": {
+        "feature": "Feature",
+        "target": "Target",
+        "ignore": "Ignore"
+      },
+      "columnRole": {
+        "target": "TARGET",
+        "ignore": "IGNORED"
+      },
+      "encodingLabels": {
+        "label": "Label",
+        "onehot": "One-Hot",
+        "none": "None",
+        "zscore": "Z-Score",
+        "minmax": "Min-Max [0,1]"
+      },
+      "transformed": {
+        "feature": "feature",
+        "target": "target"
+      },
+      "type": {
+        "numeric": "numeric",
+        "categorical": "categorical",
+        "text": "text",
+        "datetime": "datetime",
+        "boolean": "boolean"
+      },
+      "missingValueLabels": {
+        "remove_rows": "Rows Removed",
+        "fill_mean": "Filled with Mean",
+        "fill_median": "Filled with Median",
+        "fill_mode": "Filled with Mode",
+        "fill_zero": "Filled with Zero"
+      },
+      "process": {
+        "processing": "Processing...",
+        "process": "Process Dataset",
+        "reprocess": "Reprocess Dataset",
+        "failed": "Dataset processing failed"
+      },
+      "readyForTraining": "Ready for Training",
+      "configurationIssues": "Configuration Issues"
+    },
+    "summary": {
+      "title": "Model Summary",
+      "generate": "Generate Summary",
+      "generating": "Generating...",
+      "errorTitle": "Error generating summary",
+      "noSummary": "No Model Summary Available",
+      "clickGenerate": "Click \"Generate Summary\" to compile your model and view its structure",
+      "explainer": "This will show layer names, output shapes, and parameter counts",
+      "table": {
+        "layerType": "Layer (type)",
+        "outputShape": "Output Shape",
+        "paramCount": "Param #"
+      },
+      "totalParams": "Total params:",
+      "trainableParams": "Trainable params:",
+      "nonTrainableParams": "Non-trainable params:"
+    },
+    "metrics": {
+      "title": "Training Metrics",
+      "noResultsTitle": "No Training Results Available",
+      "inProgress": "Training in progress. Metrics will appear here once complete.",
+      "trainToSeeMetrics": "Train your model in the Train tab to see detailed metrics and performance charts here.",
+      "falsePositiveRate": "False Positive Rate",
+      "truePositiveRate": "True Positive Rate",
+      "summaryTitle": "Training Metrics Summary",
+      "trainingCompleted": "Training Completed",
+      "trainingCancelled": "Training Cancelled",
+      "finalLoss": "Final Loss",
+      "finalAccuracy": "Final Accuracy",
+      "epochsTrained": "Epochs Trained",
+      "stoppedEarly": "stopped early",
+      "earlyStopping": "early stopping",
+      "progress": "Progress",
+      "trainingHistory": "Training History",
+      "lossOverEpochs": "Loss over epochs",
+      "accuracyOverEpochs": "Accuracy over epochs",
+      "testSetEvaluation": "Test Set Evaluation",
+      "extendedEvaluation": "Extended Evaluation",
+      "confusionMatrix": "Confusion Matrix",
+      "rocCurve": "ROC Curve",
+      "trainingConfiguration": "Training Configuration",
+      "compilation": "Compilation",
+      "optimizer": "Optimizer:",
+      "lossLabel": "Loss:",
+      "metricsLabel": "Metrics:",
+      "parametersTitle": "Parameters",
+      "epochsLabel": "Epochs:",
+      "batchSizeLabel": "Batch Size:",
+      "learningRateLabel": "Learning Rate:",
+      "shuffleLabel": "Shuffle:",
+      "valBatchSizeLabel": "Val Batch Size:",
+      "earlyStoppingLabel": "EarlyStopping",
+      "monitor": "Monitor",
+      "mode": "Mode",
+      "patience": "Patience",
+      "minDelta": "Min Delta",
+      "restoreBest": "Restore Best",
+      "reduceLrLabel": "ReduceLROnPlateau",
+      "factor": "Factor",
+      "minLr": "Min LR",
+      "allTrainingMetrics": "All Training Metrics",
+      "epochCount_one": "{{count}} epoch",
+      "epochCount_other": "{{count}} epochs"
+    },
+    "inference": {
+      "workspaceLabel": "Inference workspace",
+      "title": "Run predictions",
+      "readyToPredict": "Ready to predict with your last successful training run.",
+      "trainToUnlock": "Train a model (status: succeeded) to unlock predictions.",
+      "noModel": "No trained model available",
+      "finishTraining": "Finish a training run (status: succeeded) to enable inference tools.",
+      "modelStatusLabel": "Model status",
+      "notStarted": "not started",
+      "onlySucceeded": "Only jobs with status succeeded can serve predictions.",
+      "datasetLabel": "Dataset",
+      "activeDataset": "Active dataset",
+      "rows": "rows",
+      "features": "features",
+      "target": "target",
+      "normalizationLabel": "Normalization",
+      "notApplied": "Not applied",
+      "sendRaw": "You can send raw values.",
+      "matchScaling": "Match the same scaling the dataset used or enable auto-normalization below.",
+      "step": "Step",
+      "prepareInput": "Prepare input payload",
+      "expectedFeatureOrder": "Expected feature order ({{count}}):",
+      "pasteJsonInstruction": "Paste an array of arrays or an object that contains",
+      "applyNormalization": "Apply dataset normalization ({{method}})",
+      "jsonTemplate": "JSON template",
+      "keepOrderNote": "Keep order aligned with training features.",
+      "replaceFile": "Replace file",
+      "removeFile": "Remove",
+      "jobLabel": "Job #{{id}}",
+      "inputFormat": "Input format",
+      "copied": "Copied",
+      "copyJson": "Copy JSON",
+      "download": "Download",
+      "selectCsvHint": "Select a CSV with headers that match the training feature names.",
+      "chooseFile": "Choose file",
+      "downloadCsvTemplate": "Download CSV template",
+      "keepTargetNote": "Keep target columns out of the payload. For categorical models you will receive probability vectors per class.",
+      "predicting": "Predicting…",
+      "runInference": "Run inference",
+      "reviewPredictions": "Review predictions",
+      "lastRun": "Last run",
+      "runPredictionHint": "Run a prediction to see results here.",
+      "records": "records",
+      "outputsPerRecord": "outputs / record",
+      "argmaxIndices": "Argmax class indices:",
+      "mappedLabels": "Mapped labels:",
+      "unknown": "Unknown",
+      "fullMapping": "Full mapping (index → label):",
+      "mapIndicesHint": "Map these indices back to your categorical labels to interpret predictions."
+    },
+    "train": {
+      "saveGraphFirst": "Please save the model graph first (Canvas > Save).",
+      "prepareDataset": "Please prepare the dataset in the Dataset tab before training.",
+      "noTargetColumn": "Target column is not set in Dataset preprocessing.",
+      "title": "Training Configuration",
+      "start": {
+        "start": "Start Training",
+        "starting": "Starting…",
+        "stop": "Stop Training",
+        "stopping": "Stopping…"
+      },
+      "cannotStart": {
+        "title": "Cannot start training:",
+        "graphNotCompiled": "Model graph is not compiled. Go to the Canvas tab and compile your model.",
+        "datasetNotPrepared": "Dataset is not prepared. Go to the Dataset tab and load/preprocess your data."
+      },
+      "compilationSettings": "Compilation Settings",
+      "optimizer": {
+        "label": "Optimizer",
+        "help": "Controls how weights update during training. Adam is a solid default; SGD can work well with momentum for large datasets."
+      },
+      "gradientClipping": {
+        "label": "Gradient Clipping (clipnorm)",
+        "help": "Clips gradients by norm to prevent exploding gradients. Leave empty to disable."
+      },
+      "lossFunction": {
+        "label": "Loss Function",
+        "help": "Must match your problem and label format: regression (MSE/MAE), binary (BinaryCrossentropy), multiclass (Categorical or SparseCategorical Crossentropy), etc."
+      },
+      "hint": {
+        "classMismatch": "Heads up: target looks like classification but a regression loss is selected. Consider sparse_categorical_crossentropy (integer labels) or categorical_crossentropy (one-hot), or binary_crossentropy for 2 classes.",
+        "regMismatch": "Heads up: target looks continuous but a classification loss is selected. Consider mse/mae for regression."
+      },
+      "recommended": {
+        "label": "Recommended for your target ({{encoding}})",
+        "apply": "Apply"
+      },
+      "parameters": {
+        "title": "Training Parameters"
+      },
+      "epochs": {
+        "label": "Epochs",
+        "help": "One epoch = one full pass over the training data. More epochs can improve fit but risk overfitting. Use EarlyStopping to stop automatically."
+      },
+      "batchSize": {
+        "label": "Batch Size",
+        "help": "Samples per gradient step. Larger batches are faster but may generalize worse; smaller batches add noise that can help generalization."
+      },
+      "usingSplits": "Using dataset splits: val={{val}}, test={{test}}",
+      "learningRate": {
+        "label": "Learning rate (optional)",
+        "help": "Step size for weight updates. Too high can diverge; too low can be slow. Typical values: 1e-3 to 1e-4 for Adam."
+      },
+      "valBatchSize": {
+        "label": "Validation batch size (optional)",
+        "help": "If empty, uses the training batch size. Only affects validation throughput, not training dynamics."
+      },
+      "shuffle": {
+        "label": "Shuffle training data each epoch",
+        "help": "Recommended. Prevents learning spurious order; disable only for sequence-sensitive data already batched in order."
+      },
+      "checkpoints": {
+        "title": "Checkpoints & Logs"
+      },
+      "saveBestModel": {
+        "label": "Save Best Model",
+        "disabledNote": "Disabled because \"Restore best weights\" is active. The final model will already be the best model."
+      },
+      "saveTrainingLogs": {
+        "label": "Save Training Logs (CSV)"
+      },
+      "callbacks": {
+        "title": "Callbacks"
+      },
+      "earlyStopping": {
+        "label": "EarlyStopping",
+        "help": "Stop training when a monitored metric stops improving. Helps avoid overfitting and saves time."
+      },
+      "restoreBest": {
+        "label": "Restore best weights",
+        "help": "After stopping, roll back to the best-performing epoch."
+      },
+      "reduceLr": {
+        "label": "ReduceLROnPlateau",
+        "help": "Reduce the learning rate when a metric has stopped improving to fine-tune training.",
+        "metricHelp": "Metric used to decide when to reduce the learning rate.",
+        "factorLabel": "Factor",
+        "factorHelp": "Multiplicative drop. Example: 0.1 will change 1e-3 to 1e-4.",
+        "patienceLabel": "Patience",
+        "patienceHelp": "How many epochs with no improvement before reducing the learning rate."
+      },
+      "metricsHeading": "Metrics",
+      "metricsShowing": {
+        "classification": "Showing metrics suitable for classification (based on selected loss).",
+        "regression": "Showing metrics suitable for regression (based on selected loss)."
+      },
+      "metrics": {
+        "watchHelp": "Which metric to watch. For classification, prefer a relevant accuracy; for regression, use val_loss/loss.",
+        "chooseModeHelp": "Choose \"min\" for losses (lower is better) and \"max\" for accuracies (higher is better). \"auto\" infers it.",
+        "patienceHelp": "How many epochs with no improvement before stopping.",
+        "minDeltaHelp": "Minimum change to qualify as an improvement (helps ignore tiny fluctuations).",
+        "auc": "AUC = {{value}}",
+        "valPrefix": "val: {{value}}",
+        "epochCount_one": "{{count}} epoch",
+        "epochCount_other": "{{count}} epochs"
+      },
+      "errors": {
+        "trainingFailed": "Training failed",
+        "pollFailed": "Failed to poll job status",
+        "startFailed": "Failed to start training job",
+        "cancelFailed": "Failed to cancel training job",
+        "exportFailed": "Export failed"
+      },
+      "live": {
+        "epoch": "epoch {{epoch}}",
+        "loss": "loss {{value}}",
+        "val_loss": "val_loss {{value}}",
+        "accuracy": "accuracy {{value}}",
+        "sparse_categorical_accuracy": "sparse_categorical_accuracy {{value}}",
+        "categorical_accuracy": "categorical_accuracy {{value}}",
+        "binary_accuracy": "binary_accuracy {{value}}"
+      },
+      "job": {
+        "title": "Training Job",
+        "noJobYet": "No job yet. Configure parameters on the left and click \"Start Training\" to begin.",
+        "idLabel": "ID",
+        "statusLabel": "Status",
+        "statuses": {
+          "queued": "Queued",
+          "running": "Running",
+          "succeeded": "Succeeded",
+          "failed": "Failed",
+          "cancelled": "Cancelled"
+        },
+        "liveTitle": "Live",
+        "exportFormats": "Export Formats",
+        "downloadFinal": "Download Final Model",
+        "downloadBest": "Download Best Model",
+        "downloadLogs": "Download Logs (CSV)",
+        "downloadTflite": "Download TFLite",
+        "exportToTflite": "Export to TFLite",
+        "exporting": "Exporting...",
+        "finalMetrics": "Final metrics:"
+      },
+      "legend": {
+        "lossOverEpochs": "Loss over epochs",
+        "validationLoss": "Validation loss",
+        "trainingLoss": "Training loss"
+      }
+    },
+    "loadModal": {
+      "title": "Load Saved Graph",
+      "description": "Select a previously saved network graph to load onto the canvas",
+      "createdAt": "Created: {{date}}",
+      "layers_one": "{{count}} layer",
+      "layers_other": "{{count}} layers",
+      "graphDeleted": "Graph deleted",
+      "loading": "Loading graphs...",
+      "error": "Failed to load graphs: {{error}}",
+      "noGraphs": "No saved graphs found",
+      "noGraphsHint": "Create and save a graph to see it here",
+      "load": "Load",
+      "deleteConfirm": "Delete?",
+      "na": "N/A"
+    }
+    ,
+    "actions": {
+      "removeNode": "Remove node",
+      "removeConnection": "Remove connection"
+    }
   }
 }
-

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Info } from 'lucide-react';
 import { useModelCanvasStore, ModelCanvasState } from '../../store/modelCanvasStore';
 import { Node } from 'reactflow';
@@ -7,6 +8,7 @@ import networkGraphService from '../../api/networkGraphService';
 
 // Right side inspector showing editable parameters for the selected node
 export default function LayerInspector() {
+  const { t } = useTranslation();
   const selectedNodeId = useModelCanvasStore((s: ModelCanvasState) => s.selectedNodeId);
   const updateNodeData = useModelCanvasStore((s: ModelCanvasState) => s.updateNodeData);
   const nodes = useModelCanvasStore((s: ModelCanvasState) => s.nodes);
@@ -114,10 +116,10 @@ export default function LayerInspector() {
 
   return (
     <div className='space-y-3'>
-      <h3 className='font-semibold text-foreground text-sm'>{layerName} Parameters</h3>
-      {!node && <p className='text-sm text-muted-foreground'>Select a layer to edit its parameters.</p>}
-      {loading && <p className='text-xs text-muted-foreground'>Loading parameter definitions…</p>}
-      {error && <p className='text-xs text-destructive'>Failed to load: {error}</p>}
+      <h3 className='font-semibold text-foreground text-sm'>{layerName} {t('canvas.inspector.parameters')}</h3>
+      {!node && <p className='text-sm text-muted-foreground'>{t('canvas.inspector.selectLayer')}</p>}
+      {loading && <p className='text-xs text-muted-foreground'>{t('canvas.inspector.loading')}</p>}
+      {error && <p className='text-xs text-destructive'>{t('canvas.inspector.failedToLoad', { error })}</p>}
 
       {node && paramsSpec && paramsSpec.length > 0 ? (
         paramsSpec.map((p) => {
@@ -132,9 +134,9 @@ export default function LayerInspector() {
               className={`block text-xs mb-2 rounded ${highlightedParamName === p.name ? 'ring-2 ring-yellow-400 dark:ring-yellow-600 border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/30 animate-pulse' : ''}`}
             >
               <span className='font-medium inline-flex items-center gap-1'>
-                {p.name}
+                {t(`canvas.inspector.param.${p.name}`, p.name)}
                 {p.required && <span className='text-destructive'>*</span>}
-                {p.doc && <Tooltip content={p.doc} />}
+                {p.doc && <Tooltip content={t(`canvas.inspector.doc.${p.name}`, p.doc)} />}
               </span>
               {p.enum && p.enum.length > 0 ? (
                 <select
@@ -145,7 +147,7 @@ export default function LayerInspector() {
                 >
                   {!p.required && <option value=''>—</option>}
                   {p.enum.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
+                    <option key={opt} value={opt}>{t(`canvas.inspector.enum.${opt}`, opt)}</option>
                   ))}
                 </select>
               ) : isBool ? (
@@ -158,7 +160,7 @@ export default function LayerInspector() {
                     onChange={(e) => handleParamChange(p.name, e.target.checked, typeHint)}
                     onKeyDown={stopKeyPropagation}
                   />
-                  <label htmlFor={`chk-${p.name}`} className='text-[11px] text-muted-foreground'>Enable</label>
+                  <label htmlFor={`chk-${p.name}`} className='text-[11px] text-muted-foreground'>{t('canvas.inspector.enable')}</label>
                 </div>
               ) : (
                 <input
@@ -170,7 +172,7 @@ export default function LayerInspector() {
                 />
               )}
               {isEmptyRequired && (
-                <div className='text-[10px] text-destructive mt-1'>This field is required.</div>
+                <div className='text-[10px] text-destructive mt-1'>{t('canvas.inspector.requiredField')}</div>
               )}
             </label>
           );
@@ -179,7 +181,7 @@ export default function LayerInspector() {
         <>
           {/* Fallback to whatever params exist on the node if API spec is unavailable */}
           {Object.keys(currentParams).length === 0 && !loading && (
-            <p className='text-xs text-muted-foreground'>No parameters</p>
+            <p className='text-xs text-muted-foreground'>{t('canvas.inspector.noParams')}</p>
           )}
           {Object.entries(currentParams).map(([k, v]) => (
             <label key={k} className='block text-xs mb-2'>

@@ -1,5 +1,7 @@
 {
   "common": {
+    "yes": "Tak",
+    "no": "Nie",
     "search": "Szukaj projektów, danych...",
     "login": "Logowanie",
     "register": "Rejestracja",
@@ -35,7 +37,10 @@
     "home": "Strona główna",
     "myProjects": "Moje Projekty",
     "datasets": "Zbiory danych",
-    "canvas": "Kreator Modeli"
+    "canvas": "Kreator Modeli",
+    "toggle": "Przełącz pasek boczny",
+    "mobileTitle": "Pasek boczny",
+    "mobileDescription": "Wyświetla pasek boczny na urządzeniach mobilnych."
   },
   "auth": {
     "login": "Logowanie",
@@ -186,7 +191,6 @@
     "notifications": "Powiadomienia",
     "dangerZone": "Strefa niebezpieczna",
     "deleteAccount": "Usuń konto",
-    "deleteAccountDescription": "Ta operacja jest nieodwracalna",
     "skills": "Umiejętności",
     "profileInformation": "Informacje o profilu",
     "activityOverview": "Przegląd Twojej aktywności i wkładu",
@@ -242,6 +246,12 @@
     "switchTo": "Przełącz na",
     "polish": "Polski",
     "english": "Angielski"
+  },
+  "theme": {
+    "toggle": "Przełącz motyw",
+    "light": "Jasny",
+    "dark": "Ciemny",
+    "system": "Systemowy"
   },
   "notFound": {
     "title": "Strona nie znaleziona",
@@ -299,6 +309,476 @@
       "q12": "Jak dodać dataset do ulubionych?",
       "a12": "Na stronie zbiorów danych kliknij ikonę serca przy wybranym datasecie, aby dodać go do ulubionych. Musisz być zalogowany, aby korzystać z tej funkcji."
     }
+  },
+  "canvas": {
+    "tabs": {
+      "canvas": "Kreator",
+      "summary": "Podsumowanie modelu",
+      "dataset": "Zbiór danych",
+      "train": "Trenuj",
+      "metrics": "Metryki",
+      "inference": "Inferencja"
+    },
+    "general": {
+      "untitledGraph": "Nienazwany graf",
+      "graphDeleted": "Graf usunięty",
+      "saveErrorsTitle": "Wystąpiły problemy z grafem",
+      "clickToFocusNode": "Kliknij, aby wycentrować ten węzeł",
+      "dismiss": "Zamknij"
+    },
+    "palette": {
+      "layers": "Warstwy",
+      "addLayerTooltip": "Przeciągnij na kanwę lub kliknij, aby dodać"
+    },
+    "inspector": {
+      "parameters": "Parametry",
+      "selectLayer": "Wybierz warstwę, aby edytować jej parametry.",
+      "loading": "Ładowanie definicji parametrów…",
+      "failedToLoad": "Nie udało się załadować: {{error}}",
+      "requiredField": "To pole jest wymagane.",
+      "enable": "Włącz",
+      "noParams": "Brak parametrów"
+    },
+    "toolbar": {
+      "modelNamePlaceholder": "Nazwa modelu...",
+      "save": "Zapisz",
+      "saveTooltip": "Zapisz bieżącą kanwę na swoje konto",
+      "load": "Wczytaj",
+      "loadTooltip": "Otwórz zapisany graf ze swojego konta",
+      "compile": "Kompiluj",
+      "compileTooltip": "Skompiluj bieżącą kanwę na backendzie (waliduje model i zwraca podsumowanie/błędy)",
+      "importExport": "Import / Eksport",
+      "import": "Import",
+      "importKeras": "Importuj Keras JSON",
+      "importGraph": "Importuj Graf JSON",
+      "export": "Eksport",
+      "exportGraph": "Eksportuj Graf JSON",
+      "exportKeras": "Eksportuj Keras JSON",
+      "exportPython": "Eksportuj skrypt Python",
+      "clear": "Wyczyść",
+      "clearTooltip": "Wyczyść kanwę (usuwa wszystkie warstwy i połączenia)",
+      "clearDialogTitle": "Wyczyścić kanwę?",
+      "clearDialogDescription": "To usunie wszystkie warstwy i połączenia z obszaru roboczego. Nadal możesz cofnąć, wczytując zapisany model.",
+      "deleteTooltip": "Usuń zapisany model",
+      "deleteDialogTitle": "Usunąć zapisany model?",
+      "deleteDialogDescription": "Kopia na backendzie zostanie trwale usunięta. Bieżąca kanwa pozostanie otwarta, ale nie będzie już powiązana z zapisanym grafem.",
+      "deleting": "Usuwanie…",
+      "confirmDelete": "Tak, usuń",
+      "updateSuccess": "Graf zaktualizowany pomyślnie",
+      "createSuccess": "Graf zapisany pomyślnie",
+      "compileSuccess": "Graf skompilowany pomyślnie"
+    },
+    "dataset": {
+      "title": "Zarządzanie zbiorami danych",
+      "uploadHeading": "Prześlij zbiór danych",
+      "uploadDescription": "Prześlij plik CSV, aby przygotować dane do trenowania",
+      "chooseCsv": "Wybierz plik CSV",
+      "loadFromDb": "Wczytaj z profilu",
+      "availableDatasets": "Dostępne zbiory danych",
+      "noDatasets": "Nie znaleziono zbiorów danych",
+      "noTransformed": "Brak przetworzonych danych. Najpierw przetwórz zbiór danych.",
+      "loginRequiredDb": "Zaloguj się, aby wczytać zbiory danych z bazy",
+      "loadFailed": "Nie udało się załadować zbiorów danych z bazy",
+      "loadDetailsFailed": "Nie udało się wczytać szczegółów datasetu",
+      "clear": "Wyczyść zbiór danych",
+      "loginRequiredToAccess": "Wymagane logowanie, aby uzyskać dostęp do zbiorów w bazie",
+      "loadButton": "Wczytaj",
+      "dataPreview": {
+        "title": "Podgląd danych",
+        "showingTransformed": "Wyświetlanie zakodowanej i znormalizowanej macierzy cech ({{count}} z {{total}} wierszy)",
+        "showingCleaned": "Wyświetlanie oczyszczonych danych ({{count}} z {{total}} wierszy)"
+      },
+      "rowsLabel": "Wiersze:",
+      "headerRows": "wiersze",
+      "headerColumns": "kolumny",
+      "all": "Wszystkie",
+      "allMayBeSlow": "Wszystkie mogą być wolne dla dużych zbiorów danych",
+      "viewCleaned": "Pokaż oczyszczone",
+      "viewTransformed": "Pokaż przetworzone",
+      "downloadTransformed": "Pobierz przetworzone",
+      "columnConfiguration": "Konfiguracja kolumn",
+      "preprocessing": "Przetwarzanie",
+      "categoricalEncoding": {
+        "label": "Kodowanie kategoryczne",
+        "option_label": "Kodowanie etykiet",
+        "option_onehot": "One-Hot",
+        "option_remove": "Usuń kategoryczne"
+      },
+      "targetEncoding": {
+        "label": "Kodowanie celu",
+        "option_label_desc": "Label (liczby całkowite 0..K-1)",
+        "option_onehot_desc": "One-Hot (K kolumn w modelu)",
+        "tip": "Wskazówka: One-hot współgra z CategoricalCrossentropy; Label z SparseCategoricalCrossentropy."
+      },
+      "missingValueStrategy": {
+        "label": "Strategia brakujących wartości",
+        "option_fill_mean": "Wypełnij średnią",
+        "option_fill_median": "Wypełnij medianą",
+        "option_fill_mode": "Wypełnij dominantą",
+        "option_fill_zero": "Wypełnij zerem",
+        "option_remove_rows": "Usuń wiersze"
+      },
+      "normalizationMethod": {
+        "label": "Metoda normalizacji",
+        "option_standard": "Standaryzacja (Z-score)",
+        "option_minmax": "Min-Max [0,1]",
+        "option_none": "Brak normalizacji"
+      },
+      "dataSplitting": "Podział danych",
+      "splits": {
+        "train": "Trening",
+        "val": "Walidacja",
+        "test": "Test"
+      },
+      "randomSeed": "Ziarno losowe",
+      "configurationErrorsTitle": "Błędy konfiguracji:",
+      "processedSuccess": "Zbiór danych przetworzony pomyślnie",
+      "processedStats": {
+        "train": "Train: {{count}} próbek",
+        "validation": "Validation: {{count}} próbek",
+        "test": "Test: {{count}} próbek",
+        "features": "Cechy: {{count}} ({{preview}})"
+      },
+      "stats": {
+        "unique": "unikalne",
+        "missing": "brakujące"
+      },
+      "encoding": "Kodowanie",
+      "targetEncodingLabel": "Kodowanie celu",
+      "normalization": "Normalizacja",
+      "missingValues": "Brakujące wartości",
+      "role": {
+        "feature": "Cecha",
+        "target": "Cel",
+        "ignore": "Ignoruj"
+      },
+      "columnRole": {
+        "target": "CEL",
+        "ignore": "IGNOROWANE"
+      },
+      "encodingLabels": {
+        "label": "Label",
+        "onehot": "One-Hot",
+        "none": "Brak",
+        "zscore": "Z-score",
+        "minmax": "Min-Max [0,1]"
+      },
+      "transformed": {
+        "feature": "cecha",
+        "target": "cel"
+      },
+      "type": {
+        "numeric": "numeryczne",
+        "categorical": "kategoryczne",
+        "text": "tekstowe",
+        "datetime": "daty i czasy",
+        "boolean": "logiczne"
+      },
+      "missingValueLabels": {
+        "remove_rows": "Usunięto wiersze",
+        "fill_mean": "Wypełniono średnią",
+        "fill_median": "Wypełniono medianą",
+        "fill_mode": "Wypełniono dominantą",
+        "fill_zero": "Wypełniono zerem"
+      },
+      "process": {
+        "processing": "Przetwarzanie...",
+        "process": "Przetwórz zbiór danych",
+        "reprocess": "Przetwórz ponownie zbiór danych",
+        "failed": "Przetwarzanie datasetu nie powiodło się"
+      },
+      "readyForTraining": "Gotowy do trenowania",
+      "configurationIssues": "Problemy z konfiguracją"
+    },
+    "summary": {
+      "title": "Podsumowanie modelu",
+      "generate": "Generuj podsumowanie",
+      "generating": "Generowanie...",
+      "errorTitle": "Błąd podczas generowania podsumowania",
+      "noSummary": "Brak dostępnego podsumowania modelu",
+      "clickGenerate": "Kliknij \"Generuj podsumowanie\", aby skompilować model i zobaczyć jego strukturę",
+      "explainer": "Pokaże nazwy warstw, kształty wyjść i liczbę parametrów",
+      "table": {
+        "layerType": "Layer (type)",
+        "outputShape": "Output Shape",
+        "paramCount": "Param #"
+      },
+      "totalParams": "Suma parametrów:",
+      "trainableParams": "Parametry uczone:",
+      "nonTrainableParams": "Parametry nieuczone:"
+    },
+    "metrics": {
+      "title": "Metryki treningu",
+      "noResultsTitle": "Brak wyników treningu",
+      "inProgress": "Trening w toku. Metryki pojawią się po zakończeniu.",
+      "trainToSeeMetrics": "Przetrenuj model na karcie Trening, aby zobaczyć szczegółowe metryki i wykresy wydajności tutaj.",
+      "falsePositiveRate": "False Positive Rate",
+      "truePositiveRate": "True Positive Rate",
+      "summaryTitle": "Podsumowanie metryk treningu",
+      "trainingCompleted": "Trening zakończony",
+      "trainingCancelled": "Trening przerwany",
+      "finalLoss": "Końcowa strata",
+      "finalAccuracy": "Końcowa dokładność",
+      "epochsTrained": "Epoki",
+      "stoppedEarly": "zatrzymano wcześniej",
+      "earlyStopping": "wczesne zatrzymanie",
+      "progress": "Postęp",
+      "trainingHistory": "Historia treningu",
+      "lossOverEpochs": "Strata w czasie epok",
+      "accuracyOverEpochs": "Dokładność w czasie epok",
+      "testSetEvaluation": "Ewaluacja zestawu testowego",
+      "extendedEvaluation": "Rozszerzona ewaluacja",
+      "confusionMatrix": "Macierz pomyłek",
+      "rocCurve": "Krzywa ROC",
+      "trainingConfiguration": "Konfiguracja treningu",
+      "compilation": "Kompilacja",
+      "optimizer": "Optymalizator:",
+      "lossLabel": "Strata:",
+      "metricsLabel": "Metryki:",
+      "parametersTitle": "Parametry",
+      "epochsLabel": "Epoki:",
+      "batchSizeLabel": "Rozmiar partii:",
+      "learningRateLabel": "Wskaźnik uczenia:",
+      "shuffleLabel": "Tasowanie:",
+      "valBatchSizeLabel": "Rozmiar walidacji:",
+      "earlyStoppingLabel": "EarlyStopping",
+      "monitor": "Monitor",
+      "mode": "Tryb",
+      "patience": "Cierpliwość",
+      "minDelta": "Min Delta",
+      "restoreBest": "Przywróć najlepsze",
+      "reduceLrLabel": "ReduceLROnPlateau",
+      "factor": "Czynnik",
+      "minLr": "Min LR",
+      "allTrainingMetrics": "Wszystkie metryki treningu",
+      "epochCount_one": "{{count}} epoka",
+      "epochCount_few": "{{count}} epoki",
+      "epochCount_many": "{{count}} epok",
+      "epochCount_other": "{{count}} epoki"
+    },
+    "inference": {
+      "workspaceLabel": "Środowisko inferencji",
+      "title": "Uruchom predykcje",
+      "readyToPredict": "Gotowe do predykcji z ostatnim udanym wynikiem treningu.",
+      "trainToUnlock": "Przetrenuj model (status: succeeded), aby udostępnić narzędzia inferencyjne.",
+      "noModel": "Brak wytrenowanego modelu",
+      "finishTraining": "Dokończ sesję treningową (status: succeeded), aby włączyć narzędzia inferencyjne.",
+      "modelStatusLabel": "Status modelu",
+      "notStarted": "nie rozpoczęto",
+      "onlySucceeded": "Tylko zadania o statusie succeeded mogą służyć do predykcji.",
+      "datasetLabel": "Dataset",
+      "activeDataset": "Aktywny zbiór danych",
+      "rows": "wierszy",
+      "features": "cech",
+      "target": "cel",
+      "normalizationLabel": "Normalizacja",
+      "notApplied": "Nie zastosowano",
+      "sendRaw": "Możesz przesyłać surowe wartości.",
+      "matchScaling": "Dopasuj skalowanie użyte przez dataset lub włącz auto-normalizację poniżej.",
+      "step": "Krok",
+      "prepareInput": "Przygotuj dane wejściowe",
+      "expectedFeatureOrder": "Oczekiwana kolejność cech ({{count}}):",
+      "pasteJsonInstruction": "Wklej tablicę tablic lub obiekt zawierający",
+      "applyNormalization": "Zastosuj normalizację datasetu ({{method}})",
+      "jsonTemplate": "Szablon JSON",
+      "keepOrderNote": "Zachowaj kolejność zgodną z cechami użytymi podczas treningu.",
+      "replaceFile": "Zastąp plik",
+      "removeFile": "Usuń",
+      "jobLabel": "Zadanie #{{id}}",
+      "inputFormat": "Format wejścia",
+      "copied": "Skopiowano",
+      "copyJson": "Kopiuj JSON",
+      "download": "Pobierz",
+      "selectCsvHint": "Wybierz CSV z nagłówkami odpowiadającymi nazwom cech użytym w treningu.",
+      "chooseFile": "Wybierz plik",
+      "downloadCsvTemplate": "Pobierz szablon CSV",
+      "keepTargetNote": "Wyklucz kolumny celu z payloadu. Dla modeli kategorycznych otrzymasz wektory prawdopodobieństw na klasę.",
+      "predicting": "Predykcja…",
+      "runInference": "Uruchom predykcję",
+      "reviewPredictions": "Przejrzyj predykcje",
+      "lastRun": "Ostatnie uruchomienie",
+      "runPredictionHint": "Uruchom predykcję, aby zobaczyć wyniki tutaj.",
+      "records": "rekordy",
+      "outputsPerRecord": "wyników / rekord",
+      "argmaxIndices": "Indeksy argmax klas:",
+      "mappedLabels": "Mapowane etykiety:",
+      "unknown": "Nieznany",
+      "fullMapping": "Pełne mapowanie (indeks → etykieta):",
+      "mapIndicesHint": "Zmapuj te indeksy do etykiet kategorycznych, aby zinterpretować predykcje."
+    },
+    "train": {
+      "saveGraphFirst": "Zapisz najpierw graf modelu (Canvas > Zapisz).",
+      "prepareDataset": "Przygotuj najpierw zbiór danych na karcie Zbiór danych przed treningiem.",
+      "noTargetColumn": "Kolumna celu nie jest ustawiona w przetwarzaniu datasetu.",
+      "title": "Konfiguracja treningu",
+      "start": {
+        "start": "Rozpocznij trening",
+        "starting": "Rozpoczynanie…",
+        "stop": "Zatrzymaj trening",
+        "stopping": "Zatrzymywanie…"
+      },
+      "cannotStart": {
+        "title": "Nie można rozpocząć treningu:",
+        "graphNotCompiled": "Graf modelu nie jest skompilowany. Przejdź do karty Kreator i skompiluj model.",
+        "datasetNotPrepared": "Dataset nie jest przygotowany. Przejdź do karty Zbiór danych i wczytaj/przetwórz dane."
+      },
+      "compilationSettings": "Ustawienia kompilacji",
+      "optimizer": {
+        "label": "Optymalizator",
+        "help": "Kontroluje, jak aktualizowane są wagi podczas treningu. Adam jest dobrym wyborem domyślnym; SGD z momentum może działać dobrze dla dużych zbiorów danych."
+      },
+      "gradientClipping": {
+        "label": "Obcinanie gradientów (clipnorm)",
+        "help": "Obcina gradienty według normy, aby zapobiec eksplodującym gradientom. Pozostaw puste, aby wyłączyć."
+      },
+      "lossFunction": {
+        "label": "Funkcja straty",
+        "help": "Powinna odpowiadać problemowi i formatowi etykiet: regresja (MSE/MAE), binarny (BinaryCrossentropy), wieloklasowy (Categorical lub SparseCategorical Crossentropy), itd."
+      },
+      "hint": {
+        "classMismatch": "Uwaga: cel wygląda na klasyfikację, ale wybrano stratę regresyjną. Rozważ sparse_categorical_crossentropy (etykiety całkowite) lub categorical_crossentropy (one-hot), albo binary_crossentropy dla 2 klas.",
+        "regMismatch": "Uwaga: cel wygląda na zmienną ciągłą, ale wybrano stratę klasyfikacyjną. Rozważ mse/mae dla regresji."
+      },
+      "recommended": {
+        "label": "Zalecane dla celu ({{encoding}})",
+        "apply": "Zastosuj"
+      },
+      "parameters": {
+        "title": "Parametry treningu"
+      },
+      "epochs": {
+        "label": "Epoki",
+        "help": "Jedna epoka = pełne przejście przez dane treningowe. Więcej epok może poprawić dopasowanie, ale grozi przeuczeniem. Użyj EarlyStopping, aby zatrzymać automatycznie."
+      },
+      "batchSize": {
+        "label": "Rozmiar partii",
+        "help": "Liczba próbek na krok gradientu. Większe partie są szybsze, ale mogą gorzej uogólniać; mniejsze partie wprowadzają szum, co może pomagać uogólnianiu."
+      },
+      "usingSplits": "Używane podziały datasetu: val={{val}}, test={{test}}",
+      "learningRate": {
+        "label": "Współczynnik uczenia (opcjonalnie)",
+        "help": "Krok aktualizacji wag. Zbyt wysoki może spowodować rozbieżność; zbyt niski może być powolny. Typowe wartości: 1e-3 do 1e-4 dla Adam."
+      },
+      "valBatchSize": {
+        "label": "Rozmiar partii walidacji (opcjonalnie)",
+        "help": "Jeśli puste, używa rozmiaru partii treningowej. Dotyczy tylko przepustowości walidacji, nie dynamiki treningu."
+      },
+      "shuffle": {
+        "label": "Tasuj dane treningowe każdą epokę",
+        "help": "Zalecane. Zapobiega uczeniu się uporządkowania; wyłącz tylko dla danych sekwencyjnych, które muszą być w kolejności."
+      },
+      "checkpoints": {
+        "title": "Checkpointy i logi"
+      },
+      "saveBestModel": {
+        "label": "Zapisz najlepszy model",
+        "disabledNote": "Wyłączone, ponieważ aktywne jest \"Przywróć najlepsze wagi\". Finalny model będzie już najlepszy."
+      },
+      "saveTrainingLogs": {
+        "label": "Zapisz logi treningu (CSV)"
+      },
+      "callbacks": {
+        "title": "Callbacki"
+      },
+      "earlyStopping": {
+        "label": "EarlyStopping",
+        "help": "Zatrzymaj trening, gdy monitorowana metryka przestanie się poprawiać. Pomaga uniknąć przeuczenia i oszczędza czas."
+      },
+      "restoreBest": {
+        "label": "Przywróć najlepsze wagi",
+        "help": "Po zatrzymaniu cofnij do epoki o najlepszej wydajności."
+      },
+      "reduceLr": {
+        "label": "ReduceLROnPlateau",
+        "help": "Zmniejsz współczynnik uczenia, gdy metryka przestanie się poprawiać, aby dopracować trening.",
+        "metricHelp": "Metryka używana do decyzji o zmniejszeniu współczynnika uczenia.",
+        "factorLabel": "Czynnik",
+        "factorHelp": "Multiplikatywny spadek. Przykład: 0.1 zmieni 1e-3 na 1e-4.",
+        "patienceLabel": "Cierpliwość",
+        "patienceHelp": "Ile epok bez poprawy przed zmniejszeniem współczynnika uczenia."
+      },
+      "metricsHeading": "Metryki",
+      "metricsShowing": {
+        "classification": "Pokazywane metryki odpowiednie dla klasyfikacji (na podstawie wybranej straty).",
+        "regression": "Pokazywane metryki odpowiednie dla regresji (na podstawie wybranej straty)."
+      },
+      "metrics": {
+        "watchHelp": "Którą metrykę obserwować. Dla klasyfikacji lepiej wybrać odpowiednią miarę dokładności; dla regresji użyj val_loss/loss.",
+        "chooseModeHelp": "Wybierz \"min\" dla strat (mniejsza wartość lepsza) i \"max\" dla dokładności (większa wartość lepsza). \"auto\" zgaduje tryb.",
+        "patienceHelp": "Ile epok bez poprawy przed zatrzymaniem.",
+        "minDeltaHelp": "Minimalna zmiana kwalifikująca się jako poprawa (pomaga zignorować drobne wahania).",
+        "auc": "AUC = {{value}}",
+        "valPrefix": "val: {{value}}",
+        "epochCount_one": "{{count}} epoka",
+        "epochCount_few": "{{count}} epoki",
+        "epochCount_many": "{{count}} epok",
+        "epochCount_other": "{{count}} epoki"
+      },
+      "errors": {
+        "trainingFailed": "Trening nie powiódł się",
+        "pollFailed": "Nie udało się odpytać statusu zadania",
+        "startFailed": "Nie udało się uruchomić zadania treningowego",
+        "cancelFailed": "Nie udało się anulować zadania treningowego",
+        "exportFailed": "Eksport nie powiódł się"
+      },
+      "live": {
+        "epoch": "epoka {{epoch}}",
+        "loss": "strata {{value}}",
+        "val_loss": "strata walidacyjna {{value}}",
+        "accuracy": "dokładność {{value}}",
+        "sparse_categorical_accuracy": "dokładność (sparse) {{value}}",
+        "categorical_accuracy": "dokładność (kategoryczna) {{value}}",
+        "binary_accuracy": "dokładność (binarna) {{value}}"
+      },
+      "job": {
+        "title": "Zadanie treningowe",
+        "noJobYet": "Brak zadania. Skonfiguruj parametry po lewej i kliknij \"Rozpocznij trening\" aby zacząć.",
+        "idLabel": "ID",
+        "statusLabel": "Status",
+        "statuses": {
+          "queued": "W kolejce",
+          "running": "W trakcie",
+          "succeeded": "Zakończono",
+          "failed": "Niepowiodło się",
+          "cancelled": "Anulowano"
+        },
+        "liveTitle": "Na żywo",
+        "exportFormats": "Formaty eksportu",
+        "downloadFinal": "Pobierz finalny model",
+        "downloadBest": "Pobierz najlepszy model",
+        "downloadLogs": "Pobierz logi (CSV)",
+        "downloadTflite": "Pobierz TFLite",
+        "exportToTflite": "Eksportuj do TFLite",
+        "exporting": "Eksport...",
+        "finalMetrics": "Metryki końcowe:"
+      },
+      "legend": {
+        "lossOverEpochs": "Strata w czasie epok",
+        "validationLoss": "Strata walidacyjna",
+        "trainingLoss": "Strata treningowa"
+      }
+    },
+    "loadModal": {
+      "title": "Wczytaj zapisany graf",
+      "description": "Wybierz wcześniej zapisany graf sieci do załadowania na kanwę",
+      "createdAt": "Utworzono: {{date}}",
+      "layers_one": "{{count}} warstwa",
+      "layers_few": "{{count}} warstwy",
+      "layers_many": "{{count}} warstw",
+      "layers_other": "{{count}} warstw",
+      "graphDeleted": "Graf usunięty",
+      "loading": "Ładowanie grafów...",
+      "error": "Nie udało się załadować grafów: {{error}}",
+      "noGraphs": "Brak zapisanych grafów",
+      "noGraphsHint": "Utwórz i zapisz graf, aby pojawił się tutaj",
+      "load": "Wczytaj",
+      "deleteConfirm": "Usunąć?",
+      "na": "Brak"
+    }
+    ,
+    "actions": {
+      "removeNode": "Usuń węzeł",
+      "removeConnection": "Usuń połączenie"
+    }
   }
 }
-

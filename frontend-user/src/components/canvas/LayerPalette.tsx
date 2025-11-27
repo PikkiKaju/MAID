@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useModelCanvasStore, ModelCanvasState } from '../../store/modelCanvasStore';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import networkGraphService from '../../api/networkGraphService';
@@ -40,6 +41,7 @@ type LayerParameter = {
 
 // Left side layer palette (drag source + click fallback)
 export default function LayerPalette() {
+  const { t } = useTranslation();
   const addNode = useModelCanvasStore((s: ModelCanvasState) => s.addNode); // Keep button click fallback
 
   const [layerCategories, setLayerCategories] = useState<LayerCategory[]>([]);
@@ -122,7 +124,7 @@ export default function LayerPalette() {
               className='w-full flex items-center justify-between px-2 py-1 text-left text-[11px] font-semibold text-muted-foreground hover:bg-accent rounded-t'
             >
               <span className='flex items-center gap-2'>
-                {opened ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {category.name}
+                {opened ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {t(`canvas.palette.category.${category.id}`, category.name)}
               </span>
               <span className='text-[10px] font-normal text-muted-foreground/70'>{category.layers.length}</span>
             </button>
@@ -137,12 +139,12 @@ export default function LayerPalette() {
                       onDragStart={(e) => handleDragStart(e, p)}
                       onClick={() => addNode(p.type, p.defaults)}
                       className='w-full text-left px-2 py-1 rounded border border-border bg-card hover:border-primary hover:bg-primary/5 transition cursor-grab active:cursor-grabbing box-border'
-                      title='Drag to canvas or click to add'
+                      title={t('canvas.palette.addLayerTooltip', 'Drag to canvas or click to add')}
                     >
-                      <span className='block text-[11px] font-medium text-foreground'>{p.label}</span>
+                      <span className='block text-[11px] font-medium text-foreground'>{t(`canvas.palette.layer.${p.label}`, p.label)}</span>
                       {Object.keys(p.defaults).length > 0 && (
                         <span className='block text-[9px] text-muted-foreground whitespace-normal break-words'>
-                          {Object.keys(p.defaults).slice(0, 3).join(', ')}
+                          {Object.keys(p.defaults).slice(0, 3).map(key => t(`canvas.palette.param.${key}`, key)).join(', ')}
                         </span>
                       )}
                     </button>

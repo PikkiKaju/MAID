@@ -6,6 +6,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from '../../ui/dialog';
+import { useTranslation } from 'react-i18next';
+import { formatDateTime } from '../../utils/formatDate';
 import { Button } from '../../ui/button';
 import networkGraphService, { NetworkGraphPayload } from '../../api/networkGraphService';
 import { Loader2, Calendar, Layers } from 'lucide-react';
@@ -23,6 +25,7 @@ type GraphWithTimestamps = NetworkGraphPayload & {
 };
 
 export default function LoadGraphModal({ open, onOpenChange, onLoad }: Props) {
+  const { t, i18n } = useTranslation();
   const [graphs, setGraphs] = useState<GraphWithTimestamps[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,54 +75,44 @@ export default function LoadGraphModal({ open, onOpenChange, onLoad }: Props) {
   };
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch {
-      return dateString;
-    }
+    if (!dateString) return t('canvas.loadModal.na');
+    return formatDateTime(dateString, i18n.language);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Load Saved Graph</DialogTitle>
+          <DialogTitle>{t('canvas.loadModal.title')}</DialogTitle>
           <DialogDescription>
-            Select a previously saved network graph to load onto the canvas
+            {t('canvas.loadModal.description')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto pr-2">
           {success && (
             <div className="mb-3 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 rounded p-2 text-emerald-700 dark:text-emerald-200 text-sm">
-              {success}
+              {t('canvas.loadModal.graphDeleted')}
             </div>
           )}
           {loading && (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="animate-spin mr-2" size={24} />
-              <span className="text-sm text-muted-foreground">Loading graphs...</span>
+              <span className="text-sm text-muted-foreground">{t('canvas.loadModal.loading')}</span>
             </div>
           )}
 
           {error && (
             <div className="bg-destructive/10 border border-destructive/30 rounded p-4 text-sm text-destructive">
-              {error}
+              {t('canvas.loadModal.error', { error })}
             </div>
           )}
 
           {!loading && !error && graphs.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">
               <Layers size={48} className="mx-auto mb-4 opacity-50" />
-              <p className="text-sm">No saved graphs found</p>
-              <p className="text-xs mt-2">Create and save a graph to see it here</p>
+              <p className="text-sm">{t('canvas.loadModal.noGraphs')}</p>
+              <p className="text-xs mt-2">{t('canvas.loadModal.noGraphsHint')}</p>
             </div>
           )}
 
@@ -147,7 +140,7 @@ export default function LoadGraphModal({ open, onOpenChange, onLoad }: Props) {
                         </span>
                         <span className="flex items-center gap-1 whitespace-nowrap">
                           <Layers size={12} />
-                          {(graph.nodes || []).length} layers
+                          {t('canvas.loadModal.layers', { count: (graph.nodes || []).length })}
                         </span>
                         {graph.framework && (
                           <span className="bg-muted px-2 py-0.5 rounded whitespace-nowrap w-fit">
@@ -166,25 +159,25 @@ export default function LoadGraphModal({ open, onOpenChange, onLoad }: Props) {
                           handleLoadGraph(graph);
                         }}
                       >
-                        Load
+                        {t('canvas.loadModal.load')}
                       </Button>
                       <div className="h-8 flex items-center">
                         {confirmDeleteId === graph.id ? (
                           <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">Delete?</span>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">{t('canvas.loadModal.deleteConfirm')}</span>
                             <Button
                               size="sm"
                               variant="destructive"
                               onClick={(e) => { e.stopPropagation(); handleDeleteGraph(graph.id!); }}
                             >
-                              Yes
+                              {t('common.confirm')}
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
                             >
-                              Cancel
+                              {t('common.cancel')}
                             </Button>
                           </div>
                         ) : (
@@ -194,7 +187,7 @@ export default function LoadGraphModal({ open, onOpenChange, onLoad }: Props) {
                             className="opacity-0 group-hover:opacity-100 transition text-destructive border-destructive/30 hover:bg-destructive/10"
                             onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(graph.id || null); }}
                           >
-                            Delete
+                            {t('common.delete')}
                           </Button>
                         )}
                       </div>
@@ -208,7 +201,7 @@ export default function LoadGraphModal({ open, onOpenChange, onLoad }: Props) {
 
         <div className="border-t pt-4 mt-4 flex justify-end">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
         </div>
       </DialogContent>

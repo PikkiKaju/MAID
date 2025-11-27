@@ -13,34 +13,31 @@ export const capitalizeFirstLetter = (str: string | null): string | null => {
  * @param dateString - Date to format
  * @returns Formatted date string in format "DD-MM-YYYY HH:MM"
  */
+import i18next from 'i18next';
+import { formatDateTime } from './formatDate';
+
 export const formatDate = (dateString: string | undefined): string => {
-    if (!dateString) return 'Brak daty';
-    try {
-      return new Date(dateString).toLocaleDateString('pl-PL', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch (e) {
-      console.error("Błąd formatowania daty:", e);
-      return dateString;
-    }
-  };
+  if (!dateString) return 'Brak daty';
+  try {
+    return formatDateTime(dateString, i18next.language);
+  } catch (e) {
+    console.error('Błąd formatowania daty:', e);
+    return dateString as string;
+  }
+};
 
 /**
  * Formats upload date
  */  
 export const formatUploadDate = (dateString: string | Date): string => {
   try {
-    return new Date(dateString).toLocaleDateString('pl-PL', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+    const ds = typeof dateString === 'string' ? dateString : dateString.toISOString();
+    // short date without time
+    const d = new Date(ds);
+    const opts: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
+    return new Intl.DateTimeFormat(i18next.language || undefined, opts).format(d);
   } catch (e) {
-    console.error("Błąd formatowania daty uploadu:", e);
+    console.error('Błąd formatowania daty uploadu:', e);
     return typeof dateString === 'string' ? dateString : 'Brak daty';
   }
 };

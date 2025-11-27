@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { formatDateTime } from '../../../utils/formatDate';
 import { Upload, Table, X, Database, Settings, Play, AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Eye } from 'lucide-react';
 import { Button } from '../../../ui/button';
 import { datasetService, DatasetMyMetadata } from '../../../api/datasetService';
@@ -7,6 +9,7 @@ import { useDataset, CsvRow, ProcessedDataset } from '../../../contexts/DatasetC
 import { analyzeColumn, validatePreprocessingConfig } from '../../../utils/dataPreprocessing';
 
 export default function DatasetTab() {
+  const { t, i18n } = useTranslation();
   const { token, isLoggedIn } = useAppSelector((state) => state.auth);
   const { dataset, setDataset, updatePreprocessingConfig, processDataset, clearDataset: clearDatasetContext } = useDataset();
   const [processing, setProcessing] = useState(false);
@@ -29,7 +32,7 @@ export default function DatasetTab() {
   // Download the transformed dataset (CSV) if available
   const downloadTransformed = () => {
     if (!dataset || !dataset.transformed) {
-      alert('No transformed data available. Please process the dataset first.');
+      alert(t('canvas.dataset.noTransformed'));
       return;
     }
     const header = [...dataset.transformed.featureNames, dataset.preprocessingConfig.targetColumn || 'target'];
@@ -111,7 +114,7 @@ export default function DatasetTab() {
 
   const loadDatasetsFromDB = async () => {
     if (!isLoggedIn || !token) {
-      alert('Please login to load datasets from the database');
+      alert(t('canvas.dataset.loginRequiredDb'));
       return;
     }
 
@@ -122,7 +125,7 @@ export default function DatasetTab() {
       setShowDatasetList(true);
     } catch (err) {
       console.error('Failed to load datasets', err);
-      alert('Failed to load datasets from database');
+      alert(t('canvas.dataset.loadFailed'));
     } finally {
       setLoadingDatasets(false);
     }
@@ -163,7 +166,7 @@ export default function DatasetTab() {
       setShowDatasetList(false);
     } catch (err) {
       console.error('Failed to load dataset details', err);
-      alert('Failed to load dataset details');
+      alert(t('canvas.dataset.loadDetailsFailed'));
     }
   };
 
@@ -231,10 +234,10 @@ export default function DatasetTab() {
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">Dataset Manager</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('canvas.dataset.title')}</h2>
           {dataset && (
             <p className="text-xs text-muted-foreground">
-              {dataset.datasetName} • {dataset.totalRows} rows × {dataset.totalColumns} columns
+              {dataset.datasetName} • {dataset.totalRows} {t('canvas.dataset.headerRows')} × {dataset.totalColumns} {t('canvas.dataset.headerColumns')}
               {dataset.isProcessed && dataset.cleaned && dataset.cleaned.length !== dataset.totalRows && (
                 <span className="text-orange-600 dark:text-orange-400 ml-1">
                   → {dataset.cleaned.length} after cleaning
@@ -249,16 +252,16 @@ export default function DatasetTab() {
               {dataset.isProcessed ? (
                 <div className="flex items-center gap-2 px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100 rounded text-sm border border-green-200 dark:border-green-800">
                   <CheckCircle2 size={16} />
-                  Ready for Training
+                  {t('canvas.dataset.readyForTraining')}
                 </div>
               ) : validation && !validation.valid ? (
                 <div className="flex items-center gap-2 px-3 py-1 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-200 rounded text-sm border border-red-200 dark:border-red-800">
                   <AlertCircle size={16} />
-                  Configuration Issues
+                  {t('canvas.dataset.configurationIssues')}
                 </div>
               ) : null}
               <Button variant="outline" size="sm" onClick={clearDataset}>
-                <X size={14} className="mr-1" /> Clear Dataset
+                <X size={14} className="mr-1" /> {t('canvas.dataset.clear')}
               </Button>
             </>
           )}
@@ -271,9 +274,9 @@ export default function DatasetTab() {
           <div className="flex-1 flex items-center justify-center border-2 border-dashed border-border rounded-lg bg-card">
             <div className="text-center p-8">
               <Upload size={48} className="mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-medium text-foreground mb-2">Upload Dataset</h3>
+              <h3 className="text-lg font-medium text-foreground mb-2">{t('canvas.dataset.uploadHeading')}</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Upload a CSV file to prepare for training
+                {t('canvas.dataset.uploadDescription')}
               </p>
               <input
                 ref={fileInputRef}
@@ -288,7 +291,7 @@ export default function DatasetTab() {
               <div className="flex gap-2 justify-center">
                 <Button onClick={() => fileInputRef.current?.click()}>
                   <Upload size={16} className="mr-2" />
-                  Choose CSV File
+                  {t('canvas.dataset.chooseCsv')}
                 </Button>
                 {isLoggedIn && (
                   <Button
@@ -297,13 +300,13 @@ export default function DatasetTab() {
                     disabled={loadingDatasets}
                   >
                     <Database size={16} className="mr-2" />
-                    {loadingDatasets ? 'Loading...' : 'Load from Database'}
+                    {loadingDatasets ? t('common.loading') : t('canvas.dataset.loadFromDb')}
                   </Button>
                 )}
               </div>
               {!isLoggedIn && (
                 <p className="text-xs text-orange-600 dark:text-orange-400 mt-2">
-                  Login required to access database datasets
+                  {t('canvas.dataset.loginRequiredToAccess')}
                 </p>
               )}
             </div>
@@ -313,13 +316,13 @@ export default function DatasetTab() {
           {showDatasetList && (
             <div className="bg-card border border-border rounded-lg p-4 max-h-[400px] overflow-y-auto">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-foreground">Available Datasets</h3>
+                <h3 className="font-semibold text-foreground">{t('canvas.dataset.availableDatasets')}</h3>
                 <Button variant="ghost" size="sm" onClick={() => setShowDatasetList(false)}>
                   <X size={16} />
                 </Button>
               </div>
               {availableDatasets.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">No datasets found</p>
+                <p className="text-sm text-muted-foreground text-center py-8">{t('canvas.dataset.noDatasets')}</p>
               ) : (
                 <div className="space-y-2">
                   {availableDatasets.map((ds) => (
@@ -331,11 +334,11 @@ export default function DatasetTab() {
                       <div>
                         <p className="font-medium text-sm text-foreground">{ds.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          Created: {new Date(ds.createdAt).toLocaleDateString()}
+                          {t('canvas.loadModal.createdAt', { date: formatDateTime(ds.createdAt, i18n.language) })}
                         </p>
                       </div>
                       <Button size="sm" variant="outline">
-                        Load
+                        {t('canvas.dataset.loadButton')}
                       </Button>
                     </div>
                   ))}
@@ -354,12 +357,12 @@ export default function DatasetTab() {
                 <div className="flex items-center gap-2">
                   <Table size={16} className="text-muted-foreground" />
                   <div>
-                    <h3 className="font-semibold text-foreground">Data Preview</h3>
+                    <h3 className="font-semibold text-foreground">{t('canvas.dataset.dataPreview.title')}</h3>
                     {dataset.isProcessed && dataset.cleaned && (
                       <p className="text-[10px] text-muted-foreground">
                         {showTransformed ?
-                          `Showing encoded & normalized feature matrix (${Math.min(previewCount, dataset.transformed?.X.length ?? 0)} of ${dataset.transformed?.X.length ?? 0} rows)` :
-                          `Showing cleaned data (${Math.min(previewCount, dataset.cleaned.length)} of ${dataset.cleaned.length} rows)`}
+                          t('canvas.dataset.dataPreview.showingTransformed', { count: Math.min(previewCount, dataset.transformed?.X.length ?? 0), total: dataset.transformed?.X.length ?? 0 }) :
+                          t('canvas.dataset.dataPreview.showingCleaned', { count: Math.min(previewCount, dataset.cleaned.length), total: dataset.cleaned.length })}
                       </p>
                     )}
                   </div>
@@ -367,7 +370,7 @@ export default function DatasetTab() {
                 <div className="flex items-center gap-3">
                   {dataset && (
                     <div className="flex items-center gap-2">
-                      <label className="text-xs text-muted-foreground">Rows:</label>
+                      <label className="text-xs text-muted-foreground">{t('canvas.dataset.rowsLabel')}</label>
                       <select
                         value={previewCount}
                         onChange={(e) => {
@@ -382,10 +385,10 @@ export default function DatasetTab() {
                         <option value={25}>25</option>
                         <option value={50}>50</option>
                         <option value={100}>100</option>
-                        <option value={dataset.isProcessed ? (dataset.transformed?.X.length ?? dataset.cleaned?.length ?? dataset.totalRows) : dataset.totalRows}>All</option>
+                        <option value={dataset.isProcessed ? (dataset.transformed?.X.length ?? dataset.cleaned?.length ?? dataset.totalRows) : dataset.totalRows}>{t('canvas.dataset.all')}</option>
                       </select>
                       {((dataset.transformed?.X.length ?? dataset.cleaned?.length ?? dataset.totalRows) || 0) > 1000 && (
-                        <span className="text-[10px] text-muted-foreground ml-2">All may be slow for large datasets</span>
+                        <span className="text-[10px] text-muted-foreground ml-2">{t('canvas.dataset.allMayBeSlow')}</span>
                       )}
                     </div>
                   )}
@@ -398,7 +401,7 @@ export default function DatasetTab() {
                         className="text-xs"
                       >
                         <Eye size={14} className="mr-1" />
-                        {showTransformed ? 'View Cleaned' : 'View Transformed'}
+                        {showTransformed ? t('canvas.dataset.viewCleaned') : t('canvas.dataset.viewTransformed')}
                       </Button>
                       <Button
                         size="sm"
@@ -407,7 +410,7 @@ export default function DatasetTab() {
                         disabled={!dataset.transformed}
                         className="text-xs"
                       >
-                        Download Transformed
+                        {t('canvas.dataset.downloadTransformed')}
                       </Button>
                     </>
                   )}
@@ -425,14 +428,14 @@ export default function DatasetTab() {
                         <th key={idx} className="px-3 py-2 text-left border-r border-b border-border">
                           <div className="flex flex-col gap-1">
                             <span className="font-semibold text-foreground">{name}</span>
-                            <span className="text-[10px] text-muted-foreground">feature</span>
+                            <span className="text-[10px] text-muted-foreground">{t('canvas.dataset.transformed.feature')}</span>
                           </div>
                         </th>
                       ))}
                       <th className="px-3 py-2 text-left border-r border-b border-border bg-green-100 dark:bg-green-900/50">
                         <div className="flex flex-col gap-1">
                           <span className="font-semibold text-green-900 dark:text-green-100">{dataset.preprocessingConfig.targetColumn}</span>
-                          <span className="text-[10px] text-green-800 dark:text-green-200">target</span>
+                          <span className="text-[10px] text-green-800 dark:text-green-200">{t('canvas.dataset.transformed.target')}</span>
                         </div>
                       </th>
                     </tr>
@@ -466,9 +469,9 @@ export default function DatasetTab() {
                           <div className="flex flex-col gap-1">
                             <span className="font-semibold text-foreground">{col.name}</span>
                             <span className="text-[10px] text-muted-foreground">
-                              {col.type}
-                              {col.role === 'target' && ' • TARGET'}
-                              {col.role === 'ignore' && ' • IGNORED'}
+                              {t(`canvas.dataset.type.${col.type}`, { defaultValue: col.type })}
+                              {col.role === 'target' && ` • ${t('canvas.dataset.columnRole.target')}`}
+                              {col.role === 'ignore' && ` • ${t('canvas.dataset.columnRole.ignore')}`}
                             </span>
                           </div>
                         </th>
@@ -502,7 +505,7 @@ export default function DatasetTab() {
               >
                 <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
                   <Settings size={16} />
-                  Column Configuration
+                  {t('canvas.dataset.columnConfiguration')}
                 </h3>
                 {showColumnConfig ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
               </div>
@@ -513,7 +516,7 @@ export default function DatasetTab() {
                       <div className="flex-1">
                         <p className="font-medium text-foreground">{col.name}</p>
                         <p className="text-muted-foreground text-[10px]">
-                          {col.type} • {col.uniqueCount} unique • {col.missingCount} missing
+                          {t(`canvas.dataset.type.${col.type}`, { defaultValue: col.type })} • {col.uniqueCount} {t('canvas.dataset.stats.unique')} • {col.missingCount} {t('canvas.dataset.stats.missing')}
                         </p>
                       </div>
                       <select
@@ -521,9 +524,9 @@ export default function DatasetTab() {
                         onChange={(e) => handleColumnRoleChange(col.name, e.target.value as 'feature' | 'target' | 'ignore')}
                         className="px-2 py-1 border border-input rounded text-xs bg-background text-foreground"
                       >
-                        <option value="feature">Feature</option>
-                        <option value="target">Target</option>
-                        <option value="ignore">Ignore</option>
+                        <option value="feature">{t('canvas.dataset.role.feature')}</option>
+                        <option value="target">{t('canvas.dataset.role.target')}</option>
+                        <option value="ignore">{t('canvas.dataset.role.ignore')}</option>
                       </select>
                     </div>
                   ))}
@@ -533,21 +536,21 @@ export default function DatasetTab() {
 
             {/* Preprocessing Settings */}
             <div className="bg-card border border-border rounded-lg p-3 space-y-3">
-              <h3 className="font-semibold text-foreground text-sm">Preprocessing</h3>
+              <h3 className="font-semibold text-foreground text-sm">{t('canvas.dataset.preprocessing')}</h3>
 
               {/* Categorical Encoding */}
               <div>
                 <label className="block text-xs font-medium text-foreground mb-1">
-                  Categorical Encoding
+                  {t('canvas.dataset.categoricalEncoding.label')}
                 </label>
                 <select
                   value={dataset.preprocessingConfig.categoricalEncoding}
                   onChange={(e) => updatePreprocessingConfig({ categoricalEncoding: e.target.value as 'one-hot' | 'label' | 'remove' })}
                   className="w-full px-2 py-1 border border-input rounded text-xs bg-background text-foreground"
                 >
-                  <option value="label">Label Encoding</option>
-                  <option value="one-hot">One-Hot Encoding</option>
-                  <option value="remove">Remove Categorical</option>
+                  <option value="label">{t('canvas.dataset.categoricalEncoding.option_label')}</option>
+                  <option value="one-hot">{t('canvas.dataset.categoricalEncoding.option_onehot')}</option>
+                  <option value="remove">{t('canvas.dataset.categoricalEncoding.option_remove')}</option>
                 </select>
               </div>
 
@@ -559,18 +562,18 @@ export default function DatasetTab() {
                 return (
                   <div>
                     <label className="block text-xs font-medium text-foreground mb-1">
-                      Target Encoding
+                      {t('canvas.dataset.targetEncoding.label')}
                     </label>
                     <select
                       value={dataset.preprocessingConfig.targetEncoding}
                       onChange={(e) => updatePreprocessingConfig({ targetEncoding: e.target.value as 'label' | 'one-hot' })}
                       className="w-full px-2 py-1 border border-input rounded text-xs bg-background text-foreground"
                     >
-                      <option value="label">Label (integers 0..K-1)</option>
-                      <option value="one-hot">One-Hot (K columns in model)</option>
+                      <option value="label">{t('canvas.dataset.targetEncoding.option_label_desc')}</option>
+                      <option value="one-hot">{t('canvas.dataset.targetEncoding.option_onehot_desc')}</option>
                     </select>
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      Tip: One-hot pairs with CategoricalCrossentropy; Label pairs with SparseCategoricalCrossentropy.
+                      {t('canvas.dataset.targetEncoding.tip')}
                     </p>
                   </div>
                 );
@@ -579,45 +582,45 @@ export default function DatasetTab() {
               {/* Missing Values */}
               <div>
                 <label className="block text-xs font-medium text-foreground mb-1">
-                  Missing Value Strategy
+                  {t('canvas.dataset.missingValueStrategy.label')}
                 </label>
                 <select
                   value={dataset.preprocessingConfig.missingValueStrategy}
                   onChange={(e) => updatePreprocessingConfig({ missingValueStrategy: e.target.value as 'remove-rows' | 'fill-mean' | 'fill-median' | 'fill-mode' | 'fill-zero' })}
                   className="w-full px-2 py-1 border border-input rounded text-xs bg-background text-foreground"
                 >
-                  <option value="fill-mean">Fill with Mean</option>
-                  <option value="fill-median">Fill with Median</option>
-                  <option value="fill-mode">Fill with Mode</option>
-                  <option value="fill-zero">Fill with Zero</option>
-                  <option value="remove-rows">Remove Rows</option>
+                  <option value="fill-mean">{t('canvas.dataset.missingValueStrategy.option_fill_mean')}</option>
+                  <option value="fill-median">{t('canvas.dataset.missingValueStrategy.option_fill_median')}</option>
+                  <option value="fill-mode">{t('canvas.dataset.missingValueStrategy.option_fill_mode')}</option>
+                  <option value="fill-zero">{t('canvas.dataset.missingValueStrategy.option_fill_zero')}</option>
+                  <option value="remove-rows">{t('canvas.dataset.missingValueStrategy.option_remove_rows')}</option>
                 </select>
               </div>
 
               {/* Normalization */}
               <div>
                 <label className="block text-xs font-medium text-foreground mb-1">
-                  Normalization Method
+                  {t('canvas.dataset.normalizationMethod.label')}
                 </label>
                 <select
                   value={dataset.preprocessingConfig.normalizationMethod}
                   onChange={(e) => updatePreprocessingConfig({ normalizationMethod: e.target.value as 'standard' | 'minmax' | 'none' })}
                   className="w-full px-2 py-1 border border-input rounded text-xs bg-background text-foreground"
                 >
-                  <option value="standard">Standard Scaling (Z-score)</option>
-                  <option value="minmax">Min-Max Scaling [0,1]</option>
-                  <option value="none">No Normalization</option>
+                  <option value="standard">{t('canvas.dataset.normalizationMethod.option_standard')}</option>
+                  <option value="minmax">{t('canvas.dataset.normalizationMethod.option_minmax')}</option>
+                  <option value="none">{t('canvas.dataset.normalizationMethod.option_none')}</option>
                 </select>
               </div>
             </div>
 
             {/* Data Splitting */}
             <div className="bg-card border border-border rounded-lg p-3 space-y-3">
-              <h3 className="font-semibold text-foreground text-sm">Data Splitting</h3>
+              <h3 className="font-semibold text-foreground text-sm">{t('canvas.dataset.dataSplitting')}</h3>
 
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">Train</label>
+                  <label className="block text-xs font-medium text-foreground mb-1">{t('canvas.dataset.splits.train')}</label>
                   <input
                     type="number"
                     min="0"
@@ -629,7 +632,7 @@ export default function DatasetTab() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">Val</label>
+                  <label className="block text-xs font-medium text-foreground mb-1">{t('canvas.dataset.splits.val')}</label>
                   <input
                     type="number"
                     min="0"
@@ -641,7 +644,7 @@ export default function DatasetTab() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">Test</label>
+                  <label className="block text-xs font-medium text-foreground mb-1">{t('canvas.dataset.splits.test')}</label>
                   <input
                     type="number"
                     min="0"
@@ -655,7 +658,7 @@ export default function DatasetTab() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-foreground mb-1">Random Seed</label>
+                <label className="block text-xs font-medium text-foreground mb-1">{t('canvas.dataset.randomSeed')}</label>
                 <input
                   type="number"
                   value={dataset.preprocessingConfig.randomSeed}
@@ -671,7 +674,7 @@ export default function DatasetTab() {
                 <div className="flex items-start gap-2">
                   <AlertCircle size={16} className="text-red-600 dark:text-red-400 mt-0.5" />
                   <div>
-                    <p className="text-xs font-semibold text-red-800 dark:text-red-200 mb-1">Configuration Errors:</p>
+                    <p className="text-xs font-semibold text-red-800 dark:text-red-200 mb-1">{t('canvas.dataset.configurationErrorsTitle')}</p>
                     <ul className="text-xs text-red-700 dark:text-red-300 space-y-1">
                       {validation.errors.map((error, idx) => (
                         <li key={idx}>• {error}</li>
@@ -688,24 +691,24 @@ export default function DatasetTab() {
                 <div className="flex items-start gap-2">
                   <CheckCircle2 size={16} className="text-green-700 dark:text-green-300 mt-0.5" />
                   <div className="flex-1">
-                    <p className="text-xs font-semibold text-green-900 dark:text-green-100 mb-1">Dataset Processed Successfully</p>
+                    <p className="text-xs font-semibold text-green-900 dark:text-green-100 mb-1">{t('canvas.dataset.processedSuccess')}</p>
                     <div className="text-xs text-green-800 dark:text-green-200 space-y-0.5">
-                      <div>• Train: {dataset.trainData.X.length} samples</div>
-                      <div>• Validation: {dataset.validationData?.X.length || 0} samples</div>
-                      <div>• Test: {dataset.testData?.X.length || 0} samples</div>
-                      <div>• Features: {dataset.trainData.featureNames.length} ({dataset.trainData.featureNames.slice(0, 3).join(', ')}{dataset.trainData.featureNames.length > 3 ? '...' : ''})</div>
+                      <div>• {t('canvas.dataset.processedStats.train', { count: dataset.trainData.X.length })}</div>
+                      <div>• {t('canvas.dataset.processedStats.validation', { count: dataset.validationData?.X.length || 0 })}</div>
+                      <div>• {t('canvas.dataset.processedStats.test', { count: dataset.testData?.X.length || 0 })}</div>
+                      <div>• {t('canvas.dataset.processedStats.features', { count: dataset.trainData.featureNames.length, preview: dataset.trainData.featureNames.slice(0, 3).join(', ') + (dataset.trainData.featureNames.length > 3 ? '...' : '') })}</div>
                       <div className="pt-1 border-t border-emerald-200 dark:border-emerald-800 mt-1">
-                        <div>• Encoding: {dataset.preprocessingConfig.categoricalEncoding === 'label' ? 'Label' : dataset.preprocessingConfig.categoricalEncoding === 'one-hot' ? 'One-Hot' : 'None'}</div>
+                        <div>• {t('canvas.dataset.encoding')}: {dataset.preprocessingConfig.categoricalEncoding === 'label' ? t('canvas.dataset.encodingLabels.label') : dataset.preprocessingConfig.categoricalEncoding === 'one-hot' ? t('canvas.dataset.encodingLabels.onehot') : t('canvas.dataset.encodingLabels.none')}</div>
                         {dataset.preprocessingConfig.targetColumn && (dataset.columns.find(c => c.name === dataset.preprocessingConfig.targetColumn)?.type !== 'numeric') && (
-                          <div>• Target Encoding: {dataset.preprocessingConfig.targetEncoding === 'one-hot' ? 'One-Hot' : 'Label'}</div>
+                          <div>• {t('canvas.dataset.targetEncodingLabel')}: {dataset.preprocessingConfig.targetEncoding === 'one-hot' ? t('canvas.dataset.encodingLabels.onehot') : t('canvas.dataset.encodingLabels.label')}</div>
                         )}
-                        <div>• Normalization: {dataset.preprocessingConfig.normalizationMethod === 'standard' ? 'Z-Score' : dataset.preprocessingConfig.normalizationMethod === 'minmax' ? 'Min-Max [0,1]' : 'None'}</div>
-                        <div>• Missing Values: {
-                          dataset.preprocessingConfig.missingValueStrategy === 'remove-rows' ? 'Rows Removed' :
-                            dataset.preprocessingConfig.missingValueStrategy === 'fill-mean' ? 'Filled with Mean' :
-                              dataset.preprocessingConfig.missingValueStrategy === 'fill-median' ? 'Filled with Median' :
-                                dataset.preprocessingConfig.missingValueStrategy === 'fill-mode' ? 'Filled with Mode' :
-                                  'Filled with Zero'
+                        <div>• {t('canvas.dataset.normalization')}: {dataset.preprocessingConfig.normalizationMethod === 'standard' ? t('canvas.dataset.encodingLabels.zscore') : dataset.preprocessingConfig.normalizationMethod === 'minmax' ? t('canvas.dataset.encodingLabels.minmax') : t('canvas.dataset.encodingLabels.none')}</div>
+                        <div>• {t('canvas.dataset.missingValues')}: {
+                          dataset.preprocessingConfig.missingValueStrategy === 'remove-rows' ? t('canvas.dataset.missingValueLabels.remove_rows') :
+                            dataset.preprocessingConfig.missingValueStrategy === 'fill-mean' ? t('canvas.dataset.missingValueLabels.fill_mean') :
+                              dataset.preprocessingConfig.missingValueStrategy === 'fill-median' ? t('canvas.dataset.missingValueLabels.fill_median') :
+                                dataset.preprocessingConfig.missingValueStrategy === 'fill-mode' ? t('canvas.dataset.missingValueLabels.fill_mode') :
+                                  t('canvas.dataset.missingValueLabels.fill_zero')
                         }</div>
                       </div>
                     </div>
@@ -733,7 +736,7 @@ export default function DatasetTab() {
                 } catch (err) {
                   console.error('Processing failed', err);
                   const errorMessage = err instanceof Error ? err.message : String(err);
-                  alert('Dataset processing failed: ' + errorMessage);
+                  alert(t('canvas.dataset.process.failed') + (errorMessage ? ': ' + errorMessage : ''));
                 } finally {
                   setProcessing(false);
                 }
@@ -742,12 +745,12 @@ export default function DatasetTab() {
               {processing ? (
                 <>
                   <div className="animate-spin mr-2">⟳</div>
-                  Processing...
+                  {t('canvas.dataset.process.processing')}
                 </>
               ) : (
                 <>
                   <Play size={16} className="mr-2" />
-                  {dataset.isProcessed ? 'Reprocess Dataset' : 'Process Dataset'}
+                  {dataset.isProcessed ? t('canvas.dataset.process.reprocess') : t('canvas.dataset.process.process')}
                 </>
               )}
             </Button>

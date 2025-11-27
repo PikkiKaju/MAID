@@ -1,6 +1,7 @@
 import { BarChart, TrendingUp, Award, Settings, CheckCircle, XCircle, Clock, Target } from 'lucide-react';
 import { useTrainingConfig } from '../../../contexts/useTrainingConfig';
 import MiniLineChart from '../MiniLineChart';
+import { useTranslation } from 'react-i18next';
 
 type TrainingResult = {
   live?: {
@@ -25,6 +26,7 @@ type TrainingResult = {
 };
 
 function RocChart({ fpr, tpr, auc }: { fpr: number[], tpr: number[], auc: number }) {
+  const { t } = useTranslation();
   const width = 300;
   const height = 300;
   const padding = 40;
@@ -48,15 +50,16 @@ function RocChart({ fpr, tpr, auc }: { fpr: number[], tpr: number[], auc: number
         {/* Curve */}
         <polyline points={points} fill="none" className="stroke-primary" strokeWidth="2" />
         {/* Labels */}
-        <text x={width / 2} y={height - 10} textAnchor="middle" fontSize="12" className="fill-muted-foreground">False Positive Rate</text>
-        <text x={10} y={height / 2} textAnchor="middle" transform={`rotate(-90, 10, ${height / 2})`} fontSize="12" className="fill-muted-foreground">True Positive Rate</text>
+        <text x={width / 2} y={height - 10} textAnchor="middle" fontSize="12" className="fill-muted-foreground">{t('canvas.metrics.falsePositiveRate')}</text>
+        <text x={10} y={height / 2} textAnchor="middle" transform={`rotate(-90, 10, ${height / 2})`} fontSize="12" className="fill-muted-foreground">{t('canvas.metrics.truePositiveRate')}</text>
       </svg>
-      <div className="mt-2 text-sm font-medium text-foreground">AUC = {auc.toFixed(4)}</div>
+      <div className="mt-2 text-sm font-medium text-foreground">{t('canvas.metrics.auc', { value: auc.toFixed(4) })}</div>
     </div>
   );
 }
 
 export default function MetricsTab() {
+  const { t } = useTranslation();
   const {
     jobId,
     jobStatus,
@@ -133,17 +136,17 @@ export default function MetricsTab() {
     return (
       <div className="h-full flex flex-col p-4 bg-background">
         <div className="mb-4">
-          <h2 className="text-lg font-semibold text-foreground">Training Metrics</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('canvas.metrics.title')}</h2>
         </div>
 
         <div className="flex-1 overflow-auto">
           <div className="bg-card border border-border rounded-lg p-8 text-center">
             <BarChart size={64} className="mx-auto mb-4 text-muted" />
-            <h3 className="text-lg font-medium text-muted-foreground mb-2">No Training Results Available</h3>
+            <h3 className="text-lg font-medium text-muted-foreground mb-2">{t('canvas.metrics.noResultsTitle')}</h3>
             <p className="text-sm text-muted-foreground">
               {jobStatus === 'running' || jobStatus === 'queued'
-                ? 'Training in progress. Metrics will appear here once complete.'
-                : 'Train your model in the Train tab to see detailed metrics and performance charts here.'}
+                ? t('canvas.metrics.inProgress')
+                : t('canvas.metrics.trainToSeeMetrics')}
             </p>
           </div>
         </div>
@@ -154,17 +157,17 @@ export default function MetricsTab() {
   return (
     <div className="h-full flex flex-col p-4 bg-background">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground">Training Metrics Summary</h2>
+        <h2 className="text-lg font-semibold text-foreground">{t('canvas.metrics.summaryTitle')}</h2>
         {jobStatus === 'succeeded' && (
           <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
             <CheckCircle size={16} />
-            <span>Training Completed</span>
+            <span>{t('canvas.metrics.trainingCompleted')}</span>
           </div>
         )}
         {jobStatus === 'cancelled' && (
           <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
             <XCircle size={16} />
-            <span>Training Cancelled</span>
+            <span>{t('canvas.metrics.trainingCancelled')}</span>
           </div>
         )}
       </div>
@@ -174,49 +177,49 @@ export default function MetricsTab() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-card border border-border rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-muted-foreground">Final Loss</span>
+              <span className="text-sm font-medium text-muted-foreground">{t('canvas.metrics.finalLoss')}</span>
               <TrendingUp size={16} className="text-blue-500 dark:text-blue-400" />
             </div>
             <p className="text-2xl font-bold text-foreground">
               {typeof finalLoss === 'number' ? finalLoss.toFixed(4) : '—'}
             </p>
             {typeof finalValLoss === 'number' && (
-              <p className="text-xs text-muted-foreground mt-1">val: {finalValLoss.toFixed(4)}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('canvas.metrics.valPrefix', { value: finalValLoss.toFixed(4) })}</p>
             )}
           </div>
 
           {typeof finalAccuracy === 'number' && (
             <div className="bg-card border border-border rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-muted-foreground">Final Accuracy</span>
+                <span className="text-sm font-medium text-muted-foreground">{t('canvas.metrics.finalAccuracy')}</span>
                 <Award size={16} className="text-emerald-500 dark:text-emerald-400" />
               </div>
               <p className="text-2xl font-bold text-foreground">
                 {(finalAccuracy * 100).toFixed(2)}%
               </p>
               {typeof finalValAccuracy === 'number' && (
-                <p className="text-xs text-muted-foreground mt-1">val: {(finalValAccuracy * 100).toFixed(2)}%</p>
+                <p className="text-xs text-muted-foreground mt-1">{t('canvas.metrics.valPrefix', { value: (finalValAccuracy * 100).toFixed(2) + '%' })}</p>
               )}
             </div>
           )}
 
           <div className="bg-card border border-border rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-muted-foreground">Epochs Trained</span>
+              <span className="text-sm font-medium text-muted-foreground">{t('canvas.metrics.epochsTrained')}</span>
               <Target size={16} className="text-purple-500 dark:text-purple-400" />
             </div>
             <p className="text-2xl font-bold text-foreground">{trainingEpochs}</p>
             {trainingEpochs < epochs && jobStatus === 'cancelled' && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">stopped early</p>
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">{t('canvas.metrics.stoppedEarly')}</p>
             )}
             {trainingEpochs < epochs && jobStatus === 'succeeded' && (
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">early stopping</p>
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">{t('canvas.metrics.earlyStopping')}</p>
             )}
           </div>
 
           <div className="bg-card border border-border rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-muted-foreground">Progress</span>
+              <span className="text-sm font-medium text-muted-foreground">{t('canvas.metrics.progress')}</span>
               <Clock size={16} className="text-muted-foreground" />
             </div>
             <p className="text-2xl font-bold text-foreground">
@@ -227,13 +230,13 @@ export default function MetricsTab() {
 
         {/* Training History Charts */}
         <div className="bg-card border border-border rounded-lg p-6">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Training History</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-4">{t('canvas.metrics.trainingHistory')}</h3>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Loss Chart */}
             {history.loss && history.loss.length > 0 && (
               <div>
-                <div className="text-xs text-muted-foreground mb-2">Loss over epochs</div>
+                <div className="text-xs text-muted-foreground mb-2">{t('canvas.metrics.lossOverEpochs')}</div>
                 <MiniLineChart
                   series={[
                     { label: 'loss', color: '#2563eb', data: history.loss },
@@ -249,7 +252,7 @@ export default function MetricsTab() {
             {/* Accuracy Chart (if available) */}
             {accuracyKey && history[accuracyKey] && history[accuracyKey].length > 0 && (
               <div>
-                <div className="text-xs text-muted-foreground mb-2">Accuracy over epochs</div>
+                <div className="text-xs text-muted-foreground mb-2">{t('canvas.metrics.accuracyOverEpochs')}</div>
                 <MiniLineChart
                   series={[
                     { label: accuracyKey.replace(/_/g, ' '), color: '#10b981', data: history[accuracyKey] },
@@ -269,7 +272,7 @@ export default function MetricsTab() {
         {/* Evaluation Results */}
         {evaluation && Object.keys(evaluation).length > 0 && (
           <div className="bg-card border border-border rounded-lg p-6">
-            <h3 className="text-sm font-semibold text-foreground mb-4">Test Set Evaluation</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-4">{t('canvas.metrics.testSetEvaluation')}</h3>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {Object.entries(evaluation).map(([key, value]) => (
                 <div key={key} className="bg-muted/30 border border-border rounded p-3">
@@ -286,12 +289,12 @@ export default function MetricsTab() {
         {/* Extended Evaluation (Confusion Matrix & ROC) */}
         {jobResult?.extended_evaluation && (
           <div className="bg-card border border-border rounded-lg p-6">
-            <h3 className="text-sm font-semibold text-foreground mb-4">Extended Evaluation</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-4">{t('canvas.metrics.extendedEvaluation')}</h3>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Confusion Matrix */}
               {jobResult.extended_evaluation.confusion_matrix && (
                 <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-3">Confusion Matrix</h4>
+                  <h4 className="text-xs font-semibold text-muted-foreground mb-3">{t('canvas.metrics.confusionMatrix')}</h4>
                   <div className="overflow-auto">
                     <table className="min-w-full border-collapse text-center text-sm">
                       <tbody>
@@ -313,7 +316,7 @@ export default function MetricsTab() {
               {/* ROC Curve */}
               {jobResult.extended_evaluation.roc_curve && (
                 <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-3">ROC Curve</h4>
+                  <h4 className="text-xs font-semibold text-muted-foreground mb-3">{t('canvas.metrics.rocCurve')}</h4>
                   <RocChart
                     fpr={jobResult.extended_evaluation.roc_curve.fpr}
                     tpr={jobResult.extended_evaluation.roc_curve.tpr}
@@ -329,25 +332,25 @@ export default function MetricsTab() {
         <div className="bg-card border border-border rounded-lg p-6">
           <div className="flex items-center gap-2 mb-4">
             <Settings size={18} className="text-muted-foreground" />
-            <h3 className="text-sm font-semibold text-foreground">Training Configuration</h3>
+            <h3 className="text-sm font-semibold text-foreground">{t('canvas.metrics.trainingConfiguration')}</h3>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Compilation Settings */}
             <div>
-              <h4 className="text-xs font-semibold text-muted-foreground mb-3">Compilation</h4>
+              <h4 className="text-xs font-semibold text-muted-foreground mb-3">{t('canvas.metrics.compilation')}</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Optimizer:</span>
+                  <span className="text-muted-foreground">{t('canvas.metrics.optimizer')}</span>
                   <span className="font-mono text-foreground">{optimizer}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Loss:</span>
+                  <span className="text-muted-foreground">{t('canvas.metrics.lossLabel')}</span>
                   <span className="font-mono text-foreground">{loss}</span>
                 </div>
                 {selectedMetrics.length > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Metrics:</span>
+                    <span className="text-muted-foreground">{t('canvas.metrics.metricsLabel')}</span>
                     <span className="font-mono text-foreground text-right">{selectedMetrics.join(', ')}</span>
                   </div>
                 )}
@@ -356,29 +359,29 @@ export default function MetricsTab() {
 
             {/* Training Parameters */}
             <div>
-              <h4 className="text-xs font-semibold text-muted-foreground mb-3">Parameters</h4>
+              <h4 className="text-xs font-semibold text-muted-foreground mb-3">{t('canvas.metrics.parametersTitle')}</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Epochs:</span>
+                  <span className="text-muted-foreground">{t('canvas.metrics.epochsLabel')}</span>
                   <span className="font-mono text-foreground">{epochs}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Batch Size:</span>
+                  <span className="text-muted-foreground">{t('canvas.metrics.batchSizeLabel')}</span>
                   <span className="font-mono text-foreground">{batchSize}</span>
                 </div>
                 {typeof learningRate === 'number' && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Learning Rate:</span>
+                    <span className="text-muted-foreground">{t('canvas.metrics.learningRateLabel')}</span>
                     <span className="font-mono text-foreground">{learningRate}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Shuffle:</span>
-                  <span className="font-mono text-foreground">{shuffle ? 'Yes' : 'No'}</span>
+                  <span className="text-muted-foreground">{t('canvas.metrics.shuffleLabel')}</span>
+                  <span className="font-mono text-foreground">{shuffle ? t('common.yes') : t('common.no')}</span>
                 </div>
                 {typeof valBatchSize === 'number' && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Val Batch Size:</span>
+                    <span className="text-muted-foreground">{t('canvas.metrics.valBatchSizeLabel')}</span>
                     <span className="font-mono text-foreground">{valBatchSize}</span>
                   </div>
                 )}
@@ -388,28 +391,28 @@ export default function MetricsTab() {
             {/* Callbacks */}
             {(useEarlyStopping || useReduceLR) && (
               <div className="lg:col-span-2">
-                <h4 className="text-xs font-semibold text-muted-foreground mb-3">Callbacks</h4>
+                <h4 className="text-xs font-semibold text-muted-foreground mb-3">{t('canvas.train.callbacks.title')}</h4>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {useEarlyStopping && (
                     <div className="bg-muted/30 border border-border rounded p-3">
-                      <div className="text-xs font-semibold text-foreground mb-2">EarlyStopping</div>
+                      <div className="text-xs font-semibold text-foreground mb-2">{t('canvas.metrics.earlyStoppingLabel')}</div>
                       <div className="space-y-1 text-xs text-muted-foreground">
-                        <div>Monitor: <span className="font-mono">{esMonitor}</span></div>
-                        <div>Mode: <span className="font-mono">{esMode}</span></div>
-                        <div>Patience: <span className="font-mono">{esPatience}</span></div>
-                        <div>Min Delta: <span className="font-mono">{esMinDelta}</span></div>
-                        <div>Restore Best: <span className="font-mono">{esRestoreBest ? 'Yes' : 'No'}</span></div>
+                        <div>{t('canvas.metrics.monitor')}: <span className="font-mono">{esMonitor}</span></div>
+                        <div>{t('canvas.metrics.mode')}: <span className="font-mono">{esMode}</span></div>
+                        <div>{t('canvas.metrics.patience')}: <span className="font-mono">{esPatience}</span></div>
+                        <div>{t('canvas.metrics.minDelta')}: <span className="font-mono">{esMinDelta}</span></div>
+                        <div>{t('canvas.metrics.restoreBest')}: <span className="font-mono">{esRestoreBest ? t('common.yes') : t('common.no')}</span></div>
                       </div>
                     </div>
                   )}
                   {useReduceLR && (
                     <div className="bg-muted/30 border border-border rounded p-3">
-                      <div className="text-xs font-semibold text-foreground mb-2">ReduceLROnPlateau</div>
+                      <div className="text-xs font-semibold text-foreground mb-2">{t('canvas.metrics.reduceLrLabel')}</div>
                       <div className="space-y-1 text-xs text-muted-foreground">
-                        <div>Monitor: <span className="font-mono">{rlrMonitor}</span></div>
-                        <div>Factor: <span className="font-mono">{rlrFactor}</span></div>
-                        <div>Patience: <span className="font-mono">{rlrPatience}</span></div>
-                        <div>Min LR: <span className="font-mono">{rlrMinLR}</span></div>
+                        <div>{t('canvas.metrics.monitor')}: <span className="font-mono">{rlrMonitor}</span></div>
+                        <div>{t('canvas.metrics.factor')}: <span className="font-mono">{rlrFactor}</span></div>
+                        <div>{t('canvas.metrics.patience')}: <span className="font-mono">{rlrPatience}</span></div>
+                        <div>{t('canvas.metrics.minLr')}: <span className="font-mono">{rlrMinLR}</span></div>
                       </div>
                     </div>
                   )}
@@ -422,7 +425,7 @@ export default function MetricsTab() {
         {/* All Metrics from History */}
         {Object.keys(history).length > 2 && (
           <div className="bg-card border border-border rounded-lg p-6">
-            <h3 className="text-sm font-semibold text-foreground mb-4">All Training Metrics</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-4">{t('canvas.metrics.allTrainingMetrics')}</h3>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {Object.entries(history).map(([key, values]) => {
                 const finalValue = values[values.length - 1];
@@ -433,7 +436,7 @@ export default function MetricsTab() {
                       {typeof finalValue === 'number' ? finalValue.toFixed(4) : String(finalValue)}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {values.length} epoch{values.length !== 1 ? 's' : ''}
+                      {t('canvas.metrics.epochCount', { count: values.length })}
                     </div>
                   </div>
                 );

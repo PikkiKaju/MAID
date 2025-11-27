@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import ReactFlow, {
   addEdge,
   applyEdgeChanges,
@@ -45,12 +46,13 @@ const initialEdges: Edge[] = [];
 
 export default function ModelCanvas() {
   const { nodes: storeNodes, edges: storeEdges, setGraph } = useModelCanvasStore();
+  const { t } = useTranslation();
   const { graphId, setGraphId, graphName, setGraphName } = useGraph();
   const [nodes, setNodes] = useNodesState(storeNodes.length ? storeNodes : initialNodes);
   const [edges, setEdges] = useEdgesState(storeEdges.length ? storeEdges : initialEdges);
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const [persistedGraphId, setPersistedGraphId] = useState<string | null>(graphId);
-  const [modelName, setModelName] = useState(graphName ?? 'Untitled graph');
+  const [modelName, setModelName] = useState(graphName ?? t('canvas.general.untitledGraph'));
   const [saveErrors, setSaveErrors] = useState<string[] | null>(null);
   const [errorItems, setErrorItems] = useState<Array<{ text: string; nodeId?: string; param?: string }> | null>(null);
   const [errorNodeIds, setErrorNodeIds] = useState<Set<string>>(new Set());
@@ -95,11 +97,11 @@ export default function ModelCanvas() {
 
   useEffect(() => {
     if (graphName === null) {
-      setModelName('Untitled graph');
+      setModelName(t('canvas.general.untitledGraph'));
     } else {
       setModelName(graphName);
     }
-  }, [graphName]);
+  }, [graphName, t]);
 
   // Track whether the app/root is in dark mode by observing the <html> class list.
   useEffect(() => {
@@ -275,7 +277,7 @@ export default function ModelCanvas() {
     }
     const incomingName = graph.name && graph.name.trim().length ? graph.name : null;
     setGraphName(incomingName);
-    setModelName(incomingName ?? 'Untitled graph');
+    setModelName(incomingName ?? t('canvas.general.untitledGraph'));
   }, [setNodes, setEdges, setGraph, setGraphId, setGraphName]);
 
   const handleDeletePersistedGraph = useCallback(async () => {
@@ -286,7 +288,7 @@ export default function ModelCanvas() {
       setPersistedGraphId(null);
       setGraphId(null);
       setGraphName(null);
-      setSuccessMessage('Graph deleted');
+      setSuccessMessage(t('canvas.general.graphDeleted'));
       setSaveErrors(null);
       setErrorItems(null);
       setErrorNodeIds(new Set());
@@ -349,14 +351,14 @@ export default function ModelCanvas() {
           const updated = await networkGraphService.updateGraph(persistedGraphId, payload);
           console.log('Graph updated:', updated);
           setGraphId(persistedGraphId);
-          setSuccessMessage('Graph updated successfully');
+          setSuccessMessage(t('canvas.toolbar.updateSuccess'));
         } else {
           // Create new graph
           const created = await networkGraphService.createGraph(payload);
           console.log('Graph created:', created);
           setPersistedGraphId(created.id); // Store the ID for future updates
           setGraphId(created.id);
-          setSuccessMessage('Graph saved to backend');
+          setSuccessMessage(t('canvas.toolbar.createSuccess'));
         }
       } catch (err: unknown) {
         console.error('Failed to save graph', err);
@@ -436,15 +438,15 @@ export default function ModelCanvas() {
         >
           <div className='flex items-start justify-between'>
             <div className='font-semibold mb-1'>{successMessage}</div>
-            <button onClick={() => setSuccessMessage(null)} className='hover:underline text-xs' style={isDarkMode ? { color: undefined } : { color: '#065f46' }}>Dismiss</button>
+            <button onClick={() => setSuccessMessage(null)} className='hover:underline text-xs' style={isDarkMode ? { color: undefined } : { color: '#065f46' }}>{t('canvas.general.dismiss')}</button>
           </div>
         </div>
       )}
       {(errorItems || saveErrors) && (
         <div className='mx-3 mt-3 mb-3 border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-200 rounded p-2 text-sm'>
           <div className='flex items-start justify-between'>
-            <div className='font-semibold mb-1'>There were issues with your graph</div>
-            <button onClick={() => { setSaveErrors(null); setErrorItems(null); setErrorNodeIds(new Set()); }} className='text-red-700 dark:text-red-200 hover:underline text-xs'>Dismiss</button>
+            <div className='font-semibold mb-1'>{t('canvas.general.saveErrorsTitle')}</div>
+            <button onClick={() => { setSaveErrors(null); setErrorItems(null); setErrorNodeIds(new Set()); }} className='text-red-700 dark:text-red-200 hover:underline text-xs'>{t('canvas.general.dismiss')}</button>
           </div>
           <ul className='list-disc ml-5 space-y-1 max-h-40 overflow-auto pr-2'>
             {(errorItems || []).map((item, i) => (
@@ -465,7 +467,7 @@ export default function ModelCanvas() {
                   setSelected(item.nodeId);
                   if (item.param) setHighlightedParam(item.param);
                 }}
-                title={item.nodeId ? 'Click to focus this node' : undefined}
+                title={item.nodeId ? t('canvas.general.clickToFocusNode') : undefined}
               >
                 {item.text}
               </li>
@@ -501,7 +503,7 @@ export default function ModelCanvas() {
       />
       <div className='flex flex-1 min-h-0'>
         <div className='w-56 border-r border-border p-2 space-y-2 overflow-y-auto text-xs'>
-          <h3 className='font-semibold text-muted-foreground text-sm'>Layers</h3>
+          <h3 className='font-semibold text-muted-foreground text-sm'>{t('canvas.palette.layers')}</h3>
           <LayerPalette />
         </div>
         <div className='flex-1' ref={flowWrapperRef}>

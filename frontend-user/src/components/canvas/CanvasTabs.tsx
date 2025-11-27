@@ -12,9 +12,11 @@ import { DatasetProvider } from '../../contexts/DatasetContext';
 import { GraphProvider } from '../../contexts/GraphContext';
 import TrainingConfigProvider from '../../contexts/TrainingConfigProvider';
 import { ModelSummaryProvider } from '../../contexts/ModelSummaryContext';
+import { useTranslation } from 'react-i18next';
 
 export default function CanvasTabs() {
   const [activeTab, setActiveTab] = useState('canvas');
+  const { t } = useTranslation();
 
   return (
     <GraphProvider>
@@ -29,27 +31,27 @@ export default function CanvasTabs() {
                     <TabsList className="w-full justify-start">
                       <TabsTrigger value="canvas" className="flex items-center gap-2">
                         <Pencil size={16} />
-                        Canvas
+                        {t('canvas.tabs.canvas')}
                       </TabsTrigger>
                       <TabsTrigger value="summary" className="flex items-center gap-2">
                         <List size={16} />
-                        Model Summary
+                        {t('canvas.tabs.summary')}
                       </TabsTrigger>
                       <TabsTrigger value="dataset" className="flex items-center gap-2">
                         <Database size={16} />
-                        Dataset
+                        {t('canvas.tabs.dataset')}
                       </TabsTrigger>
                       <TabsTrigger value="train" className="flex items-center gap-2">
                         <Zap size={16} />
-                        Train
+                        {t('canvas.tabs.train')}
                       </TabsTrigger>
                       <TabsTrigger value="metrics" className="flex items-center gap-2">
                         <BarChart3 size={16} />
-                        Metrics
+                        {t('canvas.tabs.metrics')}
                       </TabsTrigger>
                       <TabsTrigger value="inference" className="flex items-center gap-2">
                         <Cpu size={16} />
-                        Inference
+                        {t('canvas.tabs.inference')}
                       </TabsTrigger>
                     </TabsList>
                   </div>

@@ -1,4 +1,5 @@
 import { memo, MouseEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BaseEdge, EdgeLabelRenderer, EdgeProps, getBezierPath } from 'reactflow';
 import { useModelCanvasStore } from '../../store/modelCanvasStore';
 import { X } from 'lucide-react';
@@ -41,7 +42,7 @@ function RemovableEdge(props: EdgeProps) {
             <button
               onClick={handleRemove}
               className='w-5 h-5 flex items-center justify-center rounded-full bg-rose-600 text-white shadow hover:bg-rose-700 text-[10px]'
-              aria-label='Remove connection'
+              aria-label={useTranslation().t('canvas.actions.removeConnection')}
             >
               <X size={12} />
             </button>

@@ -1,4 +1,5 @@
 import { Save, Trash2, Play, Upload, FolderOpen, Eraser, ChevronDown, FileJson, Code2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../../ui/tooltip';
 import LoadGraphModal from './LoadGraphModal';
 import { useModelCanvasStore } from '../../store/modelCanvasStore';
@@ -32,6 +33,7 @@ interface Props {
 }
 
 export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelNameChange, onShowErrors, onShowSuccess, canDeleteModel, onDeleteModel, deletingModel }: Props) {
+  const { t } = useTranslation();
   const setGraph = useModelCanvasStore(s => s.setGraph);
   const currentNodes = useModelCanvasStore(s => s.nodes);
   const currentEdges = useModelCanvasStore(s => s.edges);
@@ -95,7 +97,7 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
       console.log('Compiled result:', compiled);
       // clear any previous errors on success and notify
       onShowErrors?.([], undefined);
-      onShowSuccess?.('Compile successful');
+      onShowSuccess?.(t('canvas.toolbar.compileSuccess'));
     } catch (err: unknown) {
       console.error('Compile failed', err);
       // Try to surface validation errors from backend
@@ -126,7 +128,7 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
       const maybeAxios = err as { response?: { data?: unknown }; message?: string };
       const respData = maybeAxios?.response?.data ?? (maybeAxios?.message ?? String(err));
       const msgs = collectMessages(respData);
-      onShowErrors?.(msgs.length ? msgs : ['Compile failed'], respData);
+      onShowErrors?.(msgs.length ? msgs : [t('canvas.toolbar.compileFailed')], respData);
     } finally {
       setBusy(null);
     }
@@ -155,11 +157,10 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
         id: String(e.id), source: String(e.source), target: String(e.target)
       }));
       setGraph(nodes, edges);
-      onShowSuccess?.('Keras model imported onto canvas');
+      onShowSuccess?.(t('canvas.toolbar.importKerasSuccess'));
     } catch (err: unknown) {
       console.error('Import Keras failed', err);
-      const msg = 'Import Keras failed: ' + (err instanceof Error ? err.message : String(err));
-      onShowErrors?.([msg]);
+      onShowErrors?.([t('canvas.toolbar.importKerasFailed', { message: String(err) })]);
     } finally {
       setBusy(null);
       if (fileKerasRef.current) fileKerasRef.current.value = '';
@@ -190,11 +191,10 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
         id: String(e.id), source: String(e.source), target: String(e.target)
       }));
       setGraph(nodes, edges);
-      onShowSuccess?.('Graph model imported onto canvas');
+      onShowSuccess?.(t('canvas.toolbar.importGraphSuccess'));
     } catch (err: unknown) {
       console.error('Import graph failed', err);
-      const msg = 'Import graph failed: ' + (err instanceof Error ? err.message : String(err));
-      onShowErrors?.([msg]);
+      onShowErrors?.([t('canvas.toolbar.importGraphFailed', { message: String(err) })]);
     } finally {
       setBusy(null);
       if (fileGraphRef.current) fileGraphRef.current.value = '';
@@ -241,11 +241,10 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
       const payload = buildPayloadFromStore();
       const base = safeFileBase(modelName);
       downloadTextFile(JSON.stringify(payload, null, 2), `${base}-graph.json`, 'application/json');
-      onShowSuccess?.('Graph JSON exported');
+      onShowSuccess?.(t('canvas.toolbar.exportGraphSuccess'));
     } catch (err: unknown) {
       console.error('Export graph failed', err);
-      const msg = 'Export graph failed: ' + (err instanceof Error ? err.message : String(err));
-      onShowErrors?.([msg]);
+      onShowErrors?.([t('canvas.toolbar.exportGraphFailed', { message: String(err) })]);
     } finally {
       setBusy(null);
     }
@@ -275,11 +274,10 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
       }
       const base = safeFileBase(modelName);
       downloadTextFile(pretty, `${base}-keras.json`, 'application/json');
-      onShowSuccess?.('Keras JSON exported');
+      onShowSuccess?.(t('canvas.toolbar.exportKerasSuccess'));
     } catch (err: unknown) {
       console.error('Export Keras JSON failed', err);
-      const msg = 'Export Keras JSON failed: ' + (err instanceof Error ? err.message : String(err));
-      onShowErrors?.([msg]);
+      onShowErrors?.([t('canvas.toolbar.exportKerasFailed', { message: String(err) })]);
     } finally {
       setBusy(null);
     }
@@ -298,7 +296,7 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
           type="text"
           value={modelName}
           onChange={(e) => onModelNameChange(e.target.value)}
-          placeholder="Model name..."
+          placeholder={t('canvas.toolbar.modelNamePlaceholder')}
           className="px-3 py-1 text-sm rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground min-w-[200px]"
         />
 
@@ -307,10 +305,10 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
           <Tooltip>
             <TooltipTrigger asChild>
               <button onClick={onSave} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60'>
-                <Save size={14} /> Save
+                <Save size={14} /> {t('canvas.toolbar.save')}
               </button>
             </TooltipTrigger>
-            <TooltipContent sideOffset={6} className="bg-popover text-popover-foreground text-sm px-3 py-1.5 rounded-md shadow-lg">Save the current canvas to your account</TooltipContent>
+            <TooltipContent sideOffset={6} className="bg-popover text-popover-foreground text-sm px-3 py-1.5 rounded-md shadow-lg">{t('canvas.toolbar.saveTooltip')}</TooltipContent>
           </Tooltip>
         )}
 
@@ -319,10 +317,10 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
           <Tooltip>
             <TooltipTrigger asChild>
               <button onClick={() => setShowLoadModal(true)} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-60'>
-                <FolderOpen size={14} /> Load
+                <FolderOpen size={14} /> {t('canvas.toolbar.load')}
               </button>
             </TooltipTrigger>
-            <TooltipContent sideOffset={6} className="bg-popover text-popover-foreground text-sm px-3 py-1.5 rounded-md shadow-lg">Open a saved graph from your account</TooltipContent>
+            <TooltipContent sideOffset={6} className="bg-popover text-popover-foreground text-sm px-3 py-1.5 rounded-md shadow-lg">{t('canvas.toolbar.loadTooltip')}</TooltipContent>
           </Tooltip>
         )}
 
@@ -330,10 +328,10 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
         <Tooltip>
           <TooltipTrigger asChild>
             <button onClick={compileGraph} disabled={toolbarDisabled} className='flex items-center gap-1 px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-60'>
-              <Play size={14} /> Compile
+              <Play size={14} /> {t('canvas.toolbar.compile')}
             </button>
           </TooltipTrigger>
-          <TooltipContent sideOffset={6} className="bg-popover text-popover-foreground text-sm px-3 py-1.5 rounded-md shadow-lg">Compile the current canvas on the backend (validates model and returns summary/errors)</TooltipContent>
+          <TooltipContent sideOffset={6} className="bg-popover text-popover-foreground text-sm px-3 py-1.5 rounded-md shadow-lg">{t('canvas.toolbar.compileTooltip')}</TooltipContent>
         </Tooltip>
 
         {/* Import/Export dropdown */}
@@ -352,31 +350,31 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
                   disabled={toolbarDisabled}
                   className='flex items-center gap-1 px-2 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-60'
                 >
-                  Import / Export
+                  {t('canvas.toolbar.importExport')}
                   <ChevronDown size={14} />
                 </button>
               </DropdownMenuTrigger>
             </TooltipTrigger>
-            <TooltipContent sideOffset={6} className="bg-popover text-popover-foreground text-sm px-3 py-1.5 rounded-md shadow-lg">Import or export canvas data</TooltipContent>
+            <TooltipContent sideOffset={6} className="bg-popover text-popover-foreground text-sm px-3 py-1.5 rounded-md shadow-lg">{t('canvas.toolbar.importExportTooltip')}</TooltipContent>
           </Tooltip>
           <DropdownMenuContent align="start" className="w-56">
-            <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">Import</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">{t('canvas.toolbar.import')}</DropdownMenuLabel>
             <DropdownMenuItem disabled={toolbarDisabled} onSelect={() => fileKerasRef.current?.click()}>
-              <Upload size={14} /> Import Keras JSON
+              <Upload size={14} /> {t('canvas.toolbar.importKeras')}
             </DropdownMenuItem>
             <DropdownMenuItem disabled={toolbarDisabled} onSelect={() => fileGraphRef.current?.click()}>
-              <Upload size={14} /> Import Graph JSON
+              <Upload size={14} /> {t('canvas.toolbar.importGraph')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">Export</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">{t('canvas.toolbar.export')}</DropdownMenuLabel>
             <DropdownMenuItem disabled={toolbarDisabled} onSelect={exportGraphJson}>
-              <FileJson size={14} /> Export Graph JSON
+              <FileJson size={14} /> {t('canvas.toolbar.exportGraph')}
             </DropdownMenuItem>
             <DropdownMenuItem disabled={toolbarDisabled} onSelect={exportKerasJson}>
-              <FileJson size={14} /> Export Keras JSON
+              <FileJson size={14} /> {t('canvas.toolbar.exportKeras')}
             </DropdownMenuItem>
             <DropdownMenuItem disabled={toolbarDisabled} onSelect={exportPython}>
-              <Code2 size={14} /> Export Python Script
+              <Code2 size={14} /> {t('canvas.toolbar.exportPython')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -391,23 +389,23 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
                     disabled={toolbarDisabled}
                     className='flex items-center gap-1 px-2 py-1 bg-rose-500 text-white rounded hover:bg-rose-600 disabled:opacity-60'
                   >
-                    <Eraser size={14} /> Clear
+                    <Eraser size={14} /> {t('canvas.toolbar.clear')}
                   </button>
                 </AlertDialogTrigger>
               </TooltipTrigger>
-              <TooltipContent sideOffset={6} className="bg-popover text-popover-foreground text-sm px-3 py-1.5 rounded-md shadow-lg">Clear the canvas (removes all layers and connections)</TooltipContent>
+              <TooltipContent sideOffset={6} className="bg-popover text-popover-foreground text-sm px-3 py-1.5 rounded-md shadow-lg">{t('canvas.toolbar.clearTooltip')}</TooltipContent>
             </Tooltip>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Clear the canvas?</AlertDialogTitle>
+                <AlertDialogTitle>{t('canvas.toolbar.clearDialogTitle')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This removes all layers and connections from the workspace. You can still undo it by reloading a saved model.
+                  {t('canvas.toolbar.clearDialogDescription')}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                 <AlertDialogAction onClick={handleConfirmClear} className='bg-rose-600 hover:bg-rose-700'>
-                  Clear canvas
+                  {t('canvas.toolbar.clear')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -423,27 +421,27 @@ export default function TopToolbar({ onSave, onLoadGraph, modelName, onModelName
                       disabled={toolbarDisabled}
                       className='flex items-center gap-1 px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-60'
                     >
-                      <Trash2 size={14} /> Delete
+                      <Trash2 size={14} /> {t('common.delete')}
                     </button>
                   </AlertDialogTrigger>
                 </TooltipTrigger>
-                <TooltipContent sideOffset={6} className="bg-popover text-popover-foreground text-sm px-3 py-1.5 rounded-md shadow-lg">Delete the saved model from the backend</TooltipContent>
+                <TooltipContent sideOffset={6} className="bg-popover text-popover-foreground text-sm px-3 py-1.5 rounded-md shadow-lg">{t('canvas.toolbar.deleteTooltip')}</TooltipContent>
               </Tooltip>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete this saved model?</AlertDialogTitle>
+                  <AlertDialogTitle>{t('canvas.toolbar.deleteDialogTitle')}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    The backend copy will be removed permanently. Your current canvas will remain open but will no longer be linked to the saved graph.
+                    {t('canvas.toolbar.deleteDialogDescription')}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel disabled={deletingModel}>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel disabled={deletingModel}>{t('common.cancel')}</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleConfirmDelete}
                     disabled={deletingModel}
                     className='bg-red-600 hover:bg-red-700'
                   >
-                    {deletingModel ? 'Deleting…' : 'Yes, delete'}
+                    {deletingModel ? t('canvas.toolbar.deleting') : t('canvas.toolbar.confirmDelete')}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

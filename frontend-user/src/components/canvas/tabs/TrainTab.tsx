@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Play, Settings, Square } from 'lucide-react';
 import { Button } from '../../../ui/button';
 import { useDataset } from '../../../contexts/DatasetContext';
@@ -39,6 +40,7 @@ type TrainingResult = {
  * - Training job control (start/stop)
  */
 export default function TrainTab() {
+  const { t } = useTranslation();
   const { dataset } = useDataset();
   const { graphId } = useGraph();
 
@@ -355,17 +357,17 @@ export default function TrainTab() {
     setJobError(null);
     setJobResult(null);
     if (!graphId) {
-      alert('Please save the model graph first (Canvas > Save).');
+      alert(t('canvas.train.saveGraphFirst'));
       return;
     }
     if (!dataset?.isProcessed || !dataset.trainData) {
-      alert('Please prepare the dataset in the Dataset tab before training.');
+      alert(t('canvas.train.prepareDataset'));
       return;
     }
     const xColumns = dataset.trainData.featureNames;
     const yColumn = dataset.preprocessingConfig.targetColumn;
     if (!yColumn) {
-      alert('Target column is not set in Dataset preprocessing.');
+      alert(t('canvas.train.noTargetColumn'));
       return;
     }
 
@@ -465,7 +467,7 @@ export default function TrainTab() {
             if (j.status === 'succeeded') {
               setJobResult(j.result);
             } else if (j.status === 'failed') {
-              setJobError(j.error || 'Training failed');
+              setJobError(j.error || t('canvas.train.errors.trainingFailed'));
             } else {
               // Cancelled or other final states - clear error
               setJobError(null);
@@ -474,7 +476,7 @@ export default function TrainTab() {
           }
         } catch {
           clearInterval(interval);
-          setJobError('Failed to poll job status');
+          setJobError(t('canvas.train.errors.pollFailed'));
           pollerRef.current = null;
         }
       }, 200);
@@ -482,7 +484,7 @@ export default function TrainTab() {
     } catch (e: unknown) {
       console.error(e);
       const msg = e instanceof Error ? e.message : String(e);
-      setJobError(msg || 'Failed to start training job');
+      setJobError(msg || t('canvas.train.errors.startFailed'));
     } finally {
       setIsStarting(false);
     }
@@ -529,7 +531,7 @@ export default function TrainTab() {
           if (j.status === 'succeeded') {
             setJobResult(j.result);
           } else if (j.status === 'failed') {
-            setJobError(j.error || 'Training failed');
+            setJobError(j.error || t('canvas.train.errors.trainingFailed'));
           } else {
             setJobError(null); // cancelled or other final states
           }
@@ -537,7 +539,7 @@ export default function TrainTab() {
         }
       } catch {
         clearInterval(interval);
-        setJobError('Failed to poll job status');
+        setJobError(t('canvas.train.errors.pollFailed'));
         pollerRef.current = null;
       }
     }, 500);
@@ -563,7 +565,7 @@ export default function TrainTab() {
     } catch (e) {
       console.error(e);
       const msg = e instanceof Error ? e.message : String(e);
-      setJobError(msg || 'Failed to cancel training job');
+      setJobError(msg || t('canvas.train.errors.cancelFailed'));
     } finally {
       setIsStopping(false);
     }
@@ -579,16 +581,16 @@ export default function TrainTab() {
   return (
     <div className="h-full flex flex-col p-4 bg-background">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground">Training Configuration</h2>
+        <h2 className="text-lg font-semibold text-foreground">{t('canvas.train.title')}</h2>
         {jobId && (jobStatus === 'running' || jobStatus === 'queued') ? (
           <Button onClick={handleCancelTraining} disabled={isStopping} variant="destructive">
             <Square size={16} className="mr-2" />
-            {isStopping ? 'Stopping…' : 'Stop Training'}
+            {isStopping ? t('canvas.train.start.stopping') : t('canvas.train.start.stop')}
           </Button>
         ) : (
           <Button onClick={handleStartTraining} disabled={isStarting || !canStartTraining}>
             <Play size={16} className="mr-2" />
-            {isStarting ? 'Starting…' : 'Start Training'}
+            {isStarting ? t('canvas.train.start.starting') : t('canvas.train.start.start')}
           </Button>
         )}
       </div>
@@ -596,11 +598,11 @@ export default function TrainTab() {
       {/* Hint when training is blocked */}
       {!canStartTraining && (
         <div className="mb-4 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-sm text-amber-600 dark:text-amber-400">
-          <div className="font-medium mb-1">Cannot start training:</div>
+          <div className="font-medium mb-1">{t('canvas.train.cannotStart.title')}</div>
           <ul className="list-disc list-inside space-y-1 text-xs">
-            {!graphId && <li>Model graph is not compiled. Go to the Canvas tab and compile your model.</li>}
+            {!graphId && <li>{t('canvas.train.cannotStart.graphNotCompiled')}</li>}
             {graphId && (!dataset?.isProcessed || !dataset.trainData) && (
-              <li>Dataset is not prepared. Go to the Dataset tab and load/preprocess your data.</li>
+              <li>{t('canvas.train.cannotStart.datasetNotPrepared')}</li>
             )}
           </ul>
         </div>
@@ -616,13 +618,13 @@ export default function TrainTab() {
                 <div>
                   <div className="flex items-center gap-2 mb-4">
                     <Settings size={18} className="text-muted-foreground" />
-                    <h3 className="font-semibold text-foreground">Compilation Settings</h3>
+                    <h3 className="font-semibold text-foreground">{t('canvas.train.compilationSettings')}</h3>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-2">
-                        Optimizer<span className="text-destructive ml-1">*</span>
+                        {t('canvas.train.optimizer.label')}<span className="text-destructive ml-1">*</span>
                       </label>
                       <select
                         value={optimizer}
@@ -633,14 +635,13 @@ export default function TrainTab() {
                           <option key={name} value={name}>{name}</option>
                         ))}
                       </select>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Controls how weights update during training. Adam is a solid default; SGD can work well with momentum for large datasets.</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{t('canvas.train.optimizer.help')}</p>
                     </div>
 
 
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-2">
-                        Gradient Clipping (clipnorm)
+                        {t('canvas.train.gradientClipping.label')}
                       </label>
                       <input
                         type="number"
@@ -654,16 +655,14 @@ export default function TrainTab() {
                         placeholder="e.g. 1.0"
                         className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       />
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Clips gradients by norm to prevent exploding gradients. Leave empty to disable.
-                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">{t('canvas.train.gradientClipping.help')}</p>
                     </div>
                   </div>
 
                   <div className="mt-4">
                     <div className="col-span-2">
                       <label className="block text-sm font-medium text-foreground mb-2">
-                        Loss Function<span className="text-destructive ml-1">*</span>
+                        {t('canvas.train.lossFunction.label')}<span className="text-destructive ml-1">*</span>
                       </label>
                       <select
                         value={loss}
@@ -674,7 +673,7 @@ export default function TrainTab() {
                           <option key={name} value={name}>{name}</option>
                         ))}
                       </select>
-                      <p className="mt-1 text-xs text-muted-foreground">Must match your problem and label format: regression (MSE/MAE), binary (BinaryCrossentropy), multiclass (Categorical or SparseCategorical Crossentropy), etc.</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{t('canvas.train.lossFunction.help')}</p>
                       {/* Hint if selected loss seems mismatched with inferred target kind */}
                       <div className="mt-1 text-xs">
                         {(() => {
@@ -685,10 +684,10 @@ export default function TrainTab() {
                           const isClassLoss = key.includes('categoricalcrossentropy') || key.includes('sparsecategoricalcrossentropy') || key.includes('binarycrossentropy');
                           const isRegLoss = !isClassLoss; // heuristic
                           if (looksClass && isRegLoss) {
-                            return <span className="text-amber-600 dark:text-amber-400">Heads up: target looks like classification but a regression loss is selected. Consider sparse_categorical_crossentropy (integer labels) or categorical_crossentropy (one-hot), or binary_crossentropy for 2 classes.</span>;
+                            return <span className="text-amber-600 dark:text-amber-400">{t('canvas.train.hint.classMismatch')}</span>;
                           }
                           if (looksReg && !isRegLoss) {
-                            return <span className="text-amber-600 dark:text-amber-400">Heads up: target looks continuous but a classification loss is selected. Consider mse/mae for regression.</span>;
+                            return <span className="text-amber-600 dark:text-amber-400">{t('canvas.train.hint.regMismatch')}</span>;
                           }
                           return null;
                         })()}
@@ -696,14 +695,14 @@ export default function TrainTab() {
                       {/* Recommendation based on target encoding */}
                       {recommendedLoss && recommendedLoss !== loss && (
                         <div className="mt-1 text-xs text-muted-foreground">
-                          Recommended for your target ({dataset?.preprocessingConfig.targetEncoding}): <span className="font-medium">{recommendedLoss}</span>
+                          {t('canvas.train.recommended.label', { encoding: dataset?.preprocessingConfig.targetEncoding })}: <span className="font-medium">{recommendedLoss}</span>
                           {losses.includes(recommendedLoss) && (
                             <button
                               type="button"
                               className="ml-2 underline text-primary hover:text-primary/80 hover:cursor-pointer"
                               onClick={() => setLoss(recommendedLoss)}
                             >
-                              Apply
+                              {t('canvas.train.recommended.apply')}
                             </button>
                           )}
                         </div>
@@ -714,12 +713,12 @@ export default function TrainTab() {
 
                 {/* Training Parameters */}
                 <div className="mt-6">
-                  <h3 className="font-semibold text-foreground mb-4">Training Parameters</h3>
+                  <h3 className="font-semibold text-foreground mb-4">{t('canvas.train.parameters.title')}</h3>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-2">
-                        Epochs<span className="text-destructive ml-1">*</span>
+                        {t('canvas.train.epochs.label')}<span className="text-destructive ml-1">*</span>
                       </label>
                       <input
                         type="number"
@@ -729,12 +728,12 @@ export default function TrainTab() {
                         onChange={(e) => setEpochs(parseInt(e.target.value) || 1)}
                         className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       />
-                      <p className="mt-1 text-xs text-muted-foreground">One epoch = one full pass over the training data. More epochs can improve fit but risk overfitting. Use EarlyStopping to stop automatically.</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{t('canvas.train.epochs.help')}</p>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-2">
-                        Batch Size<span className="text-destructive ml-1">*</span>
+                        {t('canvas.train.batchSize.label')}<span className="text-destructive ml-1">*</span>
                       </label>
                       <input
                         type="number"
@@ -744,14 +743,14 @@ export default function TrainTab() {
                         onChange={(e) => setBatchSize(parseInt(e.target.value) || 1)}
                         className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       />
-                      <p className="mt-1 text-xs text-muted-foreground">Samples per gradient step. Larger batches are faster but may generalize worse; smaller batches add noise that can help generalization.</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{t('canvas.train.batchSize.help')}</p>
                     </div>
                     {/* No manual Validation Split; it's derived from Dataset tab */}
                     <div className="col-span-2 text-xs text-muted-foreground">
-                      Using dataset splits: val={computedSplits.validation}, test={computedSplits.test}
+                      {t('canvas.train.usingSplits', { val: computedSplits.validation, test: computedSplits.test })}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">Learning rate (optional)</label>
+                      <label className="block text-sm font-medium text-foreground mb-2">{t('canvas.train.learningRate.label')}</label>
                       <input
                         type="number"
                         step="any"
@@ -764,10 +763,10 @@ export default function TrainTab() {
                         placeholder="e.g. 0.001"
                         className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       />
-                      <p className="mt-1 text-xs text-muted-foreground">Step size for weight updates. Too high can diverge; too low can be slow. Typical values: 1e-3 to 1e-4 for Adam.</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{t('canvas.train.learningRate.help')}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">Validation batch size (optional)</label>
+                      <label className="block text-sm font-medium text-foreground mb-2">{t('canvas.train.valBatchSize.label')}</label>
                       <input
                         type="number"
                         min="1"
@@ -779,18 +778,18 @@ export default function TrainTab() {
                         placeholder="leave empty to match batch size"
                         className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       />
-                      <p className="mt-1 text-xs text-muted-foreground">If empty, uses the training batch size. Only affects validation throughput, not training dynamics.</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{t('canvas.train.valBatchSize.help')}</p>
                     </div>
                     <div className="col-span-2 flex items-center gap-3">
                       <label className="flex items-center gap-2 text-sm text-foreground">
                         <input type="checkbox" checked={shuffle} onChange={(e) => setShuffle(e.target.checked)} />
-                        Shuffle training data each epoch
+                        {t('canvas.train.shuffle.label')}
                       </label>
-                      <span className="text-xs text-muted-foreground">Recommended. Prevents learning spurious order; disable only for sequence-sensitive data already batched in order.</span>
+                      <span className="text-xs text-muted-foreground">{t('canvas.train.shuffle.help')}</span>
                     </div>
 
                     <div className="col-span-2 border-t border-border pt-4 mt-2">
-                      <h4 className="text-sm font-medium text-foreground mb-3">Checkpoints & Logs</h4>
+                      <h4 className="text-sm font-medium text-foreground mb-3">{t('canvas.train.checkpoints.title')}</h4>
                       <div className="flex flex-col gap-3">
                         <label className={`flex items-center gap-2 text-sm text-foreground ${useEarlyStopping && esRestoreBest ? 'opacity-50' : ''}`}>
                           <input
@@ -799,16 +798,16 @@ export default function TrainTab() {
                             onChange={(e) => setSaveBestModel(e.target.checked)}
                             disabled={useEarlyStopping && esRestoreBest}
                           />
-                          Save Best Model
+                          {t('canvas.train.saveBestModel.label')}
                         </label>
                         {useEarlyStopping && esRestoreBest && (
                           <p className="text-xs text-amber-600 dark:text-amber-400 ml-6 -mt-2">
-                            Disabled because "Restore best weights" is active. The final model will already be the best model.
+                            {t('canvas.train.saveBestModel.disabledNote')}
                           </p>
                         )}
                         <label className="flex items-center gap-2 text-sm text-foreground">
                           <input type="checkbox" checked={saveTrainingLogs} onChange={(e) => setSaveTrainingLogs(e.target.checked)} />
-                          Save Training Logs (CSV)
+                          {t('canvas.train.saveTrainingLogs.label')}
                         </label>
                       </div>
                     </div>
@@ -817,18 +816,18 @@ export default function TrainTab() {
 
                 {/* Callbacks */}
                 <div className="mt-6">
-                  <h3 className="font-semibold text-foreground mb-3">Callbacks</h3>
+                  <h3 className="font-semibold text-foreground mb-3">{t('canvas.train.callbacks.title')}</h3>
                   <div className="space-y-4">
                     <div className="border border-border rounded p-3">
                       <label className="flex items-center gap-2 text-sm mb-2 text-foreground">
                         <input type="checkbox" checked={useEarlyStopping} onChange={(e) => setUseEarlyStopping(e.target.checked)} />
-                        EarlyStopping
+                        {t('canvas.train.earlyStopping.label')}
                       </label>
-                      <p className="-mt-1 mb-2 text-xs text-muted-foreground">Stop training when a monitored metric stops improving. Helps avoid overfitting and saves time.</p>
+                      <p className="-mt-1 mb-2 text-xs text-muted-foreground">{t('canvas.train.earlyStopping.help')}</p>
                       {useEarlyStopping && (
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-xs text-muted-foreground mb-1">Monitor</label>
+                            <label className="block text-xs text-muted-foreground mb-1">{t('canvas.metrics.monitor')}</label>
                             <select value={esMonitor} onChange={(e) => setEsMonitor(e.target.value)} className="w-full px-2 py-2 bg-background border border-border rounded text-sm">
                               <option value="val_loss">val_loss</option>
                               <option value="loss">loss</option>
@@ -837,31 +836,31 @@ export default function TrainTab() {
                               <option value="categorical_accuracy">categorical_accuracy</option>
                               <option value="binary_accuracy">binary_accuracy</option>
                             </select>
-                            <p className="mt-1 text-xs text-muted-foreground">Which metric to watch. For classification, prefer a relevant accuracy; for regression, use val_loss/loss.</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{t('canvas.train.metrics.watchHelp')}</p>
                           </div>
                           <div>
-                            <label className="block text-xs text-muted-foreground mb-1">Mode</label>
+                            <label className="block text-xs text-muted-foreground mb-1">{t('canvas.metrics.mode')}</label>
                             <select value={esMode} onChange={(e) => setEsMode(e.target.value as 'auto' | 'min' | 'max')} className="w-full px-2 py-2 bg-background border border-border rounded text-sm">
                               <option value="auto">auto</option>
                               <option value="min">min</option>
                               <option value="max">max</option>
                             </select>
-                            <p className="mt-1 text-xs text-muted-foreground">Choose "min" for losses (lower is better) and "max" for accuracies (higher is better). "auto" infers it.</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{t('canvas.train.metrics.chooseModeHelp')}</p>
                           </div>
                           <div>
-                            <label className="block text-xs text-muted-foreground mb-1">Patience</label>
+                            <label className="block text-xs text-muted-foreground mb-1">{t('canvas.metrics.patience')}</label>
                             <input type="number" min="0" value={esPatience} onChange={(e) => setEsPatience(Math.max(0, Number(e.target.value) || 0))} className="w-full px-2 py-2 bg-background border border-border rounded text-sm" />
-                            <p className="mt-1 text-xs text-muted-foreground">How many epochs with no improvement before stopping.</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{t('canvas.train.metrics.patienceHelp')}</p>
                           </div>
                           <div>
-                            <label className="block text-xs text-muted-foreground mb-1">Min delta</label>
+                            <label className="block text-xs text-muted-foreground mb-1">{t('canvas.metrics.minDelta')}</label>
                             <input type="number" step="any" value={esMinDelta} onChange={(e) => setEsMinDelta(Number(e.target.value) || 0)} className="w-full px-2 py-2 bg-background border border-border rounded text-sm" />
-                            <p className="mt-1 text-xs text-muted-foreground">Minimum change to qualify as an improvement (helps ignore tiny fluctuations).</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{t('canvas.train.metrics.minDeltaHelp')}</p>
                           </div>
                           <div className="col-span-2 flex items-center gap-2">
                             <input type="checkbox" checked={esRestoreBest} onChange={(e) => setEsRestoreBest(e.target.checked)} />
-                            <span className="text-sm text-foreground">Restore best weights</span>
-                            <span className="text-xs text-muted-foreground">After stopping, roll back to the best-performing epoch.</span>
+                            <span className="text-sm text-foreground">{t('canvas.train.restoreBest.label')}</span>
+                            <span className="text-xs text-muted-foreground">{t('canvas.train.restoreBest.help')}</span>
                           </div>
                         </div>
                       )}
@@ -870,13 +869,13 @@ export default function TrainTab() {
                     <div className="border border-border rounded p-3">
                       <label className="flex items-center gap-2 text-sm mb-2 text-foreground">
                         <input type="checkbox" checked={useReduceLR} onChange={(e) => setUseReduceLR(e.target.checked)} />
-                        ReduceLROnPlateau
+                        {t('canvas.train.reduceLr.label')}
                       </label>
-                      <p className="-mt-1 mb-2 text-xs text-muted-foreground">Reduce the learning rate when a metric has stopped improving to fine-tune training.</p>
+                      <p className="-mt-1 mb-2 text-xs text-muted-foreground">{t('canvas.train.reduceLr.help')}</p>
                       {useReduceLR && (
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-xs text-muted-foreground mb-1">Monitor</label>
+                            <label className="block text-xs text-muted-foreground mb-1">{t('canvas.metrics.monitor')}</label>
                             <select value={rlrMonitor} onChange={(e) => setRlrMonitor(e.target.value)} className="w-full px-2 py-2 bg-background border border-border rounded text-sm">
                               <option value="val_loss">val_loss</option>
                               <option value="loss">loss</option>
@@ -885,22 +884,22 @@ export default function TrainTab() {
                               <option value="categorical_accuracy">categorical_accuracy</option>
                               <option value="binary_accuracy">binary_accuracy</option>
                             </select>
-                            <p className="mt-1 text-xs text-muted-foreground">Metric used to decide when to reduce the learning rate.</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{t('canvas.train.reduceLr.metricHelp')}</p>
                           </div>
                           <div>
-                            <label className="block text-xs text-muted-foreground mb-1">Factor</label>
+                            <label className="block text-xs text-muted-foreground mb-1">{t('canvas.train.reduceLr.factorLabel')}</label>
                             <input type="number" step="any" min="0" max="1" value={rlrFactor} onChange={(e) => setRlrFactor(Number(e.target.value) || 0.1)} className="w-full px-2 py-2 bg-background border border-border rounded text-sm" />
-                            <p className="mt-1 text-xs text-muted-foreground">Multiplicative drop. Example: 0.1 will change 1e-3 to 1e-4.</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{t('canvas.train.reduceLr.factorHelp')}</p>
                           </div>
                           <div>
-                            <label className="block text-xs text-muted-foreground mb-1">Patience</label>
+                            <label className="block text-xs text-muted-foreground mb-1">{t('canvas.train.reduceLr.patienceLabel')}</label>
                             <input type="number" min="0" value={rlrPatience} onChange={(e) => setRlrPatience(Math.max(0, Number(e.target.value) || 0))} className="w-full px-2 py-2 bg-background border border-border rounded text-sm" />
-                            <p className="mt-1 text-xs text-muted-foreground">How many epochs with no improvement before reducing the learning rate.</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{t('canvas.train.reduceLr.patienceHelp')}</p>
                           </div>
                           <div>
-                            <label className="block text-xs text-muted-foreground mb-1">Min LR</label>
+                            <label className="block text-xs text-muted-foreground mb-1">{t('canvas.metrics.minLr')}</label>
                             <input type="number" step="any" min="0" value={rlrMinLR} onChange={(e) => setRlrMinLR(Math.max(0, Number(e.target.value) || 0))} className="w-full px-2 py-2 bg-background border border-border rounded text-sm" />
-                            <p className="mt-1 text-xs text-muted-foreground">Lower bound to stop decreasing LR. Typical: 1e-6 to 1e-7.</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{t('canvas.train.reduceLr.minLrHelp')}</p>
                           </div>
                         </div>
                       )}
@@ -910,13 +909,13 @@ export default function TrainTab() {
 
                 {/* Metrics Selection */}
                 <div className="mt-6">
-                  <h3 className="font-semibold text-foreground mb-4">Metrics</h3>
+                  <h3 className="font-semibold text-foreground mb-4">{t('canvas.train.metricsHeading')}</h3>
                   <div className="text-xs text-muted-foreground mb-2">
-                    Showing metrics suitable for {(() => {
+                    {(() => {
                       const ll = (loss || '').toLowerCase();
-                      if (ll.includes('sparse_categorical_crossentropy') || ll.includes('categorical_crossentropy') || ll.includes('binary_crossentropy')) return 'classification';
-                      return 'regression';
-                    })()} (based on selected loss).
+                      if (ll.includes('sparse_categorical_crossentropy') || ll.includes('categorical_crossentropy') || ll.includes('binary_crossentropy')) return t('canvas.train.metricsShowing.classification');
+                      return t('canvas.train.metricsShowing.regression');
+                    })()}
                   </div>
                   <div className="grid grid-cols-2 gap-2 max-h-48 overflow-auto pr-1">
                     {availableMetrics.map((name) => {
@@ -946,30 +945,38 @@ export default function TrainTab() {
           {/* Right column: training job status */}
           <div className="h-full overflow-auto">
             <div className="bg-card border border-border rounded-lg p-6 space-y-4">
-              <h3 className="font-semibold text-foreground">Training Job</h3>
+              <h3 className="font-semibold text-foreground">{t('canvas.train.job.title')}</h3>
               {!jobId ? (
                 <div className="text-sm text-muted-foreground">
-                  No job yet. Configure parameters on the left and click "Start Training" to begin.
+                  {t('canvas.train.job.noJobYet')}
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <div className="text-sm text-foreground">ID: <span className="font-mono">{jobId}</span></div>
-                  <div className="text-sm text-foreground">Status: {jobStatus || '—'}{typeof jobProgress === 'number' ? ` · ${(jobProgress * 100).toFixed(0)}%` : ''}</div>
+                  <div className="text-sm text-foreground">{t('canvas.train.job.idLabel')}: <span className="font-mono">{jobId}</span></div>
+                  <div className="text-sm text-foreground">{t('canvas.train.job.statusLabel')}: {(() => {
+                    if (!jobStatus) return '—';
+                    try {
+                      // translate known statuses (queued, running, succeeded, failed, cancelled)
+                      return t(`canvas.train.job.statuses.${jobStatus}`, { defaultValue: jobStatus });
+                    } catch (e) {
+                      return jobStatus;
+                    }
+                  })()}{typeof jobProgress === 'number' ? ` · ${(jobProgress * 100).toFixed(0)}%` : ''}</div>
                   {jobError && <div className="text-sm text-destructive">{jobError}</div>}
                   {jobStatus === 'running' && jobResult?.live && (
                     <div className="text-sm text-foreground mt-2">
-                      <div className="font-medium">Live</div>
+                      <div className="font-medium">{t('canvas.train.job.liveTitle')}</div>
                       <div className="text-xs text-muted-foreground">
                         {(() => {
                           const live = jobResult.live || {};
                           const parts: string[] = [];
-                          if (typeof live.epoch === 'number') parts.push(`epoch ${live.epoch}`);
-                          if (typeof live.loss === 'number') parts.push(`loss ${live.loss.toFixed(4)}`);
-                          if (typeof live.val_loss === 'number') parts.push(`val_loss ${live.val_loss.toFixed(4)}`);
-                          if (typeof live.accuracy === 'number') parts.push(`accuracy ${live.accuracy.toFixed(4)}`);
-                          if (typeof live.sparse_categorical_accuracy === 'number') parts.push(`sparse_categorical_accuracy ${live.sparse_categorical_accuracy.toFixed(4)}`);
-                          if (typeof live.categorical_accuracy === 'number') parts.push(`categorical_accuracy ${live.categorical_accuracy.toFixed(4)}`);
-                          if (typeof live.binary_accuracy === 'number') parts.push(`binary_accuracy ${live.binary_accuracy.toFixed(4)}`);
+                          if (typeof live.epoch === 'number') parts.push(t('canvas.train.live.epoch', { epoch: live.epoch }));
+                          if (typeof live.loss === 'number') parts.push(t('canvas.train.live.loss', { value: live.loss.toFixed(4) }));
+                          if (typeof live.val_loss === 'number') parts.push(t('canvas.train.live.val_loss', { value: live.val_loss.toFixed(4) }));
+                          if (typeof live.accuracy === 'number') parts.push(t('canvas.train.live.accuracy', { value: live.accuracy.toFixed(4) }));
+                          if (typeof live.sparse_categorical_accuracy === 'number') parts.push(t('canvas.train.live.sparse_categorical_accuracy', { value: live.sparse_categorical_accuracy.toFixed(4) }));
+                          if (typeof live.categorical_accuracy === 'number') parts.push(t('canvas.train.live.categorical_accuracy', { value: live.categorical_accuracy.toFixed(4) }));
+                          if (typeof live.binary_accuracy === 'number') parts.push(t('canvas.train.live.binary_accuracy', { value: live.binary_accuracy.toFixed(4) }));
                           return parts.join(' · ');
                         })()}
                       </div>
@@ -992,7 +999,7 @@ export default function TrainTab() {
                           variant="outline"
                           size="sm"
                         >
-                          Download Final Model
+                          {t('canvas.train.job.downloadFinal')}
                         </Button>
 
                         {/* Show Best Model button ONLY if artifact exists in result */}
@@ -1010,7 +1017,7 @@ export default function TrainTab() {
                             variant="outline"
                             size="sm"
                           >
-                            Download Best Model
+                            {t('canvas.train.job.downloadBest')}
                           </Button>
                         )}
 
@@ -1028,14 +1035,14 @@ export default function TrainTab() {
                             variant="outline"
                             size="sm"
                           >
-                            Download Logs (CSV)
+                            {t('canvas.train.job.downloadLogs')}
                           </Button>
                         )}
                       </div>
 
                       {/* Export Section */}
                       <div className="border-t border-border pt-2 mt-1">
-                        <div className="text-xs font-medium text-muted-foreground mb-2">Export Formats</div>
+                        <div className="text-xs font-medium text-muted-foreground mb-2">{t('canvas.train.job.exportFormats')}</div>
                         <div className="flex flex-wrap gap-2">
                           {/* ONNX export removed; only TFLite supported */}
 
@@ -1047,7 +1054,7 @@ export default function TrainTab() {
                               size="sm"
                               className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
                             >
-                              Download TFLite
+                              {t('canvas.train.job.downloadTflite')}
                             </Button>
                           ) : (
                             <Button
@@ -1059,7 +1066,7 @@ export default function TrainTab() {
                                   await networkGraphService.exportModel(jobId, 'tflite');
                                 } catch (e) {
                                   console.error(e);
-                                  setJobError('Export failed');
+                                  setJobError(t('canvas.train.errors.exportFailed'));
                                   setIsExporting(false);
                                 } finally {
                                   setExportingFormat(null);
@@ -1069,7 +1076,7 @@ export default function TrainTab() {
                               variant="outline"
                               size="sm"
                             >
-                              {exportingFormat === 'tflite' ? 'Exporting...' : 'Export to TFLite'}
+                              {exportingFormat === 'tflite' ? t('canvas.train.job.exporting') : t('canvas.train.job.exportToTflite')}
                             </Button>
                           )}
                         </div>
@@ -1097,7 +1104,7 @@ export default function TrainTab() {
                       ];
                     return (
                       <div className="mt-3">
-                        <div className="text-xs font-medium text-muted-foreground mb-1">Loss over epochs</div>
+                        <div className="text-xs font-medium text-muted-foreground mb-1">{t('canvas.train.legend.lossOverEpochs')}</div>
                         <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground mb-2">
                           {series.map((s) => (
                             <div key={s.label} className="flex items-center gap-1">
@@ -1106,7 +1113,7 @@ export default function TrainTab() {
                                 style={{ backgroundColor: s.color }}
                               />
                               <span className="capitalize">
-                                {s.label === 'val_loss' ? 'Validation loss' : 'Training loss'}
+                                {s.label === 'val_loss' ? t('canvas.train.legend.validationLoss') : t('canvas.train.legend.trainingLoss')}
                               </span>
                             </div>
                           ))}
@@ -1122,7 +1129,7 @@ export default function TrainTab() {
                   })()}
                   {!!jobResult && (
                     <div className="text-sm text-foreground mt-2">
-                      <div>Final metrics:</div>
+                      <div>{t('canvas.train.job.finalMetrics')}</div>
                       <pre className="bg-muted/30 p-2 rounded border border-border overflow-auto max-h-80 text-xs">{JSON.stringify(jobResult, null, 2)}</pre>
                     </div>
                   )}
