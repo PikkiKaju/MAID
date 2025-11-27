@@ -560,12 +560,12 @@
       "workspaceLabel": "Środowisko inferencji",
       "title": "Uruchom predykcje",
       "readyToPredict": "Gotowe do predykcji z ostatnim udanym wynikiem treningu.",
-      "trainToUnlock": "Przetrenuj model (status: succeeded), aby udostępnić narzędzia inferencyjne.",
+      "trainToUnlock": "Przetrenuj model (status: Sukces), aby udostępnić narzędzia inferencyjne.",
       "noModel": "Brak wytrenowanego modelu",
-      "finishTraining": "Dokończ sesję treningową (status: succeeded), aby włączyć narzędzia inferencyjne.",
+      "finishTraining": "Dokończ sesję treningową (status: Sukces), aby włączyć narzędzia inferencyjne.",
       "modelStatusLabel": "Status modelu",
       "notStarted": "nie rozpoczęto",
-      "onlySucceeded": "Tylko zadania o statusie succeeded mogą służyć do predykcji.",
+      "onlySucceeded": "Tylko zadania ze statusem \"Sukces\" mogą służyć do predykcji.",
       "datasetLabel": "Dataset",
       "activeDataset": "Aktywny zbiór danych",
       "rows": "wierszy",
@@ -738,7 +738,7 @@
         "statuses": {
           "queued": "W kolejce",
           "running": "W trakcie",
-          "succeeded": "Zakończono",
+          "succeeded": "Sukces",
           "failed": "Niepowiodło się",
           "cancelled": "Anulowano"
         },
@@ -758,6 +758,252 @@
         "trainingLoss": "Strata treningowa"
       }
     },
+    "instructions": {
+      "title": "Instrukcje",
+      "button": "Instrukcje",
+      "buttonTooltip": "Zobacz instrukcje krok po kroku dla tej zakładki",
+      "workflow": {
+        "title": "Zalecany przepływ pracy"
+      },
+      "canvas": {
+        "overview": {
+          "title": "Przegląd Kreatora Modelu",
+          "description": "Kreator Modelu to Twoja wizualna przestrzeń do budowania sieci neuronowych. Wyobraź to sobie jako schemat blokowy, gdzie łączysz różne elementy składowe (warstwy), aby stworzyć swój model AI. Bez kodowania!",
+          "imagePlaceholder": "Zrzut ekranu kreatora z połączonymi warstwami"
+        },
+        "gettingStarted": {
+          "title": "Rozpoczęcie pracy",
+          "step1": "Spójrz na lewy pasek boczny - zobaczysz dostępne warstwy jak Input, Dense, Dropout itp.",
+          "step2": "Przeciągnij warstwę z paska bocznego i upuść ją na kanwę.",
+          "step3": "Kliknij na dowolną warstwę, aby skonfigurować jej parametry w prawym panelu.",
+          "step4": "Połącz warstwy przeciągając z wyjścia jednej warstwy do wejścia innej.",
+          "step5": "Kliknij 'Kompiluj' na pasku narzędzi, aby sprawdzić architekturę modelu.",
+          "imagePlaceholder": "Animacja pokazująca przeciąganie i upuszczanie"
+        },
+        "layers": {
+          "title": "Zrozumienie warstw",
+          "description": "Każdy typ warstwy służy określonemu celowi, na przykład:",
+          "input": "Punkt wejścia dla Twoich danych. Ustaw kształt odpowiadający cechom zestawu danych.",
+          "dense": "Warstwa w pełni połączona - podstawa sieci neuronowych. Świetna do uczenia wzorców.",
+          "conv2d": "Warstwa konwolucyjna dla danych obrazowych. Wykrywa wzorce jak krawędzie i kształty.",
+          "maxpool": "Zmniejsza rozmiar danych zachowując ważne cechy. Często używana po Conv2D.",
+          "dropout": "Losowo 'wyłącza' neurony podczas treningu, aby zapobiec przeuczeniu.",
+          "flatten": "Konwertuje dane wielowymiarowe na 1D. Wymagana przed warstwami Dense w CNN.",
+          "batchnorm": "Normalizuje wyjścia warstwy dla szybszego, bardziej stabilnego treningu."
+        },
+        "tips": {
+          "title": "Wskazówki",
+          "tip1": "Zawsze zaczynaj od warstwy Input i dopasuj jej kształt do danych.",
+          "tip2": "Dla danych tabelarycznych używaj warstw Dense. Dla obrazów zacznij od Conv2D.",
+          "tip3": "Dodaj Dropout (0.2-0.5) między warstwami Dense, aby zapobiec przeuczeniu.",
+          "tip4": "Używaj przycisku Kompiluj często, aby wcześnie wyłapywać błędy architektury."
+        },
+        "toolbar": {
+          "title": "Akcje paska narzędzi",
+          "save": "Zapisz",
+          "saveDesc": "Zapisz model na swoim koncie do późniejszego użycia.",
+          "load": "Wczytaj",
+          "loadDesc": "Wczytaj wcześniej zapisany model.",
+          "compile": "Kompiluj",
+          "compileDesc": "Sprawdź poprawność modelu i wykryj błędy.",
+          "importExport": "Import/Eksport",
+          "importExportDesc": "Importuj plik JSON Grafu bądź Keras lub eksportuj model jako kod Python."
+        }
+      },
+      "summary": {
+        "overview": {
+          "title": "Przegląd Podsumowania Modelu",
+          "description": "Zakładka Podsumowanie Modelu pokazuje pełną architekturę sieci neuronowej w formie tabeli, włączając typy warstw, kształty wyjść i liczbę parametrów.",
+          "imagePlaceholder": "Zrzut ekranu tabeli podsumowania modelu"
+        },
+        "howToUse": {
+          "title": "Jak używać",
+          "step1": "Najpierw zbuduj model w zakładce Kreator ze wszystkimi połączonymi warstwami.",
+          "step2": "Kliknij 'Generuj podsumowanie', aby skompilować i przeanalizować model.",
+          "step3": "Przejrzyj tabelę, aby zrozumieć strukturę i złożoność modelu."
+        },
+        "understanding": {
+          "title": "Zrozumienie podsumowania",
+          "layerType": "Warstwa (Typ)",
+          "layerTypeDesc": "Nazwa i typ każdej warstwy w kolejności przepływu danych.",
+          "outputShape": "Kształt wyjścia",
+          "outputShapeDesc": "Wymiary danych po przejściu przez tę warstwę. 'None' oznacza rozmiar partii.",
+          "params": "Liczba param.",
+          "paramsDesc": "Liczba trenowalnych parametrów (wagi i biasy) w tej warstwie."
+        },
+        "tips": {
+          "title": "Na co zwrócić uwagę",
+          "tip1": "Całkowita liczba parametrów wpływa na czas treningu i zużycie pamięci - miliony parametrów wymagają więcej danych.",
+          "tip2": "Sprawdzaj kształty wyjść, aby upewnić się, że dane przepływają poprawnie przez sieć.",
+          "tip3": "Jeśli widzisz nieoczekiwane kształty, zweryfikuj konfiguracje warstw."
+        }
+      },
+      "dataset": {
+        "overview": {
+          "title": "Przegląd Menedżera Zbiorów Danych",
+          "description": "Zakładka Zbiór danych to miejsce, gdzie przygotowujesz dane do treningu. Dobre przygotowanie danych jest kluczowe dla wydajności modelu - często jest to ważniejsze niż sama architektura modelu!",
+          "imagePlaceholder": "Zrzut ekranu menedżera zbiorów danych z podglądem"
+        },
+        "uploading": {
+          "title": "Ładowanie danych",
+          "step1": "Kliknij 'Wybierz plik CSV', aby przesłać lokalny plik CSV, lub 'Wczytaj z bazy' jeśli masz zapisane zbiory danych.",
+          "step2": "Twoje dane zostaną wyświetlone w tabeli podglądu pokazującej pierwsze wiersze.",
+          "step3": "System automatycznie wykrywa typy kolumn (numeryczne, kategoryczne itp.)."
+        },
+        "columnConfig": {
+          "title": "Konfiguracja kolumn",
+          "description": "Dla każdej kolumny przypisz rolę:",
+          "feature": "Cecha",
+          "featureDesc": "Zmienne wejściowe, z których model będzie się uczyć (np. wiek, dochód, pomiary).",
+          "target": "Cel",
+          "targetDesc": "Wartość, którą chcesz przewidzieć. Musisz wybrać dokładnie jedną kolumnę docelową.",
+          "ignore": "Ignoruj",
+          "ignoreDesc": "Kolumny do wykluczenia z treningu (np. kolumny ID, nazwy)."
+        },
+        "preprocessing": {
+          "title": "Przetwarzanie wstępne danych",
+          "description": "Skonfiguruj, jak Twoje dane powinny być przekształcone przed treningiem:",
+          "encoding": "Kodowanie kategoryczne",
+          "labelEncoding": "Kodowanie etykiet: Konwertuje kategorie na liczby (Kot=0, Pies=1, Ptak=2).",
+          "oneHotEncoding": "Kodowanie One-Hot: Tworzy osobne kolumny dla każdej kategorii (lepsze dla kategorii nieuporządkowanych).",
+          "missing": "Strategia brakujących wartości",
+          "missingDesc": "Jak obsługiwać brakujące dane - wypełnij średnią/medianą/modą lub usuń wiersze.",
+          "normalization": "Normalizacja",
+          "standard": "Skalowanie standardowe (Z-score): Centruje dane wokół 0 z odchyleniem standardowym 1.",
+          "minmax": "Skalowanie Min-Max: Skaluje wartości do zakresu [0, 1]."
+        },
+        "splitting": {
+          "title": "Podział danych",
+          "description": "Twoje dane są dzielone na trzy zestawy:",
+          "train": "Zbiór treningowy",
+          "trainDesc": "Używany do uczenia modelu (większość danych).",
+          "validation": "Zbiór walidacyjny",
+          "validationDesc": "Używany do dostrajania hiperparametrów i zapobiegania przeuczeniu.",
+          "test": "Zbiór testowy",
+          "testDesc": "Używany do końcowej oceny - nigdy nie widziany podczas treningu."
+        },
+        "important": {
+          "title": "Ważne uwagi",
+          "warning1": "MUSISZ wybrać kolumnę docelową przed przetwarzaniem.",
+          "warning2": "Kliknij 'Przetwórz zbiór danych' po skonfigurowaniu wszystkich ustawień.",
+          "warning3": "Zielona plakietka 'Gotowy do treningu' oznacza, że dane są przygotowane."
+        }
+      },
+      "train": {
+        "overview": {
+          "title": "Przegląd konfiguracji treningu",
+          "description": "Tutaj konfigurujesz, jak Twoja sieć neuronowa się uczy. Trening to proces, w którym model dostosowuje swoje wagi ucząc się z danych.",
+          "imagePlaceholder": "Zrzut ekranu panelu konfiguracji treningu"
+        },
+        "beforeTraining": {
+          "title": "Przed rozpoczęciem",
+          "description": "Upewnij się, że te wymagania są spełnione:",
+          "req1": "Model jest skompilowany (zakładka Kreator → przycisk Kompiluj pokazuje sukces).",
+          "req2": "Zbiór danych jest przetworzony (zakładka Zbiór danych pokazuje 'Gotowy do treningu').",
+          "req3": "Kolumna docelowa jest poprawnie ustawiona w przetwarzaniu wstępnym zbioru danych."
+        },
+        "compilation": {
+          "title": "Ustawienia kompilacji",
+          "optimizer": "Optymalizator",
+          "optimizerDesc": "Kontroluje, jak model aktualizuje wagi. 'adam' to świetny domyślny wybór, który działa dobrze w większości przypadków.",
+          "loss": "Funkcja straty",
+          "lossRegression": "Dla regresji (przewidywanie liczb): przykładowo MeanSquaredError (MSE) lub MeanAbsoluteError (MAE).",
+          "lossBinary": "Dla klasyfikacji binarnej (tak/nie): Użyj 'BinaryCrossentropy'.",
+          "lossMulticlass": "Dla wielu klas: Użyj 'CategoricalCrossentropy' (etykiety one-hot) lub 'SparseCategoricalCrossentropy' (etykiety całkowite)."
+        },
+        "hyperparameters": {
+          "title": "Parametry treningu",
+          "epochs": "Epoki",
+          "epochsDesc": "Ile razy model widzi cały zbiór danych. Zacznij od 10-50, zwiększ jeśli potrzeba.",
+          "batchSize": "Rozmiar partii",
+          "batchSizeDesc": "Liczba próbek przetwarzanych przed aktualizacją wag. 32 to dobra wartość domyślna.",
+          "learningRate": "Współczynnik uczenia",
+          "learningRateDesc": "Jak duży jest każdy krok uczenia. Zostaw puste dla domyślnej wartości optymalizatora (zazwyczaj 0.001)."
+        },
+        "callbacks": {
+          "title": "Callbacki (Opcjonalne)",
+          "earlyStopping": "Wczesne zatrzymanie",
+          "earlyStoppingDesc": "Zatrzymuje trening, gdy model przestaje się poprawiać, zapobiegając marnowaniu czasu i przeuczeniu.",
+          "reduceLr": "Redukcja współczynnika uczenia na plateau",
+          "reduceLrDesc": "Automatycznie zmniejsza współczynnik uczenia, gdy nauka staje, pomagając wyjść z lokalnych minimów."
+        },
+        "metricsTitle": "Sprawdź Metryki",
+        "metricsBlurb": "Wybierane tutaj metryki decydują, które wykresy i wartości pojawią się w zakładce Metryki po zakończeniu treningu - skorzystaj z nich, by porównać stratę, stratę walidacyjną, dokładność i inne wskaźniki.",
+        "tips": {
+          "title": "Wskazówki treningowe",
+          "tip1": "Zacznij od ustawień domyślnych i dostosuj na podstawie wyników.",
+          "tip2": "Obserwuj stratę walidacyjną - jeśli rośnie, podczas gdy strata treningowa maleje, masz przeuczenie.",
+          "tip3": "Włącz Wczesne zatrzymanie dla dłuższych sesji treningowych, aby oszczędzić czas.",
+          "tip4": "Sprawdź zakładkę Metryki po treningu, aby ocenić wydajność modelu."
+        }
+      },
+      "metrics": {
+        "overview": {
+          "title": "Przegląd panelu metryk",
+          "description": "Zakładka Metryki wyświetla szczegółowe wyniki po zakończeniu treningu. Użyj tych wizualizacji, aby zrozumieć, jak dobrze model się nauczył i czy generalizuje na nowe dane.",
+          "imagePlaceholder": "Zrzut ekranu panelu metryk z wykresami"
+        },
+        "keyMetrics": {
+          "title": "Wyjaśnienie kluczowych metryk",
+          "loss": "Strata",
+          "lossDesc": "Mierzy, jak bardzo błędne są przewidywania modelu. Niższa jest lepsza. Powinna maleć w czasie epok.",
+          "accuracy": "Dokładność",
+          "accuracyDesc": "Procent poprawnych przewidywań (dla klasyfikacji). Wyższa jest lepsza.",
+          "valMetrics": "Metryki walidacyjne",
+          "valMetricsDesc": "Te same metryki, ale na danych, na których model nie trenował. Pokazują rzeczywistą wydajność."
+        },
+        "charts": {
+          "title": "Wykresy i wizualizacje",
+          "description": "Narzędzia wizualne do zrozumienia zachowania modelu:",
+          "lossChart": "Strata w czasie epok: Pokazuje, jak strata malała podczas treningu.",
+          "accuracyChart": "Dokładność w czasie epok: Pokazuje postęp uczenia dla zadań klasyfikacji.",
+          "confusionMatrix": "Macierz pomyłek: Pokazuje, które klasy model myli (dla klasyfikacji).",
+          "rocCurve": "Krzywa ROC: Mierzy kompromis między prawdziwie pozytywnymi a fałszywie pozytywnymi."
+        },
+        "interpreting": {
+          "title": "Interpretacja wyników",
+          "tip1": "Strata treningowa i walidacyjna powinny obie maleć - jeśli walidacyjna rośnie, masz przeuczenie.",
+          "tip2": "Duża różnica między dokładnością treningową a walidacyjną sugeruje przeuczenie.",
+          "tip3": "Jeśli obie metryki są słabe, spróbuj bardziej złożonego modelu lub więcej danych treningowych.",
+          "tip4": "Wczesne zatrzymanie pokazuje, czy trening zakończył się przed maksymalną liczbą epok - to zazwyczaj dobrze! Niektóre wykresy lub elementy metryk mogą nie pojawić się dla każdego modelu, w zależności od zadania i wybranych metryk."
+        }
+      },
+      "inference": {
+        "overview": {
+          "title": "Przegląd inferencji",
+          "description": "Inferencja to używanie wytrenowanego modelu do przewidywania na nowych danych. To efekt Twojej pracy — teraz możesz faktycznie używać modelu do przewidywań!",
+          "imagePlaceholder": "Zrzut ekranu interfejsu inferencji"
+        },
+        "prerequisites": {
+          "title": "Wymagania wstępne",
+          "req1": "Trening musi być ukończony ze statusem 'Sukces'.",
+          "req2": "Wytrenowany model musi być dostępny na serwerze.",
+          "req3": "Nowe dane muszą mieć te same cechy (kolumny) co dane treningowe."
+        },
+        "inputMethods": {
+          "title": "Metody wprowadzania",
+          "description": "Dwa sposoby dostarczania danych do przewidywań:",
+          "json": "Tryb JSON",
+          "jsonDesc": "Wklej lub wpisz JSON bezpośrednio. Dobry do testowania z kilkoma próbkami.",
+          "csv": "Tryb CSV",
+          "csvDesc": "Prześlij plik CSV. Najlepszy do przewidywań wsadowych na wielu próbkach."
+        },
+        "howToUse": {
+          "title": "Wykonywanie przewidywań",
+          "step1": "Wybierz metodę wprowadzania (JSON lub CSV).",
+          "step2": "Podaj dane w poprawnym formacie - użyj przycisków szablonu dla pomocy.",
+          "step3": "Włącz 'Zastosuj normalizację' jeśli dane treningowe były znormalizowane.",
+          "step4": "Kliknij 'Uruchom wnioskowanie', aby uzyskać przewidywania.",
+          "step5": "Przejrzyj wyniki i pobierz lub skopiuj według potrzeb."
+        },
+        "tips": {
+          "title": "Wskazówki",
+          "tip1": "Kolejność cech musi dokładnie odpowiadać tej, na której model był trenowany.",
+          "tip2": "Dla klasyfikacji wyniki to tablice prawdopodobieństw - najwyższa wartość to przewidziana klasa.",
+          "tip3": "Pobierz szablon, aby upewnić się, że format danych jest poprawny."
+        }
+      }
+    },
     "loadModal": {
       "title": "Wczytaj zapisany graf",
       "description": "Wybierz wcześniej zapisany graf sieci do załadowania na kanwę",
@@ -774,8 +1020,7 @@
       "load": "Wczytaj",
       "deleteConfirm": "Usunąć?",
       "na": "Brak"
-    }
-    ,
+    },
     "actions": {
       "removeNode": "Usuń węzeł",
       "removeConnection": "Usuń połączenie"

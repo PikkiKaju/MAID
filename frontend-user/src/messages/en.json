@@ -756,6 +756,252 @@
         "trainingLoss": "Training loss"
       }
     },
+    "instructions": {
+      "title": "Instructions",
+      "button": "Instructions",
+      "buttonTooltip": "View step-by-step instructions for using this tab",
+      "workflow": {
+        "title": "Recommended Workflow"
+      },
+      "canvas": {
+        "overview": {
+          "title": "Model Canvas Overview",
+          "description": "The Model Canvas is your visual workspace for building neural networks. Think of it as a flowchart where you connect different building blocks (layers) to create your AI model. No coding required!",
+          "imagePlaceholder": "Screenshot of the canvas with layers connected"
+        },
+        "gettingStarted": {
+          "title": "Getting Started",
+          "step1": "Look at the left sidebar - you'll see available layers like Input, Dense, Dropout, etc.",
+          "step2": "Drag a layer from the sidebar and drop it onto the canvas.",
+          "step3": "Click on any layer to configure its parameters in the right panel.",
+          "step4": "Connect layers by dragging from one layer's output to another's input.",
+          "step5": "Click 'Compile' in the toolbar to validate your model architecture.",
+          "imagePlaceholder": "Animation showing drag and drop"
+        },
+        "layers": {
+          "title": "Understanding Layers",
+          "description": "Each layer type serves a specific purpose, for example:",
+          "input": "The entry point for your data. Set the shape to match your dataset features.",
+          "dense": "Fully connected layer - the workhorse of neural networks. Great for learning patterns.",
+          "conv2d": "Convolutional layer for image data. Detects patterns like edges and shapes.",
+          "maxpool": "Reduces data size while keeping important features. Often used after Conv2D.",
+          "dropout": "Randomly 'turns off' neurons during training to prevent overfitting.",
+          "flatten": "Converts multi-dimensional data to 1D. Required before Dense layers in CNNs.",
+          "batchnorm": "Normalizes layer outputs for faster, more stable training."
+        },
+        "tips": {
+          "title": "Pro Tips",
+          "tip1": "Always start with an Input layer and match its shape to your data.",
+          "tip2": "For tabular data, use Dense layers. For images, start with Conv2D.",
+          "tip3": "Add Dropout (0.2-0.5) between Dense layers to prevent overfitting.",
+          "tip4": "Use the Compile button frequently to catch architecture errors early."
+        },
+        "toolbar": {
+          "title": "Toolbar Actions",
+          "save": "Save",
+          "saveDesc": "Save your model to your account for later use.",
+          "load": "Load",
+          "loadDesc": "Load a previously saved model.",
+          "compile": "Compile",
+          "compileDesc": "Validate your model and check for errors.",
+          "importExport": "Import/Export",
+          "importExportDesc": "Import Keras or graph JSON or export your model as Python code."
+        }
+      },
+      "summary": {
+        "overview": {
+          "title": "Model Summary Overview",
+          "description": "The Model Summary tab shows you the complete architecture of your neural network in a table format, including layer types, output shapes, and parameter counts.",
+          "imagePlaceholder": "Screenshot of model summary table"
+        },
+        "howToUse": {
+          "title": "How to Use",
+          "step1": "First, build your model in the Canvas tab with all layers connected.",
+          "step2": "Click 'Generate Summary' to compile and analyze your model.",
+          "step3": "Review the table to understand your model's structure and complexity."
+        },
+        "understanding": {
+          "title": "Understanding the Summary",
+          "layerType": "Layer (Type)",
+          "layerTypeDesc": "The name and type of each layer in order of data flow.",
+          "outputShape": "Output Shape",
+          "outputShapeDesc": "The dimensions of data after passing through this layer. 'None' represents batch size.",
+          "params": "Param #",
+          "paramsDesc": "The number of trainable parameters (weights and biases) in this layer."
+        },
+        "tips": {
+          "title": "What to Look For",
+          "tip1": "Total parameters affect training time and memory usage - millions of params need more data.",
+          "tip2": "Check output shapes to ensure data flows correctly through your network.",
+          "tip3": "If you see unexpected shapes, verify your layer configurations."
+        }
+      },
+      "dataset": {
+        "overview": {
+          "title": "Dataset Manager Overview",
+          "description": "The Dataset tab is where you prepare your data for training. Good data preparation is crucial for model performance - this is often more important than the model architecture itself!",
+          "imagePlaceholder": "Screenshot of dataset manager with data preview"
+        },
+        "uploading": {
+          "title": "Loading Your Data",
+          "step1": "Click 'Choose CSV File' to upload a local CSV file, or 'Load from Database' if you have saved datasets.",
+          "step2": "Your data will be displayed in a preview table showing the first rows.",
+          "step3": "The system automatically detects column types (numeric, categorical, etc.)."
+        },
+        "columnConfig": {
+          "title": "Column Configuration",
+          "description": "For each column, assign a role:",
+          "feature": "Feature",
+          "featureDesc": "Input variables the model will learn from (e.g., age, income, measurements).",
+          "target": "Target",
+          "targetDesc": "The value you want to predict. You must select exactly one target column.",
+          "ignore": "Ignore",
+          "ignoreDesc": "Columns to exclude from training (e.g., ID columns, names)."
+        },
+        "preprocessing": {
+          "title": "Data Preprocessing",
+          "description": "Configure how your data should be transformed before training:",
+          "encoding": "Categorical Encoding",
+          "labelEncoding": "Label Encoding: Converts categories to numbers (Cat=0, Dog=1, Bird=2).",
+          "oneHotEncoding": "One-Hot Encoding: Creates separate columns for each category (better for unordered categories).",
+          "missing": "Missing Value Strategy",
+          "missingDesc": "How to handle missing data - fill with mean/median/mode or remove rows.",
+          "normalization": "Normalization",
+          "standard": "Standard Scaling (Z-score): Centers data around 0 with standard deviation of 1.",
+          "minmax": "Min-Max Scaling: Scales values to range [0, 1]."
+        },
+        "splitting": {
+          "title": "Data Splitting",
+          "description": "Your data is split into three sets:",
+          "train": "Training Set",
+          "trainDesc": "Used to teach the model (majority of data).",
+          "validation": "Validation Set",
+          "validationDesc": "Used to tune hyperparameters and prevent overfitting.",
+          "test": "Test Set",
+          "testDesc": "Used for final evaluation - never seen during training."
+        },
+        "important": {
+          "title": "Important Notes",
+          "warning1": "You MUST select a target column before processing.",
+          "warning2": "Click 'Process Dataset' after configuring all settings.",
+          "warning3": "The green 'Ready for Training' badge indicates your data is prepared."
+        }
+      },
+      "train": {
+        "overview": {
+          "title": "Training Configuration Overview",
+          "description": "This is where you configure how your neural network learns. Training is the process where the model adjusts its weights by learning from your data.",
+          "imagePlaceholder": "Screenshot of training configuration panel"
+        },
+        "beforeTraining": {
+          "title": "Before You Start",
+          "description": "Ensure these prerequisites are met:",
+          "req1": "Model is compiled (Canvas tab → Compile button shows success).",
+          "req2": "Dataset is processed (Dataset tab shows 'Ready for Training').",
+          "req3": "Target column is correctly set in dataset preprocessing."
+        },
+        "compilation": {
+          "title": "Compilation Settings",
+          "optimizer": "Optimizer",
+          "optimizerDesc": "Controls how the model updates weights. 'adam' is a great default that works well for most cases.",
+          "loss": "Loss Function",
+          "lossRegression": "For regression (predicting numbers): examples include MeanSquaredError (MSE) or MeanAbsoluteError (MAE).",
+          "lossBinary": "For binary classification (yes/no): Use 'BinaryCrossentropy'.",
+          "lossMulticlass": "For multiple classes: Use 'CategoricalCrossentropy' (one-hot labels) or 'SparseCategoricalCrossentropy' (integer labels)."
+        },
+        "hyperparameters": {
+          "title": "Training Parameters",
+          "epochs": "Epochs",
+          "epochsDesc": "Number of times the model sees the entire dataset. Start with 10-50, increase if needed.",
+          "batchSize": "Batch Size",
+          "batchSizeDesc": "Number of samples processed before updating weights. 32 is a good default.",
+          "learningRate": "Learning Rate",
+          "learningRateDesc": "How big each learning step is. Leave empty for optimizer default (usually 0.001)."
+        },
+        "callbacks": {
+          "title": "Callbacks (Optional)",
+          "earlyStopping": "Early Stopping",
+          "earlyStoppingDesc": "Stops training when the model stops improving, preventing wasted time and overfitting.",
+          "reduceLr": "Reduce Learning Rate on Plateau",
+          "reduceLrDesc": "Automatically decreases learning rate when learning stalls, helping escape local minima."
+        },
+        "metricsTitle": "Inspect Metrics",
+        "metricsBlurb": "The metrics you pick here determine which charts and values appear in the Metrics tab after training finishes - use that tab to compare loss, validation loss, accuracy, and other relevant scores.",
+        "tips": {
+          "title": "Training Tips",
+          "tip1": "Start with default settings and adjust based on results.",
+          "tip2": "Watch the validation loss - if it increases while training loss decreases, you're overfitting.",
+          "tip3": "Enable Early Stopping for longer training runs to save time.",
+          "tip4": "Check the Metrics tab after training to evaluate model performance."
+        }
+      },
+      "metrics": {
+        "overview": {
+          "title": "Metrics Dashboard Overview",
+          "description": "The Metrics tab displays detailed results after training completes. Use these visualizations to understand how well your model learned and whether it generalizes to new data.",
+          "imagePlaceholder": "Screenshot of metrics dashboard with charts"
+        },
+        "keyMetrics": {
+          "title": "Key Metrics Explained",
+          "loss": "Loss",
+          "lossDesc": "Measures how wrong the model's predictions are. Lower is better. Should decrease over epochs.",
+          "accuracy": "Accuracy",
+          "accuracyDesc": "Percentage of correct predictions (for classification). Higher is better.",
+          "valMetrics": "Validation Metrics",
+          "valMetricsDesc": "Same metrics but on data the model hasn't trained on. Shows real-world performance."
+        },
+        "charts": {
+          "title": "Charts and Visualizations",
+          "description": "Visual tools to understand model behavior:",
+          "lossChart": "Loss Over Epochs: Shows how loss decreased during training.",
+          "accuracyChart": "Accuracy Over Epochs: Shows learning progress for classification tasks.",
+          "confusionMatrix": "Confusion Matrix: Shows which classes the model confuses (for classification).",
+          "rocCurve": "ROC Curve: Measures the tradeoff between true positives and false positives."
+        },
+        "interpreting": {
+          "title": "Interpreting Results",
+          "tip1": "Training and validation loss should both decrease - if validation increases, you're overfitting.",
+          "tip2": "A large gap between training and validation accuracy suggests overfitting.",
+          "tip3": "If both metrics are poor, try a more complex model or more training data.",
+          "tip4": "Early stopping shows if training ended before max epochs - this is usually good! Some charts or metric items may not appear for every model depending on the task and which metrics were selected."
+        }
+      },
+      "inference": {
+        "overview": {
+          "title": "Inference Overview",
+          "description": "Inference is using your trained model to make predictions on new data. This is the payoff for all your work - now you can actually use your model!",
+          "imagePlaceholder": "Screenshot of inference interface"
+        },
+        "prerequisites": {
+          "title": "Prerequisites",
+          "req1": "Training must be complete with status 'succeeded'.",
+          "req2": "Your trained model must be available on the server.",
+          "req3": "New data must have the same features (columns) as training data."
+        },
+        "inputMethods": {
+          "title": "Input Methods",
+          "description": "Two ways to provide data for predictions:",
+          "json": "JSON Mode",
+          "jsonDesc": "Paste or type JSON directly. Good for testing with a few samples.",
+          "csv": "CSV Mode",
+          "csvDesc": "Upload a CSV file. Best for batch predictions on many samples."
+        },
+        "howToUse": {
+          "title": "Making Predictions",
+          "step1": "Choose your input method (JSON or CSV).",
+          "step2": "Provide your data in the correct format - use the template buttons for help.",
+          "step3": "Enable 'Apply Normalization' if your training data was normalized.",
+          "step4": "Click 'Run Inference' to get predictions.",
+          "step5": "Review results and download or copy as needed."
+        },
+        "tips": {
+          "title": "Tips",
+          "tip1": "Feature order must match exactly what the model was trained on.",
+          "tip2": "For classification, results are probability arrays - highest value is the predicted class.",
+          "tip3": "Download the template to ensure your data format is correct."
+        }
+      }
+    },
     "loadModal": {
       "title": "Load Saved Graph",
       "description": "Select a previously saved network graph to load onto the canvas",
@@ -770,8 +1016,7 @@
       "load": "Load",
       "deleteConfirm": "Delete?",
       "na": "N/A"
-    }
-    ,
+    },
     "actions": {
       "removeNode": "Remove node",
       "removeConnection": "Remove connection"

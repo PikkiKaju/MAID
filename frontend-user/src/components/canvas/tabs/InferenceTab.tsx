@@ -206,6 +206,14 @@ export default function InferenceTab() {
         }
     })();
 
+    // Translate job status for display (falls back to raw jobStatus if translation missing)
+    const statusLabel = (() => {
+        if (!jobStatus) return t('canvas.inference.notStarted');
+        const key = `canvas.train.job.statuses.${jobStatus}`;
+        const txt = t(key);
+        return txt === key ? jobStatus : txt;
+    })();
+
     const featureChips = featureList.slice(0, 15);
     const extraFeatureCount = featureList.length - featureChips.length;
 
@@ -292,7 +300,7 @@ export default function InferenceTab() {
                 <div className="bg-card border border-border rounded-lg p-4 space-y-2">
                     <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('canvas.inference.modelStatusLabel')}</div>
                     <div className="flex items-center gap-2">
-                        <span className={statusBadgeClass}>{jobStatus || t('canvas.inference.notStarted')}</span>
+                        <span className={statusBadgeClass}>{statusLabel}</span>
                         {jobId && <span className="text-xs text-muted-foreground">{t('canvas.inference.jobLabel', { id: jobId })}</span>}
                     </div>
                     <div className="text-xs text-muted-foreground">{t('canvas.inference.onlySucceeded')}</div>
