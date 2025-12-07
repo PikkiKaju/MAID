@@ -13,7 +13,7 @@ services:
       - MongoDB__ConnectionString=mongodb://mongo:27017
       - MongoDB__DatabaseName=mydb
       - PostgreSQL__ConnectionString=Host=postgres;Port=5432;Database=maid_app;Username=aspdotnet;Password=aspdotnet
-      - DJANGO_BASE_URL=http://host.docker.internal:8000
+      - DJANGO_BASE_URL=http://django:8000
     depends_on:
       postgres:
         condition: service_healthy
@@ -97,6 +97,9 @@ services:
     build:
       context: ./frontend-user
       dockerfile: Dockerfile
+      args:
+        ASP_NET_BASE_URL: "http://host.docker.internal:5000"
+        DJANGO_BASE_URL: "http://host.docker.internal:8000"
     mem_limit: 128m
     ports:
       - "3000:80"
@@ -106,8 +109,8 @@ services:
       - backend
       - django
     environment:
-      - VITE_ASP_NET_BASE_URL=http://host.docker.internal:5000
-      - VITE_DJANGO_BASE_URL=http://host.docker.internal:8000
+      - VITE_ASP_NET_BASE_URL=http://backend:8080
+      - VITE_DJANGO_BASE_URL=http://django:8000
 
   admin-panel:
     build:
@@ -165,6 +168,7 @@ services:
       - "5001:5432" # Tutaj zmieniłem na 5001, u was to działa na 5432
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./postgres_init:/docker-entrypoint-initdb.d:ro
 
   redis:
     image: redis:7-alpine
